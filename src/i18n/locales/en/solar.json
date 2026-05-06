@@ -1,0 +1,120 @@
+{
+  "ui": {
+    "level_selector": {
+      "explorador": "Explorer",
+      "aprendiz": "Apprentice",
+      "investigador": "Researcher"
+    },
+    "tour": {
+      "start": "Start tour",
+      "stop": "Stop tour",
+      "pause": "Pause",
+      "resume": "Resume",
+      "next": "Next",
+      "skip": "Skip tour"
+    },
+    "camera": {
+      "back_to_overview": "Back to overview",
+      "focus_planet": "Focus planet"
+    },
+    "attribution": "Textures courtesy of Solar System Scope (CC BY 4.0)",
+    "scale_note": "Distances and sizes are not to real scale",
+    "loading": "Loading the Solar System…"
+  },
+  "mercury": {
+    "name": "Mercury",
+    "explorador": { "description": "The smallest planet and the closest to the Sun." },
+    "aprendiz": { "description": "Mercury orbits the Sun in just 88 Earth days." },
+    "investigador": {
+      "description": "Orbital eccentricity 0.2056. No appreciable atmosphere. Large iron core for its size."
+    },
+    "curiosity": "A solar day on Mercury lasts longer than its own year."
+  },
+  "venus": {
+    "name": "Venus",
+    "explorador": { "description": "The hottest planet. Hotter than Mercury!" },
+    "aprendiz": { "description": "Venus has a thick CO₂ atmosphere that traps heat." },
+    "investigador": {
+      "description": "Extreme greenhouse effect: surface ~737 K. Retrograde rotation (243 days)."
+    },
+    "curiosity": "On Venus, the Sun rises in the west."
+  },
+  "earth": {
+    "name": "Earth",
+    "explorador": { "description": "Our home. It has water, air and life." },
+    "aprendiz": {
+      "description": "Earth is the only known planet with surface liquid water and life."
+    },
+    "investigador": {
+      "description": "Third planet. N₂/O₂ atmosphere. Active plate tectonics. One stabilising large moon."
+    },
+    "curiosity": "Earth is not a perfect sphere: it is flattened at the poles."
+  },
+  "mars": {
+    "name": "Mars",
+    "explorador": { "description": "The red planet. It has very large volcanoes." },
+    "aprendiz": {
+      "description": "Mars has polar ice caps and the largest volcano in the Solar System."
+    },
+    "investigador": {
+      "description": "Thin CO₂ atmosphere (~6 mbar). Olympus Mons: 22 km tall. Two small moons: Phobos and Deimos."
+    },
+    "curiosity": "A day on Mars lasts almost the same as on Earth: 24 h 39 min."
+  },
+  "jupiter": {
+    "name": "Jupiter",
+    "explorador": { "description": "The biggest planet. It has a giant storm!" },
+    "aprendiz": {
+      "description": "Jupiter is a gas giant with a red spot that is a centuries-old storm."
+    },
+    "investigador": {
+      "description": "H/He composition similar to the Sun. Huge magnetosphere. 95 known moons: Io, Europa, Ganymede, Callisto."
+    },
+    "curiosity": "Jupiter has more mass than all the other planets combined."
+  },
+  "saturn": {
+    "name": "Saturn",
+    "explorador": { "description": "The planet with rings." },
+    "aprendiz": { "description": "Saturn's rings are made of ice and small rocks." },
+    "investigador": {
+      "description": "Density 0.687 g/cm³ (would float in water). Rings mostly water ice. Titan: the only moon with a dense atmosphere."
+    },
+    "curiosity": "Saturn is so light it would float in a giant bathtub."
+  },
+  "uranus": {
+    "name": "Uranus",
+    "explorador": { "description": "The planet that rolls on its side." },
+    "aprendiz": {
+      "description": "Uranus rotates on its side: its axis lies almost in the plane of its orbit."
+    },
+    "investigador": {
+      "description": "Axial tilt 97.77°. Ice giant (H₂O, NH₃, CH₄). Blue-green colour from atmospheric methane."
+    },
+    "curiosity": "Each pole of Uranus has 42 years of light followed by 42 years of darkness."
+  },
+  "neptune": {
+    "name": "Neptune",
+    "explorador": { "description": "The most distant planet. It is very blue." },
+    "aprendiz": { "description": "Neptune has the fastest winds in the Solar System." },
+    "investigador": {
+      "description": "Winds up to 2,100 km/h. Discovered in 1846 by mathematical prediction. Triton orbits retrograde."
+    },
+    "curiosity": "Neptune was discovered with mathematics before it was seen with a telescope."
+  },
+  "pluto": {
+    "name": "Pluto",
+    "explorador": { "description": "It used to be a planet. Now it is called a dwarf planet." },
+    "aprendiz": {
+      "description": "Pluto is a dwarf planet: it shares its orbital zone with other Kuiper Belt bodies."
+    },
+    "investigador": {
+      "description": "Pluto-Charon is a binary system. Tenuous N₂ atmosphere. Flown by by the New Horizons probe in 2015."
+    },
+    "curiosity": "Pluto is smaller than Earth's Moon.",
+    "iau_note": {
+      "explorador": "It used to be the 9th planet. Now it is called a dwarf planet.",
+      "aprendiz": "In 2006 the IAU decided that Pluto is a dwarf planet because it shares its orbit with other bodies.",
+      "investigador": "At the 2006 IAU General Assembly (Resolutions 5A and 6A), 'planet' was redefined as a body that 1) orbits the Sun, 2) has hydrostatic equilibrium, and 3) has cleared the neighbourhood of its orbit. Pluto meets the first two but not the third, hence its reclassification as a dwarf planet."
+    }
+  }
+}

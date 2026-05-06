@@ -3,6 +3,8 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import esCommon from './locales/es/common.json';
 import enCommon from './locales/en/common.json';
+import esSolar from './locales/es/solar.json';
+import enSolar from './locales/en/solar.json';
 
 /**
  * Devuelve la cadena de fallback para un locale dado.
@@ -43,10 +45,11 @@ void i18n
       escapeValue: false,
     },
     resources: {
-      es: { common: esCommon },
-      en: { common: enCommon },
+      es: { common: esCommon, solar: esSolar },
+      en: { common: enCommon, solar: enSolar },
     },
     defaultNS: 'common',
+    ns: ['common', 'solar'],
   });
 
 export default i18n;

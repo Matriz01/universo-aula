@@ -1,0 +1,120 @@
+{
+  "ui": {
+    "level_selector": {
+      "explorador": "Explorador",
+      "aprendiz": "Aprendiz",
+      "investigador": "Investigador"
+    },
+    "tour": {
+      "start": "Iniciar tour",
+      "stop": "Detener tour",
+      "pause": "Pausar",
+      "resume": "Reanudar",
+      "next": "Siguiente",
+      "skip": "Saltar tour"
+    },
+    "camera": {
+      "back_to_overview": "Volver a la vista general",
+      "focus_planet": "Enfocar planeta"
+    },
+    "attribution": "Texturas cortesía de Solar System Scope (CC BY 4.0)",
+    "scale_note": "Las distancias y tamaños no están a escala real",
+    "loading": "Cargando el Sistema Solar…"
+  },
+  "mercury": {
+    "name": "Mercurio",
+    "explorador": { "description": "El planeta más pequeño y el más cercano al Sol." },
+    "aprendiz": { "description": "Mercurio orbita el Sol en sólo 88 días terrestres." },
+    "investigador": {
+      "description": "Excentricidad orbital 0,2056. Sin atmósfera apreciable. Núcleo de hierro grande para su tamaño."
+    },
+    "curiosity": "Un día solar en Mercurio dura más que un año mercuriano."
+  },
+  "venus": {
+    "name": "Venus",
+    "explorador": { "description": "El planeta más caliente. ¡Más que Mercurio!" },
+    "aprendiz": {
+      "description": "Venus tiene una atmósfera densa de dióxido de carbono que atrapa el calor."
+    },
+    "investigador": {
+      "description": "Efecto invernadero extremo: temperatura superficial ~737 K. Rotación retrógrada (243 días)."
+    },
+    "curiosity": "En Venus, el Sol sale por el oeste."
+  },
+  "earth": {
+    "name": "Tierra",
+    "explorador": { "description": "Nuestro hogar. Tiene agua, aire y vida." },
+    "aprendiz": {
+      "description": "La Tierra es el único planeta conocido con agua líquida en superficie y vida."
+    },
+    "investigador": {
+      "description": "Tercer planeta. Atmósfera N₂/O₂. Tectónica de placas activa. Una luna grande estabilizadora."
+    },
+    "curiosity": "La Tierra no es una esfera perfecta: está aplastada por los polos."
+  },
+  "mars": {
+    "name": "Marte",
+    "explorador": { "description": "El planeta rojo. Tiene volcanes muy grandes." },
+    "aprendiz": {
+      "description": "Marte tiene casquetes polares de hielo y el volcán más grande del Sistema Solar."
+    },
+    "investigador": {
+      "description": "Atmósfera tenue de CO₂ (~6 mbar). Olympus Mons: 22 km de altura. Dos lunas pequeñas: Fobos y Deimos."
+    },
+    "curiosity": "Un día en Marte dura casi lo mismo que en la Tierra: 24 h 39 min."
+  },
+  "jupiter": {
+    "name": "Júpiter",
+    "explorador": { "description": "El planeta más grande. ¡Tiene una tormenta gigante!" },
+    "aprendiz": {
+      "description": "Júpiter es un gigante gaseoso con una mancha roja que es una tormenta de siglos."
+    },
+    "investigador": {
+      "description": "Composición H/He similar al Sol. Magnetosfera enorme. 95 lunas conocidas: Ío, Europa, Ganímedes, Calisto."
+    },
+    "curiosity": "Júpiter tiene más masa que todos los demás planetas juntos."
+  },
+  "saturn": {
+    "name": "Saturno",
+    "explorador": { "description": "El planeta de los anillos." },
+    "aprendiz": { "description": "Los anillos de Saturno son de hielo y rocas pequeñas." },
+    "investigador": {
+      "description": "Densidad 0,687 g/cm³ (flotaría en agua). Anillos principalmente H₂O hielo. Titán: única luna con atmósfera densa."
+    },
+    "curiosity": "Saturno es tan poco denso que flotaría en una bañera gigante."
+  },
+  "uranus": {
+    "name": "Urano",
+    "explorador": { "description": "El planeta que rueda de lado." },
+    "aprendiz": { "description": "Urano gira tumbado: su eje está casi en el plano de su órbita." },
+    "investigador": {
+      "description": "Inclinación axial 97,77°. Gigante helado (H₂O, NH₃, CH₄). Color azul-verdoso por metano atmosférico."
+    },
+    "curiosity": "Cada polo de Urano recibe 42 años de luz seguidos de 42 años de oscuridad."
+  },
+  "neptune": {
+    "name": "Neptuno",
+    "explorador": { "description": "El planeta más lejano. Es muy azul." },
+    "aprendiz": { "description": "Neptuno tiene los vientos más rápidos del Sistema Solar." },
+    "investigador": {
+      "description": "Vientos hasta 2 100 km/h. Descubierto en 1846 por predicción matemática. Tritón orbita en sentido retrógrado."
+    },
+    "curiosity": "Neptuno fue descubierto con matemáticas antes que con un telescopio."
+  },
+  "pluto": {
+    "name": "Plutón",
+    "explorador": { "description": "Antes era un planeta. Ahora se llama planeta enano." },
+    "aprendiz": {
+      "description": "Plutón es un planeta enano: comparte su zona orbital con otros cuerpos del cinturón de Kuiper."
+    },
+    "investigador": {
+      "description": "Plutón-Caronte forma un sistema binario. Atmósfera tenue de N₂. Sobrevoló por la sonda New Horizons en 2015."
+    },
+    "curiosity": "Plutón es más pequeño que la Luna terrestre.",
+    "iau_note": {
+      "explorador": "Antes era el 9.º planeta. Ahora se llama planeta enano.",
+      "aprendiz": "En 2006 la IAU decidió que Plutón es un planeta enano porque comparte su órbita con otros cuerpos.",
+      "investigador": "En la Asamblea General de la IAU de 2006 (Resoluciones 5A y 6A) se redefinió «planeta» exigiendo: 1) orbitar el Sol, 2) tener forma esférica por su gravedad, 3) haber limpiado las inmediaciones de su órbita. Plutón cumple los dos primeros criterios pero no el tercero, por lo que se reclasificó como planeta enano."
+    }
+  }
+}
