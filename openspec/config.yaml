@@ -1,0 +1,69 @@
+schema: spec-driven
+
+context: |
+  Universo Aula — app web educativa interactiva 3D del universo.
+  Target: SMART Board (MX/RX) + tablets + navegadores. Android TV solo lectura.
+  Stack target: Vite + React + R3F + Drei + Zustand + Tailwind + react-i18next + PWA.
+  Sin backend, sin BD, RGPD-compliant por diseño. Static hosting.
+  i18n 28 locales (24 UE + 4 co-oficiales ES). MVP: ES + EN.
+  3 niveles pedagógicos: Explorador (3-6), Aprendiz (6-12), Investigador (12-16+).
+  Voz MVP: Whisper (transformers.js) + all-MiniLM-L6-v2 + KB curada + Web Speech TTS.
+  Licencia: AGPL-3.0-or-later (código) + CC BY-SA 4.0 (contenido).
+
+strict_tdd: true
+
+testing:
+  notes: |
+    Vitest 4.1.5 + @testing-library/react 16.3.2 + Playwright 1.59.1 instalados
+    en Phase 2. Strict TDD Mode activo a partir de aquí (Phase 2.8).
+    Chromium descargado vía `pnpm playwright install chromium` (sin --with-deps en Windows).
+  test_runner:
+    framework: vitest
+    command: pnpm test
+    installed: true
+  layers:
+    unit:
+      available: true
+      tool: vitest
+    integration:
+      available: true
+      tool: '@testing-library/react'
+    e2e:
+      available: true
+      tool: playwright
+  coverage:
+    available: true
+    command: pnpm test:coverage
+  quality:
+    linter:
+      available: false
+      tool: eslint
+    type_checker:
+      available: false
+      command: tsc --noEmit
+    formatter:
+      available: false
+      tool: prettier
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected modules/packages
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group tasks by phase (infrastructure, implementation, testing)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+  apply:
+    - Follow existing code patterns and conventions
+    - Load relevant coding skills for the project stack
+  verify:
+    - Run tests if test infrastructure exists
+    - Compare implementation against every spec scenario
+  archive:
+    - Warn before merging destructive deltas (large removals)

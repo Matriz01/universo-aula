@@ -1,0 +1,22 @@
+change_name: bootstrap-vite-r3f-pwa
+created: 2026-05-05
+artifact_store: openspec
+mode: interactive
+status: applying
+
+phases:
+  explore: completed
+  propose: completed
+  spec: completed
+  design: completed
+  tasks: completed
+  apply: in_progress
+  verify: pending
+  archive: pending
+
+artifacts:
+  exploration: openspec/changes/bootstrap-vite-r3f-pwa/exploration.md
+  proposal: openspec/changes/bootstrap-vite-r3f-pwa/proposal.md
+  specs: openspec/changes/bootstrap-vite-r3f-pwa/specs/
+  design: openspec/changes/bootstrap-vite-r3f-pwa/design.md
+  tasks: openspec/changes/bootstrap-vite-r3f-pwa/tasks.md
