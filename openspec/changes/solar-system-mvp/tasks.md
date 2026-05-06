@@ -104,17 +104,17 @@
 
 ## Phase 7: HUD y niveles pedagógicos
 
-- [ ] 7.1 (TEST) `tests/unit/components/LevelSelector.test.tsx` — renderizar con nivel `'explorador'`; assertar que el botón "Explorador" tiene aria-pressed=true; hacer click en "Aprendiz"; assertar que `setLevel` fue invocado con `'aprendiz'`. _Esperar: fallan._
-- [ ] 7.2 (IMPL) `src/components/ui/LevelSelector.tsx` — tres botones con roles ARIA; usa `solar:ui.level_selector.*`; dispatch a `useAppStore.setLevel`; botones de 44×44 px mínimo (WCAG 2.5.5).
-- [ ] 7.3 (TEST) `tests/unit/components/InfoPanel.test.tsx` — renderizar con nivel Explorador + Marte: assertar que NO hay tabla de parámetros orbitales y que la descripción tiene ≤15 palabras; renderizar con nivel Investigador + Júpiter: assertar que existe una tabla con `semi_major_axis_AU` y `eccentricity`; renderizar con Aprendiz + Investigador: assertar presencia del texto `solar:ui.scale_note`. _Esperar: fallan._
-- [ ] 7.4 (IMPL) `src/components/ui/InfoPanel.tsx` — panel lateral; variantes de contenido por nivel (pictogramas en Explorador, panel compacto en Aprendiz, tabla científica en Investigador); nota de escala en Aprendiz e Investigador; usa `useTranslation('solar')`.
-- [ ] 7.5 (TEST) `tests/unit/components/PlutoNote.test.tsx` — nivel Explorador: assertar texto "Antes era el 9.º planeta" y presencia de un elemento SVG o imagen de pictograma; nivel Aprendiz: assertar texto con "2006" y enlace al modal; nivel Investigador: assertar texto con "Resoluciones 5A y 6A". _Esperar: fallan._
-- [ ] 7.6 (IMPL) `src/components/ui/PlutoNote.tsx` — componente condicional (visible sólo cuando `selectedPlanet.id === 'pluto'`); texto via `solar:pluto.iau_note.{level}`; pictograma SVG inline en Explorador; enlace a `<CreditsModal>` en Aprendiz e Investigador.
-- [ ] 7.7 (TEST) `tests/unit/components/AttributionFooter.test.tsx` — assertar que el texto "Solar System Scope" es visible y no tiene `display:none` ni `visibility:hidden`; assertar que no hay prop que lo oculte. _Esperar: fallan._
-- [ ] 7.8 (IMPL) `src/components/ui/AttributionFooter.tsx` — footer permanente; texto `solar:ui.attribution`; enlace al `<CreditsModal>`; sin posibilidad de ocultación por usuario.
-- [ ] 7.9 (IMPL) `src/components/ui/CreditsModal.tsx` — modal accesible (focus-trap, Escape para cerrar, foco de retorno); secciones: Solar System Scope (CC BY 4.0), NASA JPL Horizons (dominio público), NASA Fact Sheets, IAU 2006 Resoluciones 5A y 6A, código (AGPL-3.0), textos (CC BY-SA 4.0). Cargado lazy (`React.lazy`) en demanda.
-- [ ] 7.10 (IMPL) `src/components/ui/LoadingScreen.tsx` — usa `useProgress()` de Drei; barra de progreso de 0 a 100 con porcentaje visible; estilos Tailwind.
-- [ ] 7.11 (REFACTOR) Añadir `<A11yLiveRegion>` (aria-live="polite") al HUD para anunciar cambios de foco a lectores de pantalla; verificar contraste de todos los elementos HUD con herramienta de colour contrast.
+- [x] 7.1 (TEST) `tests/unit/components/LevelSelector.test.tsx` — renderizar con nivel `'explorador'`; assertar que el botón "Explorador" tiene aria-pressed=true; hacer click en "Aprendiz"; assertar que `setLevel` fue invocado con `'aprendiz'`. _Esperar: fallan._
+- [x] 7.2 (IMPL) `src/components/ui/LevelSelector.tsx` — tres botones con roles ARIA; usa `solar:ui.level_selector.*`; dispatch a `useAppStore.setLevel`; botones de 44×44 px mínimo (WCAG 2.5.5).
+- [x] 7.3 (TEST) `tests/unit/components/InfoPanel.test.tsx` — renderizar con nivel Explorador + Marte: assertar que NO hay tabla de parámetros orbitales y que la descripción tiene ≤15 palabras; renderizar con nivel Investigador + Júpiter: assertar que existe una tabla con `semi_major_axis_AU` y `eccentricity`; renderizar con Aprendiz + Investigador: assertar presencia del texto `solar:ui.scale_note`. _Esperar: fallan._
+- [x] 7.4 (IMPL) `src/components/ui/InfoPanel.tsx` — panel lateral; variantes de contenido por nivel (pictogramas en Explorador, panel compacto en Aprendiz, tabla científica en Investigador); nota de escala en Aprendiz e Investigador; usa `useTranslation('solar')`.
+- [x] 7.5 (TEST) `tests/unit/components/PlutoNote.test.tsx` — nivel Explorador: assertar texto "Antes era el 9.º planeta" y presencia de un elemento SVG o imagen de pictograma; nivel Aprendiz: assertar texto con "2006" y enlace al modal; nivel Investigador: assertar texto con "Resoluciones 5A y 6A". _Esperar: fallan._
+- [x] 7.6 (IMPL) `src/components/ui/PlutoNote.tsx` — componente condicional (visible sólo cuando `selectedPlanet.id === 'pluto'`); texto via `solar:pluto.iau_note.{level}`; pictograma SVG inline en Explorador; enlace a `<CreditsModal>` en Aprendiz e Investigador.
+- [x] 7.7 (TEST) `tests/unit/components/AttributionFooter.test.tsx` — assertar que el texto "Solar System Scope" es visible y no tiene `display:none` ni `visibility:hidden`; assertar que no hay prop que lo oculte. _Esperar: fallan._
+- [x] 7.8 (IMPL) `src/components/ui/AttributionFooter.tsx` — footer permanente; texto `solar:ui.attribution`; enlace al `<CreditsModal>`; sin posibilidad de ocultación por usuario.
+- [x] 7.9 (IMPL) `src/components/ui/CreditsModal.tsx` — modal accesible (focus-trap, Escape para cerrar, foco de retorno); secciones: Solar System Scope (CC BY 4.0), NASA JPL Horizons (dominio público), NASA Fact Sheets, IAU 2006 Resoluciones 5A y 6A, código (AGPL-3.0), textos (CC BY-SA 4.0). Cargado lazy (`React.lazy`) en demanda.
+- [x] 7.10 (IMPL) `src/components/ui/LoadingScreen.tsx` — usa `useProgress()` de Drei; barra de progreso de 0 a 100 con porcentaje visible; estilos Tailwind.
+- [x] 7.11 (REFACTOR) Añadir `<A11yLiveRegion>` (aria-live="polite") al HUD para anunciar cambios de foco a lectores de pantalla; verificar contraste de todos los elementos HUD con herramienta de colour contrast.
 
 ---
 

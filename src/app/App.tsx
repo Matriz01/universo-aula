@@ -1,6 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/store/useAppStore';
 import { EmptyScene } from '@/scenes/EmptyScene';
+import { LevelSelector } from '@/components/ui/LevelSelector';
+import { InfoPanel } from '@/components/ui/InfoPanel';
+import { AttributionFooter } from '@/components/ui/AttributionFooter';
+import { CreditsModal } from '@/components/ui/CreditsModal';
 
 export function App() {
   const { t, i18n } = useTranslation('common');
@@ -24,29 +28,33 @@ export function App() {
         <h1 className="text-2xl font-bold tracking-tight">{t('appName')}</h1>
         <p className="text-sm text-gray-300">{t('tagline')}</p>
 
-        <label htmlFor="locale-selector" className="sr-only">
-          Idioma
-        </label>
-        <select
-          id="locale-selector"
-          value={i18n.language}
-          onChange={handleLocaleChange}
-          className="mt-2 rounded border border-white/20 bg-black/40 px-2 py-1 text-sm text-white backdrop-blur"
-        >
-          <option value="es">Español</option>
-          <option value="en">English</option>
-        </select>
+        {/* Selector de nivel pedagógico */}
+        <LevelSelector />
+
+        {/* Fila inferior: selector de idioma + botón créditos */}
+        <div className="flex items-center gap-2">
+          <label htmlFor="locale-selector" className="sr-only">
+            Idioma
+          </label>
+          <select
+            id="locale-selector"
+            value={i18n.language}
+            onChange={handleLocaleChange}
+            className="rounded border border-white/20 bg-black/40 px-2 py-1 text-sm text-white backdrop-blur"
+          >
+            <option value="es">Español</option>
+            <option value="en">English</option>
+          </select>
+
+          <CreditsModal />
+        </div>
       </div>
 
-      {/* Footer legal */}
-      <footer className="fixed bottom-2 left-2 z-20 flex gap-3 text-xs text-white/60">
-        <a href="/LICENSE" className="hover:text-white/90 transition-colors">
-          Licencia código (AGPL-3.0)
-        </a>
-        <a href="/CREDITS.md" className="hover:text-white/90 transition-colors">
-          Créditos
-        </a>
-      </footer>
+      {/* Panel de información del planeta seleccionado */}
+      <InfoPanel />
+
+      {/* Footer de atribución permanente */}
+      <AttributionFooter />
     </div>
   );
 }

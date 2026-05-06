@@ -1,6 +1,7 @@
 {
   "ui": {
     "level_selector": {
+      "label": "Nivel pedagógico",
       "explorador": "Explorador",
       "aprendiz": "Aprendiz",
       "investigador": "Investigador"
@@ -11,7 +12,8 @@
       "pause": "Pausar",
       "resume": "Reanudar",
       "next": "Siguiente",
-      "skip": "Saltar tour"
+      "skip": "Saltar tour",
+      "controls_label": "Controles del tour"
     },
     "camera": {
       "back_to_overview": "Volver a la vista general",
@@ -19,7 +21,15 @@
     },
     "attribution": "Texturas cortesía de Solar System Scope (CC BY 4.0)",
     "scale_note": "Las distancias y tamaños no están a escala real",
-    "loading": "Cargando el Sistema Solar…"
+    "loading": "Cargando el cosmos…",
+    "loading_tips": {
+      "0": "La luz del Sol tarda 8 minutos en llegar a la Tierra.",
+      "1": "Júpiter tiene más masa que todos los demás planetas juntos.",
+      "2": "Saturno es tan poco denso que flotaría en agua."
+    },
+    "credits_button": "Créditos e información",
+    "credits_title": "Créditos y licencias",
+    "close": "Cerrar"
   },
   "mercury": {
     "name": "Mercurio",

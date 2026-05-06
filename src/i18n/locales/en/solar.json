@@ -1,6 +1,7 @@
 {
   "ui": {
     "level_selector": {
+      "label": "Pedagogical level",
       "explorador": "Explorer",
       "aprendiz": "Apprentice",
       "investigador": "Researcher"
@@ -11,7 +12,8 @@
       "pause": "Pause",
       "resume": "Resume",
       "next": "Next",
-      "skip": "Skip tour"
+      "skip": "Skip tour",
+      "controls_label": "Tour controls"
     },
     "camera": {
       "back_to_overview": "Back to overview",
@@ -19,7 +21,15 @@
     },
     "attribution": "Textures courtesy of Solar System Scope (CC BY 4.0)",
     "scale_note": "Distances and sizes are not to real scale",
-    "loading": "Loading the Solar System…"
+    "loading": "Loading the cosmos…",
+    "loading_tips": {
+      "0": "Sunlight takes 8 minutes to reach Earth.",
+      "1": "Jupiter has more mass than all other planets combined.",
+      "2": "Saturn is so light it would float in water."
+    },
+    "credits_button": "Credits & information",
+    "credits_title": "Credits & licences",
+    "close": "Close"
   },
   "mercury": {
     "name": "Mercury",
