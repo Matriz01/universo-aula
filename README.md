@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Matriz01/universo-aula/main/public/header.svg" alt="Universo Aula — explora el cosmos desde el aula" width="100%">
+  <img src="https://raw.githubusercontent.com/Matriz01/universo-aula/main/public/brand/banner.png" alt="Universo Aula — explora el cosmos desde el aula" width="100%">
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Matriz01/universo-aula/main/public/brand/logo.png" alt="Universo Aula" width="180">
 </p>
 
 # Universo Aula
