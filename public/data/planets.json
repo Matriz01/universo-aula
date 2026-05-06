@@ -210,9 +210,9 @@
   "asteroid_belt": {
     "inner_AU": 2.2,
     "outer_AU": 3.2,
-    "count_high": 1000,
-    "count_mid": 500,
-    "count_low": 200,
+    "count_high": 500,
+    "count_mid": 200,
+    "count_low": 100,
     "vertical_dispersion": 0.05,
     "size_min": 0.012,
     "size_max": 0.045,

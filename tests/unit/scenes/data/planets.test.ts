@@ -34,9 +34,9 @@ describe('planets.json — estructura y sanity checks', () => {
   });
 
   it('asteroid_belt counts (iter-2c perf-tuned)', () => {
-    expect(data.asteroid_belt.count_high).toBe(1000);
-    expect(data.asteroid_belt.count_mid).toBe(500);
-    expect(data.asteroid_belt.count_low).toBe(200);
+    expect(data.asteroid_belt.count_high).toBe(500);
+    expect(data.asteroid_belt.count_mid).toBe(200);
+    expect(data.asteroid_belt.count_low).toBe(100);
   });
 
   it('ningún planeta tiene claves textuales (description, name_es, iau_note)', () => {

@@ -72,7 +72,7 @@ export function SpeedControl() {
         <button
           type="button"
           onClick={handleResume}
-          aria-label={t('simulation.preset.pause')}
+          aria-label={`${t('simulation.preset.pause')} (▶)`}
           aria-pressed={true}
           className="min-h-[44px] min-w-[56px] rounded border border-yellow-400/60 bg-yellow-400/20 px-3 py-1 text-sm font-semibold text-yellow-300 hover:bg-yellow-400/30 active:bg-yellow-400/40 transition-colors"
         >
@@ -82,7 +82,7 @@ export function SpeedControl() {
         <button
           type="button"
           onClick={handlePause}
-          aria-label={t('simulation.preset.pause')}
+          aria-label={`${t('simulation.preset.pause')} (⏸)`}
           aria-pressed={false}
           className="min-h-[44px] min-w-[56px] rounded border border-white/20 bg-white/10 px-3 py-1 text-sm font-semibold text-white hover:bg-white/20 active:bg-white/30 transition-colors"
         >
@@ -99,7 +99,7 @@ export function SpeedControl() {
             key={value}
             type="button"
             onClick={() => handlePreset(value)}
-            aria-label={t(`simulation.preset.${key}`)}
+            aria-label={`${t(`simulation.preset.${key}`)} (${formatPreset(value)})`}
             aria-pressed={isActive}
             className={[
               'min-h-[44px] min-w-[56px] rounded border px-3 py-1 text-sm font-semibold transition-colors',

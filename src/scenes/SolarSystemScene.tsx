@@ -17,7 +17,7 @@
 
 import React, { Suspense, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Stars } from '@react-three/drei';
+import { Stars, PerformanceMonitor } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Vector3 } from 'three';
 import type { Vector3 as Vector3Type } from 'three';
@@ -220,12 +220,22 @@ function SolarSystemContent({
         </>
       )}
 
-      {/* Post-procesado: Bloom sobre el Sol — mipmapBlur eliminado (caro); skip en GPU low */}
-      {gpu !== 'low' && (
-        <EffectComposer enableNormalPass={false} multisampling={4}>
-          <Bloom intensity={0.9} luminanceThreshold={0.85} luminanceSmoothing={0.3} />
+      {/* Post-procesado: Bloom sobre el Sol — solo en GPU high, sin multisampling (caro en iGPU) */}
+      {gpu === 'high' && (
+        <EffectComposer enableNormalPass={false}>
+          <Bloom intensity={0.7} luminanceThreshold={0.85} luminanceSmoothing={0.3} />
         </EffectComposer>
       )}
+
+      {/* Monitor de rendimiento adaptativo — telemetría FPS, sin acción automática aún */}
+      <PerformanceMonitor
+        bounds={() => [45, 60]}
+        flipflops={3}
+        onDecline={() => {
+          // En iteración futura: bajar dpr o desactivar bloom automáticamente
+          console.warn('[perf] FPS bajo detectado, considerar adaptar calidad');
+        }}
+      />
     </>
   );
 }
@@ -260,7 +270,7 @@ export function SolarSystemScene() {
   return (
     <Canvas
       data-testid="solar-canvas"
-      dpr={1.5}
+      dpr={1}
       gl={{ powerPreference: 'high-performance', antialias: true, stencil: false }}
       camera={{ position: [0, 35, 70], fov: 60, near: 0.1, far: 500 }}
       shadows={shadowsEnabled}

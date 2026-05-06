@@ -387,6 +387,7 @@ vi.mock('@react-three/postprocessing', () => ({
 vi.mock('@react-three/drei', () => ({
   Stars: () => <mesh data-testid="stars" />,
   OrbitControls: () => null,
+  PerformanceMonitor: () => null,
   useProgress: () => ({ progress: 100 }),
   useTexture: vi.fn().mockReturnValue({}),
   Html: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -450,9 +451,9 @@ describe('<SolarSystemScene> — composición de componentes', () => {
     expect(mockCounts.CameraController).toBe(1);
   });
 
-  it('Canvas recibe dpr=1.5 (fijo, anti-flicker)', () => {
+  it('Canvas recibe dpr=1 (reducido para performance)', () => {
     render(<SolarSystemScene />);
-    expect(capturedCanvasProps.dpr).toBe(1.5);
+    expect(capturedCanvasProps.dpr).toBe(1);
   });
 
   it('Canvas recibe gl con powerPreference=high-performance', () => {
