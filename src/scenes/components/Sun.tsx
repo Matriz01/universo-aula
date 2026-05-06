@@ -22,7 +22,7 @@ import sunVertSrc from '@/scenes/shaders/sun.vert?raw';
 import sunFragSrc from '@/scenes/shaders/sun.frag?raw';
 import sunFragLiteSrc from '@/scenes/shaders/sun.lite.frag?raw';
 
-import { SUN_VISUAL_RADIUS } from '@/scenes/scale';
+import { visualRadius, SUN_RADIUS_KM } from '@/scenes/scale';
 import { useAppStore } from '@/store/useAppStore';
 
 // ---------------------------------------------------------------------------
@@ -141,7 +141,8 @@ export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunPro
     }
   });
 
-  const geometry = useMemo(() => new SphereGeometry(SUN_VISUAL_RADIUS, 64, 64), []);
+  const radius = useMemo(() => visualRadius(SUN_RADIUS_KM), []);
+  const geometry = useMemo(() => new SphereGeometry(radius, 64, 64), [radius]);
 
   return <mesh ref={meshRef} geometry={geometry} material={material} name="sun" />;
 });

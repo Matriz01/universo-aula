@@ -15,9 +15,9 @@
  * valores actuales (6.0 / 13.0) amplían la separación de forma legible.
  */
 
-export const SUN_VISUAL_RADIUS = 2.5;
-export const R_VISUAL_BASE = 0.3;
-export const R_VISUAL_LOG_K = 0.6;
+export const R_VISUAL_BASE = 0.2;
+export const R_VISUAL_LOG_K = 0.45;
+export const SUN_RADIUS_KM = 696340;
 export const D_VISUAL_BASE = 6.0;
 export const D_VISUAL_LOG_K = 13.0;
 
@@ -27,10 +27,11 @@ export const D_VISUAL_LOG_K = 13.0;
  * r_visual = R_BASE + R_LOG_K * log2(radius_km / 1000)
  *
  * Tabla de referencia (design §3.2):
- * - Mercury (2439.7 km) → 1.072
- * - Earth   (6371 km)   → 1.903
- * - Jupiter (69911 km)  → 3.976
- * - Pluto   (1188.3 km) → 0.449
+ * - Mercury (2439.7 km)  → 0.779
+ * - Earth   (6371 km)    → 1.402
+ * - Jupiter (69911 km)   → 2.958
+ * - Pluto   (1188.3 km)  → 0.312
+ * - Sun     (696340 km)  → 4.452
  */
 export function visualRadius(radiusKm: number): number {
   return R_VISUAL_BASE + R_VISUAL_LOG_K * Math.log2(radiusKm / 1000);
