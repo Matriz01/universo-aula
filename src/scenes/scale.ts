@@ -1,11 +1,15 @@
 /**
- * Sistema de escala didáctica sublogarítmica para el Sistema Solar MVP.
+ * Sistema de escala didáctica para el Sistema Solar MVP.
  *
  * Las distancias y radios se escalan con dos curvas independientes
- * sublogarítmicas para garantizar que todos los cuerpos sean visibles
- * simultáneamente en pantalla, sin que el Sol llene la vista.
+ * para garantizar que todos los cuerpos sean visibles simultáneamente
+ * en pantalla, sin que el Sol llene la vista.
  *
- * Valores validados en design §3.2 — tabla Mercury→Pluto.
+ * Radios: curva potencia r = K × (km/1000)^p — más lineal que log2 en
+ * el rango de gigantes; preserva mejor las proporciones reales entre
+ * cuerpos similares (Júpiter/Saturno ratio visual 1.106 vs 1.04 con log2).
+ *
+ * Distancias: curva sublogarítmica (D_VISUAL_BASE / D_VISUAL_LOG_K).
  * NOTA: "Las distancias y tamaños no están a escala real" (i18n solar:ui.scale_note).
  *
  * @remarks
@@ -13,10 +17,14 @@
  * despliegue MVP (iter-2): con los valores originales (5.0 / 8.0) los planetas
  * interiores se solapaban y los exteriores quedaban demasiado juntos. Los
  * valores actuales (6.0 / 13.0) amplían la separación de forma legible.
+ *
+ * R_VISUAL_K y R_VISUAL_POW reemplazan a R_VISUAL_BASE/R_VISUAL_LOG_K (iter-2):
+ * la curva log2 comprimía diferencias entre gigantes similares de forma inaceptable.
  */
 
-export const R_VISUAL_BASE = 0.2;
-export const R_VISUAL_LOG_K = 0.45;
+// Curva potencia: r = K × (km/1000)^p
+export const R_VISUAL_K = 0.21;
+export const R_VISUAL_POW = 0.55;
 export const SUN_RADIUS_KM = 696340;
 export const D_VISUAL_BASE = 6.0;
 export const D_VISUAL_LOG_K = 13.0;
@@ -24,17 +32,17 @@ export const D_VISUAL_LOG_K = 13.0;
 /**
  * Radio visual de un cuerpo celeste en unidades de escena Three.js.
  *
- * r_visual = R_BASE + R_LOG_K * log2(radius_km / 1000)
+ * r_visual = R_VISUAL_K × (radius_km / 1000) ^ R_VISUAL_POW
  *
- * Tabla de referencia (design §3.2):
- * - Mercury (2439.7 km)  → 0.779
- * - Earth   (6371 km)    → 1.402
- * - Jupiter (69911 km)   → 2.958
- * - Pluto   (1188.3 km)  → 0.312
- * - Sun     (696340 km)  → 4.452
+ * Tabla de referencia (iter-2):
+ * - Mercury (2439.7 km)  → 0.343
+ * - Earth   (6371 km)    → 0.582
+ * - Jupiter (69911 km)   → 2.171
+ * - Pluto   (1188.3 km)  → 0.231
+ * - Sun     (696340 km)  → 7.687
  */
 export function visualRadius(radiusKm: number): number {
-  return R_VISUAL_BASE + R_VISUAL_LOG_K * Math.log2(radiusKm / 1000);
+  return R_VISUAL_K * Math.pow(radiusKm / 1000, R_VISUAL_POW);
 }
 
 /**
