@@ -124,8 +124,8 @@ function SolarSystemContent({
         </>
       )}
 
-      {/* Luna de la Tierra (posición por defecto — se actualiza en runtime via useFrame) */}
-      <PlanetMoon />
+      {/* Luna de la Tierra (sigue la posición real de la Tierra via positionsRef) */}
+      <PlanetMoon positionsRef={planetPositionsRef} />
 
       {/* Cinturón de asteroides */}
       <AsteroidBelt config={data.asteroid_belt} />

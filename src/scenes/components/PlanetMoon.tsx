@@ -9,6 +9,7 @@
  */
 
 import React, { useRef, useMemo, Suspense } from 'react';
+import type { MutableRefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import type { Mesh } from 'three';
@@ -32,15 +33,17 @@ const MOON_VISUAL_RADIUS = 0.27;
 // ---------------------------------------------------------------------------
 
 export interface PlanetMoonProps {
-  /** Posición actual de la Tierra en la escena [x, y, z] */
+  /** Posición actual de la Tierra en la escena [x, y, z] (estática) */
   earthPosition?: [number, number, number];
+  /** Ref a las posiciones runtime de los planetas; si está, prioriza sobre earthPosition */
+  positionsRef?: MutableRefObject<Record<string, Vector3>>;
 }
 
 // ---------------------------------------------------------------------------
 // Subcomponente con textura (dentro de Suspense)
 // ---------------------------------------------------------------------------
 
-function MoonMeshInner({ earthPosition = [0, 0, 0] }: PlanetMoonProps) {
+function MoonMeshInner({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonProps) {
   const meshRef = useRef<Mesh>(null);
   const elapsed = useRef(0);
 
@@ -49,19 +52,21 @@ function MoonMeshInner({ earthPosition = [0, 0, 0] }: PlanetMoonProps) {
   const geometry = useMemo(() => new SphereGeometry(MOON_VISUAL_RADIUS, 16, 16), []);
   const material = useMemo(() => new MeshStandardMaterial({ map: texture }), [texture]);
 
-  const earthPos = useMemo(
+  const fallbackEarthPos = useMemo(
     () => new Vector3(...earthPosition),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [earthPosition[0], earthPosition[1], earthPosition[2]],
   );
 
   useFrame((_, dt) => {
-    // Usamos speedup de Aprendiz (10 días/s) como referencia base para la Luna
     const SPEEDUP = 10;
     elapsed.current += dt * SPEEDUP;
 
     const n = (2 * Math.PI) / MOON_PERIOD_DAYS;
     const theta = n * elapsed.current;
+
+    const live = positionsRef?.current?.earth;
+    const earthPos = live ?? fallbackEarthPos;
 
     if (meshRef.current) {
       meshRef.current.position.set(
@@ -88,14 +93,14 @@ function MoonMeshInner({ earthPosition = [0, 0, 0] }: PlanetMoonProps) {
 // Fallback (color sólido)
 // ---------------------------------------------------------------------------
 
-function MoonFallback({ earthPosition = [0, 0, 0] }: PlanetMoonProps) {
+function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonProps) {
   const meshRef = useRef<Mesh>(null);
   const elapsed = useRef(0);
 
   const geometry = useMemo(() => new SphereGeometry(MOON_VISUAL_RADIUS, 8, 8), []);
   const material = useMemo(() => new MeshStandardMaterial({ color: '#c8c8c8' }), []);
 
-  const earthPos = useMemo(
+  const fallbackEarthPos = useMemo(
     () => new Vector3(...earthPosition),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [earthPosition[0], earthPosition[1], earthPosition[2]],
@@ -106,6 +111,9 @@ function MoonFallback({ earthPosition = [0, 0, 0] }: PlanetMoonProps) {
     elapsed.current += dt * SPEEDUP;
     const n = (2 * Math.PI) / MOON_PERIOD_DAYS;
     const theta = n * elapsed.current;
+
+    const live = positionsRef?.current?.earth;
+    const earthPos = live ?? fallbackEarthPos;
 
     if (meshRef.current) {
       meshRef.current.position.set(
@@ -132,12 +140,10 @@ function MoonFallback({ earthPosition = [0, 0, 0] }: PlanetMoonProps) {
 // Componente exportado
 // ---------------------------------------------------------------------------
 
-export const PlanetMoon = React.memo(function PlanetMoon({ earthPosition }: PlanetMoonProps) {
+export const PlanetMoon = React.memo(function PlanetMoon(props: PlanetMoonProps) {
   return (
-    <Suspense
-      fallback={earthPosition ? <MoonFallback earthPosition={earthPosition} /> : <MoonFallback />}
-    >
-      {earthPosition ? <MoonMeshInner earthPosition={earthPosition} /> : <MoonMeshInner />}
+    <Suspense fallback={<MoonFallback {...props} />}>
+      <MoonMeshInner {...props} />
     </Suspense>
   );
 });
