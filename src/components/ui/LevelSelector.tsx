@@ -21,6 +21,7 @@ export const LevelSelector = React.memo(function LevelSelector() {
 
   return (
     <div
+      data-testid="level-selector"
       role="group"
       aria-label={t('solar:ui.level_selector.label', 'Nivel pedagógico')}
       className="flex gap-1 rounded-lg border border-white/20 bg-black/40 p-1 backdrop-blur"
@@ -31,6 +32,7 @@ export const LevelSelector = React.memo(function LevelSelector() {
           <button
             key={lvl}
             type="button"
+            data-testid={`level-button-${lvl}`}
             aria-pressed={isActive}
             aria-label={t(`solar:ui.level_selector.${lvl}`)}
             onClick={() => setLevel(lvl)}

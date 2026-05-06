@@ -132,6 +132,7 @@ export function SolarSystemScene() {
 
   return (
     <Canvas
+      data-testid="solar-canvas"
       dpr={[1, 2]}
       gl={{ powerPreference: 'high-performance', antialias: true }}
       camera={{ position: [0, 35, 70], fov: 60, near: 0.1, far: 500 }}

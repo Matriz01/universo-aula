@@ -19,6 +19,7 @@ export const TourControls = React.memo(function TourControls() {
 
   return (
     <div
+      data-testid="tour-controls"
       role="group"
       aria-label={t('solar:ui.tour.controls_label', 'Tour controls')}
       style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}
@@ -26,6 +27,7 @@ export const TourControls = React.memo(function TourControls() {
       {!tourActive ? (
         <button
           type="button"
+          data-testid="tour-start"
           onClick={() => dispatch({ type: 'start' })}
           aria-label={t('solar:ui.tour.start')}
         >
@@ -35,6 +37,7 @@ export const TourControls = React.memo(function TourControls() {
         <>
           <button
             type="button"
+            data-testid="tour-stop"
             onClick={() => dispatch({ type: 'user_interrupt' })}
             aria-label={t('solar:ui.tour.stop')}
           >
@@ -44,6 +47,7 @@ export const TourControls = React.memo(function TourControls() {
           {prefersReducedMotion && state.kind === 'narration' && (
             <button
               type="button"
+              data-testid="tour-next"
               onClick={() => dispatch({ type: 'tts_done' })}
               aria-label={t('solar:ui.tour.next')}
             >
