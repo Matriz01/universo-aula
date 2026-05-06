@@ -39,15 +39,22 @@ vi.mock('@/scenes/hooks/useKeyboardNavigation', () => ({
   useKeyboardNavigation: vi.fn(),
 }));
 
+const { useAppStoreMock } = vi.hoisted(() => {
+  const mockState = {
+    selectedPlanet: null as string | null,
+    prefersReducedMotion: false,
+    cameraMode: 'overview',
+    viewMode: 'global' as 'global' | 'local',
+  };
+  return {
+    useAppStoreMock: vi.fn((selector: (s: typeof mockState) => unknown) =>
+      selector ? selector(mockState) : mockState,
+    ),
+  };
+});
+
 vi.mock('@/store/useAppStore', () => ({
-  useAppStore: vi.fn((selector: (s: unknown) => unknown) => {
-    const state = {
-      selectedPlanet: null,
-      prefersReducedMotion: false,
-      cameraMode: 'overview',
-    };
-    return selector ? selector(state) : state;
-  }),
+  useAppStore: useAppStoreMock,
 }));
 
 // ---------------------------------------------------------------------------
@@ -127,5 +134,47 @@ describe('<CameraController>', () => {
     const calls = vi.mocked(useFocusCamera).mock.calls;
     const lastCall = calls[calls.length - 1][0];
     expect(lastCall.target).toBeNull();
+  });
+});
+
+describe('<CameraController> — distancias dinámicas por viewMode', () => {
+  it('monta sin errores en viewMode global (distancias didácticas)', () => {
+    // useAppStoreMock por defecto tiene viewMode: 'global'
+    expect(() => {
+      render(
+        <div data-testid="canvas">
+          <CameraController />
+        </div>,
+      );
+    }).not.toThrow();
+  });
+
+  it('monta sin errores en viewMode local (distancias extendidas)', () => {
+    useAppStoreMock.mockImplementation(
+      (
+        selector: (s: {
+          selectedPlanet: null;
+          prefersReducedMotion: boolean;
+          cameraMode: string;
+          viewMode: string;
+        }) => unknown,
+      ) => {
+        const state = {
+          selectedPlanet: null,
+          prefersReducedMotion: false,
+          cameraMode: 'overview',
+          viewMode: 'local',
+        };
+        return selector ? selector(state) : state;
+      },
+    );
+
+    expect(() => {
+      render(
+        <div data-testid="canvas">
+          <CameraController />
+        </div>,
+      );
+    }).not.toThrow();
   });
 });

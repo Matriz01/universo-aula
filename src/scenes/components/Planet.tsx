@@ -12,6 +12,7 @@
 import React, { useRef, useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture, Html } from '@react-three/drei';
+import { useTranslation } from 'react-i18next';
 import type { Mesh, Group, Vector3 } from 'three';
 import { SphereGeometry, MeshStandardMaterial, Color } from 'three';
 import type { PlanetData } from '@/scenes/data/types';
@@ -68,6 +69,8 @@ function PlanetMeshInner({
   const posRef = usePlanetPosition(planet, level);
   const elapsedDays = useRef(0);
   const speed = useAppStore((s) => s.simulationSpeed);
+  const viewMode = useAppStore((s) => s.viewMode);
+  const { t } = useTranslation('solar');
 
   // Textura lazy — useTexture suspende hasta que carga
   const textureUrl = `${planet.texture_base}2k.jpg`;
@@ -129,7 +132,7 @@ function PlanetMeshInner({
           {...(rs ? { receiveShadow: true } : {})}
         />
       </group>
-      <Html center distanceFactor={10}>
+      <Html center distanceFactor={viewMode === 'local' ? 200 : 10}>
         <div
           style={{
             color: 'white',
@@ -140,7 +143,7 @@ function PlanetMeshInner({
             whiteSpace: 'nowrap',
           }}
         >
-          {planet.id}
+          {t(`${planet.id}.name`, { defaultValue: planet.id })}
           {variant === 'dwarf' && ' ✦'}
         </div>
       </Html>

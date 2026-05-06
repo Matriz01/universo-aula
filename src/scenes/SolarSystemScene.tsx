@@ -15,14 +15,15 @@
  * Canvas configurado con dpr={[1,2]} y gl.powerPreference='high-performance'.
  */
 
-import React, { Suspense, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { Stars, PerformanceMonitor } from '@react-three/drei';
+import React, { Suspense, useRef, useMemo } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Stars, PerformanceMonitor, Line } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Vector3 } from 'three';
-import type { Vector3 as Vector3Type } from 'three';
+import type { Vector3 as Vector3Type, Group } from 'three';
 import { useAppStore } from '@/store/useAppStore';
 import { usePlanetsData } from '@/scenes/hooks/usePlanetsData';
+import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
 import { useGpuCapability } from '@/scenes/hooks/useGpuCapability';
 import { Sun } from '@/scenes/components/Sun';
 import { Planet } from '@/scenes/components/Planet';
@@ -36,6 +37,80 @@ import { KnownEventsLayer } from '@/scenes/components/KnownEventsLayer';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
 import type { GpuCapabilityExtended } from '@/scenes/components/Sun';
 import type { PlanetId } from '@/scenes/data/types';
+
+// ---------------------------------------------------------------------------
+// Constantes para órbita lunar
+// ---------------------------------------------------------------------------
+
+const MOON_ORBIT_RADIUS_LOCAL = 384_400 / 1000; // 384.4 unidades (1 u = 1000 km)
+const MOON_ORBIT_SEGMENTS = 64;
+
+// Objeto Earth mínimo de fallback para usePlanetPosition (cuando data aún no carga)
+const EARTH_FALLBACK_DATA = {
+  id: 'earth' as const,
+  classification: 'terrestrial' as const,
+  radius_km: 6371,
+  mass_kg: 5.972e24,
+  density_g_cm3: 5.514,
+  gravity_m_s2: 9.807,
+  rotation_period_h: 23.9345,
+  axial_tilt_deg: 23.4393,
+  mean_temperature_k: 288,
+  semi_major_axis_AU: 1.0,
+  eccentricity: 0.01671,
+  inclination_deg: 0.00005,
+  longitude_ascending_node_deg: -11.26064,
+  argument_perihelion_deg: 114.20783,
+  mean_anomaly_J2000_deg: 358.617,
+  orbital_period_days: 365.256,
+  color_hex: '#4a90e2',
+  has_rings: false,
+  moons_count: 1,
+  texture_base: '/textures/earth/',
+};
+
+// ---------------------------------------------------------------------------
+// MoonOrbitPath — círculo que representa la órbita de la Luna en modo local
+// ---------------------------------------------------------------------------
+
+/**
+ * Dibuja la órbita de la Luna centrada en la posición actual de la Tierra.
+ * Solo se usa en modo local cuando la Tierra está seleccionada.
+ * Calcula la posición de la Tierra internamente con usePlanetPosition.
+ */
+function MoonOrbitPath() {
+  const groupRef = useRef<Group>(null);
+  const level = useAppStore((s) => s.level);
+  const { data } = usePlanetsData();
+  const earthData = data?.planets.find((p) => p.id === 'earth') ?? EARTH_FALLBACK_DATA;
+  const earthPosRef = usePlanetPosition(earthData, level);
+
+  // Pre-computamos los puntos del círculo (radio = 384.4 unidades)
+  const points = useMemo(() => {
+    const pts: [number, number, number][] = [];
+    for (let i = 0; i <= MOON_ORBIT_SEGMENTS; i++) {
+      const theta = (i / MOON_ORBIT_SEGMENTS) * Math.PI * 2;
+      pts.push([
+        MOON_ORBIT_RADIUS_LOCAL * Math.cos(theta),
+        0,
+        MOON_ORBIT_RADIUS_LOCAL * Math.sin(theta),
+      ]);
+    }
+    return pts;
+  }, []);
+
+  useFrame(() => {
+    if (!groupRef.current) return;
+    const pos = earthPosRef.current;
+    groupRef.current.position.set(pos.x, pos.y, pos.z);
+  });
+
+  return (
+    <group ref={groupRef}>
+      <Line points={points} color="#aaccff" lineWidth={1} transparent opacity={0.5} />
+    </group>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Subcomponente interno — el árbol R3F (dentro del Canvas)
@@ -198,7 +273,10 @@ function SolarSystemContent({
 
           {/* Luna de la Tierra — solo si Tierra seleccionada */}
           {isEarthSelected && (
-            <PlanetMoon positionsRef={planetPositionsRef} castShadow receiveShadow />
+            <>
+              <PlanetMoon positionsRef={planetPositionsRef} castShadow receiveShadow />
+              <MoonOrbitPath />
+            </>
           )}
 
           {/* DistantMarker para cada planeta no seleccionado */}

@@ -8,7 +8,7 @@
  * - En cameraMode === 'focus': sigue al planeta en cada frame (follow mode)
  */
 
-import React, { type Ref } from 'react';
+import React, { type Ref, useMemo } from 'react';
 import { OrbitControls } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type { Vector3 } from 'three';
@@ -27,6 +27,17 @@ export const CameraController = React.memo(function CameraController({
   const selectedPlanet = useAppStore((s) => s.selectedPlanet);
   const prefersReducedMotion = useAppStore((s) => s.prefersReducedMotion);
   const cameraMode = useAppStore((s) => s.cameraMode);
+  const viewMode = useAppStore((s) => s.viewMode);
+
+  // Distancias dinámicas según viewMode:
+  // - local: permite zoom muy cercano al planeta + alejarse hasta ver el Sol (~149598 u)
+  // - global: rango didáctico compacto
+  const distances = useMemo(() => {
+    if (viewMode === 'local') {
+      return { min: 5, max: 500_000 };
+    }
+    return { min: 2, max: 200 };
+  }, [viewMode]);
 
   // Activa navegación por teclado
   useKeyboardNavigation();
@@ -63,8 +74,11 @@ export const CameraController = React.memo(function CameraController({
       ref={controlsRef as Ref<any>}
       enableDamping
       dampingFactor={0.05}
-      minDistance={2}
-      maxDistance={120}
+      minDistance={distances.min}
+      maxDistance={distances.max}
+      enableRotate={true}
+      enableZoom={true}
+      enablePan={false}
     />
   );
 });

@@ -48,11 +48,24 @@ vi.mock('@react-three/fiber', () => ({
 
 vi.mock('@react-three/drei', () => ({
   useTexture: useTextureSpy,
-  Html: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="planet-label">{children}</div>
+  Html: ({ children, distanceFactor }: { children: React.ReactNode; distanceFactor?: number }) => (
+    <div data-testid="planet-label" data-distance-factor={distanceFactor}>
+      {children}
+    </div>
   ),
   Lod: ({ children }: { children: React.ReactNode }) => <group>{children}</group>,
   Detailed: ({ children }: { children: React.ReactNode }) => <group>{children}</group>,
+}));
+
+// ---------------------------------------------------------------------------
+// Mock de react-i18next
+// ---------------------------------------------------------------------------
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, opts?: { defaultValue?: string }) => opts?.defaultValue ?? key,
+    i18n: { language: 'es' },
+  }),
 }));
 
 // ---------------------------------------------------------------------------
@@ -206,6 +219,28 @@ describe('<Planet> — variante dwarf', () => {
       render(
         <div data-testid="canvas">
           <Planet planet={earthData} level="explorador" variant="normal" />
+        </div>,
+      );
+    }).not.toThrow();
+  });
+});
+
+describe('<Planet> — label i18n y distanceFactor', () => {
+  it('monta con label sin errores (react-i18next mockeado)', () => {
+    expect(() => {
+      render(
+        <div data-testid="canvas">
+          <Planet planet={earthData} level="explorador" />
+        </div>,
+      );
+    }).not.toThrow();
+  });
+
+  it('monta con variant dwarf sin errores con i18n', () => {
+    expect(() => {
+      render(
+        <div data-testid="canvas">
+          <Planet planet={plutoData} level="explorador" variant="dwarf" />
         </div>,
       );
     }).not.toThrow();

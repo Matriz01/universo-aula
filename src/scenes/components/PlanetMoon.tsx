@@ -19,6 +19,8 @@ import type { Mesh } from 'three';
 import { SphereGeometry, MeshStandardMaterial, Vector3 } from 'three';
 import { useAppStore } from '@/store/useAppStore';
 import { visualRadius, localVisualRadius, localVisualDistanceFromKm } from '@/scenes/scale';
+import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
+import { usePlanetsData } from '@/scenes/hooks/usePlanetsData';
 
 // ---------------------------------------------------------------------------
 // Constantes
@@ -71,6 +73,40 @@ function MoonMeshInner({
   const speed = useAppStore((s) => s.simulationSpeed);
   const viewMode = useAppStore((s) => s.viewMode);
   const selectedPlanet = useAppStore((s) => s.selectedPlanet);
+  const level = useAppStore((s) => s.level);
+
+  // Obtenemos datos de planetas para encontrar la Tierra en modo local
+  const { data } = usePlanetsData();
+  const earthData = data?.planets.find((p) => p.id === 'earth') ?? null;
+
+  // Hook de posición de la Tierra — siempre invocado (reglas de hooks).
+  // Solo se usa en modo local; en global se lee positionsRef como antes.
+  // Si earthData es null, pasamos un objeto mínimo que da posición (0,0,0).
+  const earthPosRef = usePlanetPosition(
+    earthData ?? {
+      id: 'earth',
+      classification: 'terrestrial' as const,
+      radius_km: 6371,
+      mass_kg: 5.972e24,
+      density_g_cm3: 5.514,
+      gravity_m_s2: 9.807,
+      rotation_period_h: 23.9345,
+      axial_tilt_deg: 23.4393,
+      mean_temperature_k: 288,
+      semi_major_axis_AU: 1.0,
+      eccentricity: 0.01671,
+      inclination_deg: 0.00005,
+      longitude_ascending_node_deg: -11.26064,
+      argument_perihelion_deg: 114.20783,
+      mean_anomaly_J2000_deg: 358.617,
+      orbital_period_days: 365.256,
+      color_hex: '#4a90e2',
+      has_rings: false,
+      moons_count: 1,
+      texture_base: '/textures/earth/',
+    },
+    level,
+  );
 
   const texture = useTexture('/textures/moon/2k.jpg');
 
@@ -103,8 +139,15 @@ function MoonMeshInner({
     const n = (2 * Math.PI) / MOON_PERIOD_DAYS;
     const theta = n * elapsed.current;
 
-    const live = positionsRef?.current?.earth;
-    const earthPos = live ?? fallbackEarthPos;
+    // En modo local: usar la posición calculada directamente por usePlanetPosition
+    // En modo global: usar positionsRef (actualizado por <Planet>)
+    let earthPos: Vector3;
+    if (viewMode === 'local') {
+      earthPos = earthPosRef.current;
+    } else {
+      const live = positionsRef?.current?.earth;
+      earthPos = live ?? fallbackEarthPos;
+    }
 
     if (meshRef.current) {
       meshRef.current.position.set(
@@ -139,6 +182,36 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
   const speed = useAppStore((s) => s.simulationSpeed);
   const viewMode = useAppStore((s) => s.viewMode);
   const selectedPlanet = useAppStore((s) => s.selectedPlanet);
+  const level = useAppStore((s) => s.level);
+
+  const { data } = usePlanetsData();
+  const earthData = data?.planets.find((p) => p.id === 'earth') ?? null;
+
+  const earthPosRef = usePlanetPosition(
+    earthData ?? {
+      id: 'earth',
+      classification: 'terrestrial' as const,
+      radius_km: 6371,
+      mass_kg: 5.972e24,
+      density_g_cm3: 5.514,
+      gravity_m_s2: 9.807,
+      rotation_period_h: 23.9345,
+      axial_tilt_deg: 23.4393,
+      mean_temperature_k: 288,
+      semi_major_axis_AU: 1.0,
+      eccentricity: 0.01671,
+      inclination_deg: 0.00005,
+      longitude_ascending_node_deg: -11.26064,
+      argument_perihelion_deg: 114.20783,
+      mean_anomaly_J2000_deg: 358.617,
+      orbital_period_days: 365.256,
+      color_hex: '#4a90e2',
+      has_rings: false,
+      moons_count: 1,
+      texture_base: '/textures/earth/',
+    },
+    level,
+  );
 
   // Radio real en modo local, didáctico en global
   const moonRadius = useMemo(
@@ -168,8 +241,13 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
     const n = (2 * Math.PI) / MOON_PERIOD_DAYS;
     const theta = n * elapsed.current;
 
-    const live = positionsRef?.current?.earth;
-    const earthPos = live ?? fallbackEarthPos;
+    let earthPos: Vector3;
+    if (viewMode === 'local') {
+      earthPos = earthPosRef.current;
+    } else {
+      const live = positionsRef?.current?.earth;
+      earthPos = live ?? fallbackEarthPos;
+    }
 
     if (meshRef.current) {
       meshRef.current.position.set(
