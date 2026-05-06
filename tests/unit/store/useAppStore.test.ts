@@ -243,3 +243,40 @@ describe('selectores de modo local', () => {
     expect(typeof module.useShowKnownEvents).toBe('function');
   });
 });
+
+describe('useAppStore — simulationSpeed', () => {
+  beforeEach(() => {
+    useAppStore.setState({ simulationSpeed: 1.0 });
+  });
+
+  it('valor inicial es 1.0', () => {
+    expect(useAppStore.getState().simulationSpeed).toBe(1.0);
+  });
+
+  it('setSimulationSpeed actualiza la velocidad', () => {
+    useAppStore.getState().setSimulationSpeed(2.5);
+    expect(useAppStore.getState().simulationSpeed).toBe(2.5);
+  });
+
+  it('acepta 0 (pausa)', () => {
+    useAppStore.getState().setSimulationSpeed(0);
+    expect(useAppStore.getState().simulationSpeed).toBe(0);
+  });
+
+  it('acepta 5 (velocidad máxima)', () => {
+    useAppStore.getState().setSimulationSpeed(5);
+    expect(useAppStore.getState().simulationSpeed).toBe(5);
+  });
+
+  it('acepta valores decimales', () => {
+    useAppStore.getState().setSimulationSpeed(1.5);
+    expect(useAppStore.getState().simulationSpeed).toBeCloseTo(1.5);
+  });
+});
+
+describe('selectores de simulación', () => {
+  it('useSimulationSpeed existe como export', async () => {
+    const module = await import('@/store/useAppStore');
+    expect(typeof module.useSimulationSpeed).toBe('function');
+  });
+});

@@ -28,6 +28,7 @@ import { visualRadius } from '@/scenes/scale';
 import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
 import { degToRad } from '@/scenes/orbital';
+import { useAppStore } from '@/store/useAppStore';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -59,6 +60,7 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
   const sphereRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
   const elapsedDays = useRef(0);
+  const speed = useAppStore((s) => s.simulationSpeed);
 
   // Velocidad angular de auto-rotación (rad/día simulado), acotada ×0.4 para gigantes
   const omega = useMemo(() => {
@@ -107,7 +109,8 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
 
   useFrame((_, dt) => {
     const SPEEDUP = 10;
-    elapsedDays.current += dt * SPEEDUP;
+    const dtScaled = dt * speed;
+    elapsedDays.current += dtScaled * SPEEDUP;
 
     if (groupRef.current) {
       groupRef.current.position.copy(posRef.current);

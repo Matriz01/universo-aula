@@ -63,6 +63,12 @@ interface AppState {
    * PlanetId → entra en modo local (selectedPlanet=id, viewMode='local', cameraMode='focus')
    */
   goToBody: (id: PlanetId | null) => void;
+
+  // — Control de velocidad de simulación —
+
+  /** Multiplicador de velocidad de simulación. 0 = pausa, 1 = nominal, max 5. */
+  simulationSpeed: number;
+  setSimulationSpeed: (speed: number) => void;
 }
 
 export const useAppStore = create<AppState>()((set) => ({
@@ -110,6 +116,10 @@ export const useAppStore = create<AppState>()((set) => ({
       set({ selectedPlanet: id, viewMode: 'local', cameraMode: 'focus' });
     }
   },
+
+  // Control de velocidad de simulación
+  simulationSpeed: 1.0,
+  setSimulationSpeed: (simulationSpeed) => set({ simulationSpeed }),
 }));
 
 // ---------------------------------------------------------------------------
@@ -127,3 +137,4 @@ export const usePrefersReducedMotion = () => useAppStore((s) => s.prefersReduced
 export const useSunShaderVariant = () => useAppStore((s) => s.sunShaderVariant);
 export const useViewMode = () => useAppStore((s) => s.viewMode);
 export const useShowKnownEvents = () => useAppStore((s) => s.showKnownEvents);
+export const useSimulationSpeed = () => useAppStore((s) => s.simulationSpeed);

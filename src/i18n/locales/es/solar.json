@@ -111,6 +111,11 @@
     },
     "curiosity": "Neptuno fue descubierto con matemáticas antes que con un telescopio."
   },
+  "simulation": {
+    "speed_label": "Velocidad",
+    "pause": "Pausar",
+    "play": "Reanudar"
+  },
   "view_mode": {
     "global": "Vista global",
     "local": "Vista local: {{name}}",

@@ -19,6 +19,7 @@ import { visualRadius } from '@/scenes/scale';
 import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
 import { degToRad } from '@/scenes/orbital';
+import { useAppStore } from '@/store/useAppStore';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -66,6 +67,7 @@ function PlanetMeshInner({
   const meshRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
   const elapsedDays = useRef(0);
+  const speed = useAppStore((s) => s.simulationSpeed);
 
   // Textura lazy — useTexture suspende hasta que carga
   const textureUrl = `${planet.texture_base}2k.jpg`;
@@ -93,7 +95,8 @@ function PlanetMeshInner({
   // Sincronizamos posición y rotación en cada frame
   useFrame((_, dt) => {
     const SPEEDUP = 10; // días simulados por segundo real
-    elapsedDays.current += dt * SPEEDUP;
+    const dtScaled = dt * speed;
+    elapsedDays.current += dtScaled * SPEEDUP;
 
     if (groupRef.current) {
       const pos = posRef.current;
@@ -151,6 +154,7 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
   const meshRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
   const elapsedDays = useRef(0);
+  const speed = useAppStore((s) => s.simulationSpeed);
 
   const geometry = useMemo(
     () => new SphereGeometry(visualRadius(planet.radius_km), 16, 16),
@@ -170,7 +174,8 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
 
   useFrame((_, dt) => {
     const SPEEDUP = 10;
-    elapsedDays.current += dt * SPEEDUP;
+    const dtScaled = dt * speed;
+    elapsedDays.current += dtScaled * SPEEDUP;
 
     if (groupRef.current) {
       groupRef.current.position.copy(posRef.current);

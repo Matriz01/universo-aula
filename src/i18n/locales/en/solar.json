@@ -111,6 +111,11 @@
     },
     "curiosity": "Neptune was discovered with mathematics before it was seen with a telescope."
   },
+  "simulation": {
+    "speed_label": "Speed",
+    "pause": "Pause",
+    "play": "Resume"
+  },
   "view_mode": {
     "global": "Global view",
     "local": "Local view: {{name}}",

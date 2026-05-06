@@ -19,6 +19,7 @@ import {
   SPEEDUP_APRENDIZ,
 } from '@/scenes/orbital';
 import { visualDistance } from '@/scenes/scale';
+import { useAppStore } from '@/store/useAppStore';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -42,6 +43,7 @@ export const KnownEvent = React.memo(function KnownEvent({ event }: KnownEventPr
   const meshRef = useRef<Mesh>(null);
   const elapsed = useRef(0);
   const posRef = useRef(new Vector3());
+  const speed = useAppStore((s) => s.simulationSpeed);
 
   const { op } = useMemo(() => ({ op: event.orbital_params }), [event.orbital_params]);
 
@@ -64,7 +66,8 @@ export const KnownEvent = React.memo(function KnownEvent({ event }: KnownEventPr
   );
 
   useFrame((_, dt) => {
-    elapsed.current += dt * SPEEDUP_APRENDIZ;
+    const dtScaled = dt * speed;
+    elapsed.current += dtScaled * SPEEDUP_APRENDIZ;
 
     const M = M0 + n * elapsed.current;
     const ecc = op.eccentricity;

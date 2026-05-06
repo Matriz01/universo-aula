@@ -23,6 +23,7 @@ import sunFragSrc from '@/scenes/shaders/sun.frag?raw';
 import sunFragLiteSrc from '@/scenes/shaders/sun.lite.frag?raw';
 
 import { SUN_VISUAL_RADIUS } from '@/scenes/scale';
+import { useAppStore } from '@/store/useAppStore';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -54,7 +55,8 @@ export interface SunProps {
 
 const FLOW_SPEED_NOMINAL = 0.2;
 // HDR: valores > 1.0 para superar el luminanceThreshold del Bloom (0.85)
-const COLOR_CORE = new Color(2.5, 2.0, 1.0);
+// Valores elevados para mayor halo bloom visible
+const COLOR_CORE = new Color(5.0, 3.5, 1.8);
 const COLOR_EDGE = new Color(1.2, 0.5, 0.1);
 const GRANULATION_SCALE = 3.0;
 const FLOW_SCALE = 8.0;
@@ -90,6 +92,7 @@ export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunPro
   const materialRef = useRef<ShaderMaterial | MeshStandardMaterial | null>(null);
   const meshRef = useRef<Mesh>(null);
   const elapsedDays = useRef(0);
+  const speed = useAppStore((s) => s.simulationSpeed);
 
   // Creamos el material según la capacidad GPU
   const material = useMemo(() => {
@@ -123,7 +126,8 @@ export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunPro
 
   // useFrame actualiza uTime en cada frame (sólo para ShaderMaterial) y rota el Sol
   useFrame((_state, dt) => {
-    elapsedDays.current += dt * SUN_SPEEDUP;
+    const dtScaled = dt * speed;
+    elapsedDays.current += dtScaled * SUN_SPEEDUP;
 
     if (materialRef.current instanceof ShaderMaterial) {
       const uniforms = materialRef.current.uniforms as unknown as SunUniforms;

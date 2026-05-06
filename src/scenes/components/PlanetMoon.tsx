@@ -14,6 +14,7 @@ import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import type { Mesh } from 'three';
 import { SphereGeometry, MeshStandardMaterial, Vector3 } from 'three';
+import { useAppStore } from '@/store/useAppStore';
 
 // ---------------------------------------------------------------------------
 // Constantes
@@ -54,6 +55,7 @@ function MoonMeshInner({
 }: PlanetMoonProps) {
   const meshRef = useRef<Mesh>(null);
   const elapsed = useRef(0);
+  const speed = useAppStore((s) => s.simulationSpeed);
 
   const texture = useTexture('/textures/moon/2k.jpg');
 
@@ -68,7 +70,8 @@ function MoonMeshInner({
 
   useFrame((_, dt) => {
     const SPEEDUP = 10;
-    elapsed.current += dt * SPEEDUP;
+    const dtScaled = dt * speed;
+    elapsed.current += dtScaled * SPEEDUP;
 
     const n = (2 * Math.PI) / MOON_PERIOD_DAYS;
     const theta = n * elapsed.current;
@@ -106,6 +109,7 @@ function MoonMeshInner({
 function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonProps) {
   const meshRef = useRef<Mesh>(null);
   const elapsed = useRef(0);
+  const speed = useAppStore((s) => s.simulationSpeed);
 
   const geometry = useMemo(() => new SphereGeometry(MOON_VISUAL_RADIUS, 8, 8), []);
   const material = useMemo(() => new MeshStandardMaterial({ color: '#c8c8c8' }), []);
@@ -118,7 +122,8 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
 
   useFrame((_, dt) => {
     const SPEEDUP = 10;
-    elapsed.current += dt * SPEEDUP;
+    const dtScaled = dt * speed;
+    elapsed.current += dtScaled * SPEEDUP;
     const n = (2 * Math.PI) / MOON_PERIOD_DAYS;
     const theta = n * elapsed.current;
 

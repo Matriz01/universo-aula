@@ -223,7 +223,7 @@ function SolarSystemContent({
       {/* Post-procesado: Bloom sobre el Sol — mipmapBlur eliminado (caro); skip en GPU low */}
       {gpu !== 'low' && (
         <EffectComposer enableNormalPass={false}>
-          <Bloom intensity={0.5} luminanceThreshold={0.9} luminanceSmoothing={0.3} />
+          <Bloom intensity={0.9} luminanceThreshold={0.85} luminanceSmoothing={0.3} />
         </EffectComposer>
       )}
     </>

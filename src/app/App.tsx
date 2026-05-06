@@ -8,6 +8,7 @@ import { AttributionFooter } from '@/components/ui/AttributionFooter';
 import { CreditsModal } from '@/components/ui/CreditsModal';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ViewModeIndicator } from '@/components/ui/ViewModeIndicator';
+import { SpeedControl } from '@/components/ui/SpeedControl';
 import { ErrorBoundary } from '@/app/ErrorBoundary';
 
 // Lazy import de SolarSystemScene — Three.js sólo se carga cuando se necesita
@@ -60,6 +61,9 @@ export function App() {
 
         {/* Indicador de modo de visualización (solo visible en modo local) */}
         <ViewModeIndicator />
+
+        {/* Control de velocidad de simulación */}
+        <SpeedControl />
 
         {/* Fila inferior: selector de idioma + botón créditos */}
         <div className="flex items-center gap-2">
