@@ -57,61 +57,63 @@ export function SpeedControl() {
   }
 
   return (
-    <div
-      className="flex flex-wrap items-center gap-1.5 rounded border border-white/20 bg-black/40 px-3 py-2 backdrop-blur"
-      role="group"
-      aria-label={t('simulation.speed_label')}
-    >
-      {/* Label */}
-      <span className="text-xs text-gray-300 select-none whitespace-nowrap mr-1">
-        {t('simulation.speed_label')}
-      </span>
+    <div className="pointer-events-none">
+      <div
+        className="pointer-events-auto flex flex-wrap items-center gap-1.5 rounded border border-white/20 bg-black/40 px-3 py-2 backdrop-blur"
+        role="group"
+        aria-label={t('simulation.speed_label')}
+      >
+        {/* Label */}
+        <span className="text-xs text-gray-300 select-none whitespace-nowrap mr-1">
+          {t('simulation.speed_label')}
+        </span>
 
-      {/* Pausa / Reanudar */}
-      {isPaused ? (
-        <button
-          type="button"
-          onClick={handleResume}
-          aria-label={`${t('simulation.preset.pause')} (▶)`}
-          aria-pressed={true}
-          className="min-h-[44px] min-w-[56px] rounded border border-yellow-400/60 bg-yellow-400/20 px-3 py-1 text-sm font-semibold text-yellow-300 hover:bg-yellow-400/30 active:bg-yellow-400/40 transition-colors"
-        >
-          ▶ {t('simulation.preset.pause')}
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={handlePause}
-          aria-label={`${t('simulation.preset.pause')} (⏸)`}
-          aria-pressed={false}
-          className="min-h-[44px] min-w-[56px] rounded border border-white/20 bg-white/10 px-3 py-1 text-sm font-semibold text-white hover:bg-white/20 active:bg-white/30 transition-colors"
-        >
-          ⏸ {t('simulation.preset.pause')}
-        </button>
-      )}
-
-      {/* Botones de preset */}
-      {PRESETS.map((value, idx) => {
-        const key = PRESET_KEYS[idx];
-        const isActive = !isPaused && simulationSpeed === value;
-        return (
+        {/* Pausa / Reanudar */}
+        {isPaused ? (
           <button
-            key={value}
             type="button"
-            onClick={() => handlePreset(value)}
-            aria-label={`${t(`simulation.preset.${key}`)} (${formatPreset(value)})`}
-            aria-pressed={isActive}
-            className={[
-              'min-h-[44px] min-w-[56px] rounded border px-3 py-1 text-sm font-semibold transition-colors',
-              isActive
-                ? 'border-yellow-400/80 bg-yellow-400/25 text-yellow-200'
-                : 'border-white/20 bg-white/10 text-white hover:bg-white/20 active:bg-white/30',
-            ].join(' ')}
+            onClick={handleResume}
+            aria-label={`${t('simulation.preset.pause')} (▶)`}
+            aria-pressed={true}
+            className="min-h-[44px] min-w-[56px] rounded border border-yellow-400/60 bg-yellow-400/20 px-3 py-1 text-sm font-semibold text-yellow-300 hover:bg-yellow-400/30 active:bg-yellow-400/40 transition-colors"
           >
-            {formatPreset(value)}
+            ▶ {t('simulation.preset.pause')}
           </button>
-        );
-      })}
+        ) : (
+          <button
+            type="button"
+            onClick={handlePause}
+            aria-label={`${t('simulation.preset.pause')} (⏸)`}
+            aria-pressed={false}
+            className="min-h-[44px] min-w-[56px] rounded border border-white/20 bg-white/10 px-3 py-1 text-sm font-semibold text-white hover:bg-white/20 active:bg-white/30 transition-colors"
+          >
+            ⏸ {t('simulation.preset.pause')}
+          </button>
+        )}
+
+        {/* Botones de preset */}
+        {PRESETS.map((value, idx) => {
+          const key = PRESET_KEYS[idx];
+          const isActive = !isPaused && simulationSpeed === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => handlePreset(value)}
+              aria-label={`${t(`simulation.preset.${key}`)} (${formatPreset(value)})`}
+              aria-pressed={isActive}
+              className={[
+                'min-h-[44px] min-w-[56px] rounded border px-3 py-1 text-sm font-semibold transition-colors',
+                isActive
+                  ? 'border-yellow-400/80 bg-yellow-400/25 text-yellow-200'
+                  : 'border-white/20 bg-white/10 text-white hover:bg-white/20 active:bg-white/30',
+              ].join(' ')}
+            >
+              {formatPreset(value)}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

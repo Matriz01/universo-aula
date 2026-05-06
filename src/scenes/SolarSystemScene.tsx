@@ -17,7 +17,7 @@
 
 import React, { Suspense, useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Stars, PerformanceMonitor, Line } from '@react-three/drei';
+import { PerformanceMonitor, Line } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Vector3 } from 'three';
 import type { Vector3 as Vector3Type, Group } from 'three';
@@ -188,9 +188,6 @@ function SolarSystemContent({
           shadow-bias={-0.0005}
         />
       )}
-
-      {/* Fondo de estrellas */}
-      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade />
 
       {/* Cámara y controles */}
       <CameraController planetPositionsRef={planetPositionsRef} />

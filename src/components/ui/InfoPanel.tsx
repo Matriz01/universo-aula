@@ -249,42 +249,48 @@ export const InfoPanel = React.memo(function InfoPanel() {
   const goToBody = useAppStore((s) => s.goToBody);
   const level = useAppStore((s) => s.level);
 
-  if (selectedPlanet === null) return null;
-
   const isExplorador = level === 'explorador';
+  const wrapperClass = isExplorador
+    ? 'pointer-events-none fixed inset-x-4 top-4 bottom-16 z-30 max-w-lg mx-auto'
+    : 'pointer-events-none fixed right-4 top-4 bottom-16 z-30 w-80';
+
+  if (selectedPlanet === null) return <div className={wrapperClass} aria-hidden="true" />;
+
   const panelClass = isExplorador
-    ? 'fixed inset-x-4 top-4 bottom-16 z-30 max-w-lg mx-auto rounded-2xl bg-black/80 p-6 backdrop-blur-md'
-    : 'fixed right-4 top-4 bottom-16 z-30 w-80 rounded-2xl bg-black/80 p-4 backdrop-blur-md overflow-y-auto';
+    ? 'pointer-events-auto h-full rounded-2xl bg-black/80 p-6 backdrop-blur-md'
+    : 'pointer-events-auto h-full rounded-2xl bg-black/80 p-4 backdrop-blur-md overflow-y-auto';
 
   return (
-    <div
-      data-testid="info-panel"
-      className={panelClass}
-      role="complementary"
-      aria-label={`Información sobre ${t(`solar:${selectedPlanet}.name`)}`}
-    >
-      {/* Cabecera */}
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className={isExplorador ? 'text-3xl font-bold' : 'text-xl font-bold'}>
-          {t(`solar:${selectedPlanet}.name`)}
-        </h2>
-        <button
-          type="button"
-          aria-label="Cerrar"
-          onClick={() => goToBody(null)}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
-        >
-          ✕
-        </button>
+    <div className={wrapperClass}>
+      <div
+        data-testid="info-panel"
+        className={panelClass}
+        role="complementary"
+        aria-label={`Información sobre ${t(`solar:${selectedPlanet}.name`)}`}
+      >
+        {/* Cabecera */}
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className={isExplorador ? 'text-3xl font-bold' : 'text-xl font-bold'}>
+            {t(`solar:${selectedPlanet}.name`)}
+          </h2>
+          <button
+            type="button"
+            aria-label="Cerrar"
+            onClick={() => goToBody(null)}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Contenido por nivel */}
+        {level === 'explorador' && <ExploradorPanel planetId={selectedPlanet} level={level} />}
+        {level === 'aprendiz' && <AprendizPanel planetId={selectedPlanet} level={level} />}
+        {level === 'investigador' && <InvestigadorPanel planetId={selectedPlanet} level={level} />}
+
+        {/* Nota IAU para Plutón */}
+        {selectedPlanet === 'pluto' && <PlutoNote level={level} />}
       </div>
-
-      {/* Contenido por nivel */}
-      {level === 'explorador' && <ExploradorPanel planetId={selectedPlanet} level={level} />}
-      {level === 'aprendiz' && <AprendizPanel planetId={selectedPlanet} level={level} />}
-      {level === 'investigador' && <InvestigadorPanel planetId={selectedPlanet} level={level} />}
-
-      {/* Nota IAU para Plutón */}
-      {selectedPlanet === 'pluto' && <PlutoNote level={level} />}
     </div>
   );
 });

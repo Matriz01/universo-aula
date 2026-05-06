@@ -18,44 +18,46 @@ export const TourControls = React.memo(function TourControls() {
   const { state, dispatch } = useTour();
 
   return (
-    <div
-      data-testid="tour-controls"
-      role="group"
-      aria-label={t('solar:ui.tour.controls_label', 'Tour controls')}
-      style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}
-    >
-      {!tourActive ? (
-        <button
-          type="button"
-          data-testid="tour-start"
-          onClick={() => dispatch({ type: 'start' })}
-          aria-label={t('solar:ui.tour.start')}
-        >
-          {t('solar:ui.tour.start')}
-        </button>
-      ) : (
-        <>
+    <div style={{ pointerEvents: 'none' }}>
+      <div
+        data-testid="tour-controls"
+        role="group"
+        aria-label={t('solar:ui.tour.controls_label', 'Tour controls')}
+        style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', pointerEvents: 'auto' }}
+      >
+        {!tourActive ? (
           <button
             type="button"
-            data-testid="tour-stop"
-            onClick={() => dispatch({ type: 'user_interrupt' })}
-            aria-label={t('solar:ui.tour.stop')}
+            data-testid="tour-start"
+            onClick={() => dispatch({ type: 'start' })}
+            aria-label={t('solar:ui.tour.start')}
           >
-            {t('solar:ui.tour.stop')}
+            {t('solar:ui.tour.start')}
           </button>
-
-          {prefersReducedMotion && state.kind === 'narration' && (
+        ) : (
+          <>
             <button
               type="button"
-              data-testid="tour-next"
-              onClick={() => dispatch({ type: 'tts_done' })}
-              aria-label={t('solar:ui.tour.next')}
+              data-testid="tour-stop"
+              onClick={() => dispatch({ type: 'user_interrupt' })}
+              aria-label={t('solar:ui.tour.stop')}
             >
-              {t('solar:ui.tour.next')}
+              {t('solar:ui.tour.stop')}
             </button>
-          )}
-        </>
-      )}
+
+            {prefersReducedMotion && state.kind === 'narration' && (
+              <button
+                type="button"
+                data-testid="tour-next"
+                onClick={() => dispatch({ type: 'tts_done' })}
+                aria-label={t('solar:ui.tour.next')}
+              >
+                {t('solar:ui.tour.next')}
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 });

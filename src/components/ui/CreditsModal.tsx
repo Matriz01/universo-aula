@@ -34,7 +34,7 @@ export const CreditsModal = React.memo(function CreditsModal() {
         type="button"
         onClick={open}
         aria-label={t('solar:ui.credits_button', 'Créditos e información')}
-        className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/40 text-xs text-white/70 backdrop-blur hover:bg-white/10 hover:text-white"
+        className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/40 text-xs text-white/70 backdrop-blur hover:bg-white/10 hover:text-white"
         title={t('solar:ui.credits_button', 'Créditos e información')}
       >
         i

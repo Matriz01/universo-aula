@@ -52,7 +52,7 @@ export function App() {
       </div>
 
       {/* HUD superpuesto */}
-      <div className="relative z-10 flex flex-col items-start gap-2 p-4">
+      <div className="pointer-events-none relative z-10 flex flex-col items-start gap-2 p-4">
         <h1 className="text-2xl font-bold tracking-tight">{t('appName')}</h1>
         <p className="text-sm text-gray-300">{t('tagline')}</p>
 
@@ -66,7 +66,7 @@ export function App() {
         <SpeedControl />
 
         {/* Fila inferior: selector de idioma + botón créditos */}
-        <div className="flex items-center gap-2">
+        <div className="pointer-events-auto flex items-center gap-2">
           <label htmlFor="locale-selector" className="sr-only">
             Idioma
           </label>

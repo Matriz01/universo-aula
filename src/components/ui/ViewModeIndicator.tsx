@@ -27,33 +27,35 @@ export const ViewModeIndicator = React.memo(function ViewModeIndicator() {
   });
 
   return (
-    <div
-      data-testid="view-mode-indicator"
-      className="flex flex-col gap-2 rounded-lg border border-white/20 bg-black/50 px-3 py-2 backdrop-blur"
-    >
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-white">{label}</span>
-        <button
-          type="button"
-          data-testid="exit-local-mode"
-          onClick={() => goToBody(null)}
-          className="rounded border border-white/30 bg-white/10 px-2 py-0.5 text-xs text-white hover:bg-white/20 transition-colors"
-          aria-label={t('solar:view_mode.exit', 'Salir')}
-        >
-          {t('solar:view_mode.exit', 'Salir')}
-        </button>
-      </div>
+    <div className="pointer-events-none">
+      <div
+        data-testid="view-mode-indicator"
+        className="pointer-events-auto flex flex-col gap-2 rounded-lg border border-white/20 bg-black/50 px-3 py-2 backdrop-blur"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-white">{label}</span>
+          <button
+            type="button"
+            data-testid="exit-local-mode"
+            onClick={() => goToBody(null)}
+            className="rounded border border-white/30 bg-white/10 px-2 py-0.5 text-xs text-white hover:bg-white/20 transition-colors"
+            aria-label={t('solar:view_mode.exit', 'Salir')}
+          >
+            {t('solar:view_mode.exit', 'Salir')}
+          </button>
+        </div>
 
-      <label className="flex cursor-pointer items-center gap-2 text-xs text-white/80">
-        <input
-          type="checkbox"
-          data-testid="known-events-toggle"
-          checked={showKnownEvents}
-          onChange={(e) => setShowKnownEvents(e.target.checked)}
-          className="rounded"
-        />
-        {t('solar:view_mode.known_events_toggle', 'Mostrar eventos conocidos')}
-      </label>
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-white/80">
+          <input
+            type="checkbox"
+            data-testid="known-events-toggle"
+            checked={showKnownEvents}
+            onChange={(e) => setShowKnownEvents(e.target.checked)}
+            className="rounded"
+          />
+          {t('solar:view_mode.known_events_toggle', 'Mostrar eventos conocidos')}
+        </label>
+      </div>
     </div>
   );
 });
