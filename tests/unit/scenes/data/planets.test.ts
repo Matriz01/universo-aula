@@ -33,10 +33,10 @@ describe('planets.json — estructura y sanity checks', () => {
     expect(saturn?.rings?.inner_radius_km).toBeGreaterThan(0);
   });
 
-  it('asteroid_belt.count_high = 2000', () => {
-    expect(data.asteroid_belt.count_high).toBe(2000);
-    expect(data.asteroid_belt.count_mid).toBe(1000);
-    expect(data.asteroid_belt.count_low).toBe(500);
+  it('asteroid_belt counts (iter-2c perf-tuned)', () => {
+    expect(data.asteroid_belt.count_high).toBe(1000);
+    expect(data.asteroid_belt.count_mid).toBe(500);
+    expect(data.asteroid_belt.count_low).toBe(200);
   });
 
   it('ningún planeta tiene claves textuales (description, name_es, iau_note)', () => {
