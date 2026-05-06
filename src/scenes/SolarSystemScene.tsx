@@ -68,10 +68,13 @@ function SolarSystemContent({
   return (
     <>
       {/* Luz ambiental */}
-      <ambientLight intensity={0.1} />
+      <ambientLight intensity={0.5} />
+
+      {/* Glow cósmico sutil del fondo estelar */}
+      <hemisphereLight color="#dde6ff" groundColor="#1a1142" intensity={0.15} />
 
       {/* Luz puntual en el Sol */}
-      <pointLight position={[0, 0, 0]} intensity={3} distance={200} decay={1} />
+      <pointLight position={[0, 0, 0]} intensity={3} distance={200} decay={1.5} />
 
       {/* Fondo de estrellas */}
       <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade />

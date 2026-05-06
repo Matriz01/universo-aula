@@ -1,6 +1,8 @@
 /**
  * 1.6 — TEST: funciones puras de escala.
- * Valores esperados del design §3.2 (tabla validada).
+ * Valores esperados recalculados tras ajuste visual iter-2
+ * (D_VISUAL_BASE 5.0→6.0, D_VISUAL_LOG_K 8.0→13.0).
+ * Los radios (R_*) no cambiaron.
  */
 import { describe, it, expect } from 'vitest';
 import { visualRadius, visualDistance } from '@/scenes/scale';
@@ -24,24 +26,24 @@ describe('visualRadius', () => {
 });
 
 describe('visualDistance', () => {
-  it('Mercury AU=0.387098 → ≈8.777', () => {
-    expect(visualDistance(0.387098)).toBeCloseTo(8.777, 1);
+  it('Mercury AU=0.387098 → ≈12.137', () => {
+    expect(visualDistance(0.387098)).toBeCloseTo(12.137, 1);
   });
 
-  it('Earth AU=1.0 → ≈13.000', () => {
-    expect(visualDistance(1.0)).toBeCloseTo(13.0, 1);
+  it('Earth AU=1.0 → ≈19.000', () => {
+    expect(visualDistance(1.0)).toBeCloseTo(19.0, 1);
   });
 
-  it('Neptune AU=30.07 → ≈44.660', () => {
-    expect(visualDistance(30.07)).toBeCloseTo(44.66, 1);
+  it('Neptune AU=30.07 → ≈70.447', () => {
+    expect(visualDistance(30.07)).toBeCloseTo(70.447, 1);
   });
 
-  it('Venus AU=0.7233 → ≈11.282', () => {
-    expect(visualDistance(0.7233)).toBeCloseTo(11.282, 1);
+  it('Venus AU=0.7233 → ≈16.207', () => {
+    expect(visualDistance(0.7233)).toBeCloseTo(16.207, 1);
   });
 
-  it('Pluto AU=39.482 → ≈47.714', () => {
-    expect(visualDistance(39.482)).toBeCloseTo(47.714, 1);
+  it('Pluto AU=39.482 → ≈75.410', () => {
+    expect(visualDistance(39.482)).toBeCloseTo(75.41, 1);
   });
 
   it('es monótonamente creciente para AU creciente', () => {

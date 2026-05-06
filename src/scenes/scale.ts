@@ -7,13 +7,19 @@
  *
  * Valores validados en design §3.2 — tabla Mercury→Pluto.
  * NOTA: "Las distancias y tamaños no están a escala real" (i18n solar:ui.scale_note).
+ *
+ * @remarks
+ * D_VISUAL_BASE y D_VISUAL_LOG_K fueron afinados tras revisión visual del
+ * despliegue MVP (iter-2): con los valores originales (5.0 / 8.0) los planetas
+ * interiores se solapaban y los exteriores quedaban demasiado juntos. Los
+ * valores actuales (6.0 / 13.0) amplían la separación de forma legible.
  */
 
 export const SUN_VISUAL_RADIUS = 2.5;
 export const R_VISUAL_BASE = 0.3;
 export const R_VISUAL_LOG_K = 0.6;
-export const D_VISUAL_BASE = 5.0;
-export const D_VISUAL_LOG_K = 8.0;
+export const D_VISUAL_BASE = 6.0;
+export const D_VISUAL_LOG_K = 13.0;
 
 /**
  * Radio visual de un cuerpo celeste en unidades de escena Three.js.
