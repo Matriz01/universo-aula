@@ -85,8 +85,8 @@ function createUniforms(reducedMotion: boolean, sunspotsEnabled: boolean): SunUn
 const SUN_ROTATION_PERIOD_DAYS = 25;
 /** Velocidad angular del Sol (rad/día simulado) */
 const SUN_OMEGA = (2 * Math.PI) / SUN_ROTATION_PERIOD_DAYS;
-/** Días simulados por segundo real (mismo SPEEDUP que usan los planetas) */
-const SUN_SPEEDUP = 10;
+/** Días simulados por segundo real (base: 1 día/seg a speed=1) */
+const SUN_SPEEDUP = 1;
 
 export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunProps) {
   const materialRef = useRef<ShaderMaterial | MeshStandardMaterial | null>(null);

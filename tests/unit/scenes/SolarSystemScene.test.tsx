@@ -450,9 +450,9 @@ describe('<SolarSystemScene> — composición de componentes', () => {
     expect(mockCounts.CameraController).toBe(1);
   });
 
-  it('Canvas recibe dpr={[1,2]}', () => {
+  it('Canvas recibe dpr=1.5 (fijo, anti-flicker)', () => {
     render(<SolarSystemScene />);
-    expect(capturedCanvasProps.dpr).toEqual([1, 2]);
+    expect(capturedCanvasProps.dpr).toBe(1.5);
   });
 
   it('Canvas recibe gl con powerPreference=high-performance', () => {

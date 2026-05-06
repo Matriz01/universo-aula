@@ -220,11 +220,11 @@ describe('computeAt — nivel Investigador (Kepler completo)', () => {
 });
 
 describe('speedups — constantes de aceleración', () => {
-  it('SPEEDUP_EXPLORADOR = 30', () => {
-    expect(SPEEDUP_EXPLORADOR).toBe(30);
+  it('SPEEDUP_EXPLORADOR = 3', () => {
+    expect(SPEEDUP_EXPLORADOR).toBe(3);
   });
 
-  it('SPEEDUP_APRENDIZ = 10', () => {
-    expect(SPEEDUP_APRENDIZ).toBe(10);
+  it('SPEEDUP_APRENDIZ = 1', () => {
+    expect(SPEEDUP_APRENDIZ).toBe(1);
   });
 });

@@ -87,7 +87,7 @@ describe('degToRad', () => {
 });
 
 describe('constantes de simulación temporal', () => {
-  it('SPEEDUP_EXPLORADOR = 30', () => expect(SPEEDUP_EXPLORADOR).toBe(30));
-  it('SPEEDUP_APRENDIZ = 10', () => expect(SPEEDUP_APRENDIZ).toBe(10));
-  it('SPEEDUP_INVESTIGADOR = 5', () => expect(SPEEDUP_INVESTIGADOR).toBe(5));
+  it('SPEEDUP_EXPLORADOR = 3', () => expect(SPEEDUP_EXPLORADOR).toBe(3));
+  it('SPEEDUP_APRENDIZ = 1', () => expect(SPEEDUP_APRENDIZ).toBe(1));
+  it('SPEEDUP_INVESTIGADOR = 0.3', () => expect(SPEEDUP_INVESTIGADOR).toBe(0.3));
 });

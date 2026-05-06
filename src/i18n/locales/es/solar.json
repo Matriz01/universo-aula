@@ -114,7 +114,15 @@
   "simulation": {
     "speed_label": "Velocidad",
     "pause": "Pausar",
-    "play": "Reanudar"
+    "play": "Reanudar",
+    "preset": {
+      "pause": "Pausa",
+      "slow": "Muy lento",
+      "half": "Lento",
+      "normal": "Normal",
+      "fast": "Rápido",
+      "turbo": "Turbo"
+    }
   },
   "view_mode": {
     "global": "Vista global",

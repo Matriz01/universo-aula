@@ -23,6 +23,7 @@ import {
   SPEEDUP_INVESTIGADOR,
 } from '@/scenes/orbital';
 import { visualDistance } from '@/scenes/scale';
+import { useAppStore } from '@/store/useAppStore';
 
 export type PedagogicalLevel = 'explorador' | 'aprendiz' | 'investigador';
 
@@ -39,6 +40,7 @@ export function usePlanetPosition(
 ): React.MutableRefObject<Vector3> {
   const posRef = useRef<Vector3>(new Vector3());
   const elapsed = useRef<number>(0);
+  const speed = useAppStore((s) => s.simulationSpeed);
 
   // Memoizamos derivados que no cambian con t
   const { a, b, n, M0, omega, Omega, inc } = useMemo(
@@ -62,7 +64,7 @@ export function usePlanetPosition(
           ? SPEEDUP_APRENDIZ
           : SPEEDUP_INVESTIGADOR;
 
-    elapsed.current += dt * speedup; // días simulados
+    elapsed.current += dt * speed * speedup; // días simulados (pausa si speed=0)
 
     if (level === 'explorador') {
       // Órbita circular — sin excentricidad, sin inclinación

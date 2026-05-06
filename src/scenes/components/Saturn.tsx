@@ -108,7 +108,7 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
   const tiltRad = degToRad(planet.axial_tilt_deg);
 
   useFrame((_, dt) => {
-    const SPEEDUP = 10;
+    const SPEEDUP = 1; // días simulados por segundo real (base: 1 día/seg a speed=1)
     const dtScaled = dt * speed;
     elapsedDays.current += dtScaled * SPEEDUP;
 

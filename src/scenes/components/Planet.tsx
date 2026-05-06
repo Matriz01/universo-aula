@@ -94,7 +94,7 @@ function PlanetMeshInner({
 
   // Sincronizamos posición y rotación en cada frame
   useFrame((_, dt) => {
-    const SPEEDUP = 10; // días simulados por segundo real
+    const SPEEDUP = 1; // días simulados por segundo real (base: 1 día/seg a speed=1)
     const dtScaled = dt * speed;
     elapsedDays.current += dtScaled * SPEEDUP;
 
@@ -173,7 +173,7 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
   }, [planet.rotation_period_h]);
 
   useFrame((_, dt) => {
-    const SPEEDUP = 10;
+    const SPEEDUP = 1; // días simulados por segundo real (base: 1 día/seg a speed=1)
     const dtScaled = dt * speed;
     elapsedDays.current += dtScaled * SPEEDUP;
 

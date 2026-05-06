@@ -69,7 +69,7 @@ function MoonMeshInner({
   );
 
   useFrame((_, dt) => {
-    const SPEEDUP = 10;
+    const SPEEDUP = 1; // días simulados por segundo real (base: 1 día/seg a speed=1)
     const dtScaled = dt * speed;
     elapsed.current += dtScaled * SPEEDUP;
 
@@ -121,7 +121,7 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
   );
 
   useFrame((_, dt) => {
-    const SPEEDUP = 10;
+    const SPEEDUP = 1; // días simulados por segundo real (base: 1 día/seg a speed=1)
     const dtScaled = dt * speed;
     elapsed.current += dtScaled * SPEEDUP;
     const n = (2 * Math.PI) / MOON_PERIOD_DAYS;

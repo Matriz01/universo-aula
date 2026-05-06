@@ -13,14 +13,14 @@ import type { Vector3 } from 'three';
 // Constantes de simulación temporal (segundos reales → días simulados)
 // ---------------------------------------------------------------------------
 
-/** 1 s real = 30 días simulados (nivel Explorador — órbitas circulares rápidas) */
-export const SPEEDUP_EXPLORADOR = 30;
+/** 1 s real = 3 días simulados (nivel Explorador — órbitas circulares rápidas) */
+export const SPEEDUP_EXPLORADOR = 3;
 
-/** 1 s real = 10 días simulados (nivel Aprendiz — elipse simplificada) */
-export const SPEEDUP_APRENDIZ = 10;
+/** 1 s real = 1 día simulado (nivel Aprendiz — elipse simplificada) */
+export const SPEEDUP_APRENDIZ = 1;
 
-/** 1 s real = 5 días simulados (nivel Investigador — Kepler real, más lento) */
-export const SPEEDUP_INVESTIGADOR = 5;
+/** 1 s real = 0.3 días simulados (nivel Investigador — Kepler real, más lento) */
+export const SPEEDUP_INVESTIGADOR = 0.3;
 
 /** Época de referencia Julian Date J2000.0 */
 export const J2000_JD = 2451545.0;

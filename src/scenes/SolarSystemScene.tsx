@@ -222,7 +222,7 @@ function SolarSystemContent({
 
       {/* Post-procesado: Bloom sobre el Sol — mipmapBlur eliminado (caro); skip en GPU low */}
       {gpu !== 'low' && (
-        <EffectComposer enableNormalPass={false}>
+        <EffectComposer enableNormalPass={false} multisampling={4}>
           <Bloom intensity={0.9} luminanceThreshold={0.85} luminanceSmoothing={0.3} />
         </EffectComposer>
       )}
@@ -260,8 +260,8 @@ export function SolarSystemScene() {
   return (
     <Canvas
       data-testid="solar-canvas"
-      dpr={[1, 2]}
-      gl={{ powerPreference: 'high-performance', antialias: true }}
+      dpr={1.5}
+      gl={{ powerPreference: 'high-performance', antialias: true, stencil: false }}
       camera={{ position: [0, 35, 70], fov: 60, near: 0.1, far: 500 }}
       shadows={shadowsEnabled}
     >
