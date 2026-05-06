@@ -15,6 +15,7 @@
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { ShaderMaterial, MeshStandardMaterial, Color, SphereGeometry } from 'three';
+import type { Mesh } from 'three';
 
 // Shaders importados como strings crudos mediante Vite ?raw
 import sunVertSrc from '@/scenes/shaders/sun.vert?raw';
@@ -78,8 +79,17 @@ function createUniforms(reducedMotion: boolean, sunspotsEnabled: boolean): SunUn
 // Componente Sun
 // ---------------------------------------------------------------------------
 
+/** Periodo de rotación del Sol en el ecuador (días terrestres) */
+const SUN_ROTATION_PERIOD_DAYS = 25;
+/** Velocidad angular del Sol (rad/día simulado) */
+const SUN_OMEGA = (2 * Math.PI) / SUN_ROTATION_PERIOD_DAYS;
+/** Días simulados por segundo real (mismo SPEEDUP que usan los planetas) */
+const SUN_SPEEDUP = 10;
+
 export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunProps) {
   const materialRef = useRef<ShaderMaterial | MeshStandardMaterial | null>(null);
+  const meshRef = useRef<Mesh>(null);
+  const elapsedDays = useRef(0);
 
   // Creamos el material según la capacidad GPU
   const material = useMemo(() => {
@@ -111,19 +121,25 @@ export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunPro
     return mat;
   }, [capability, reducedMotion]);
 
-  // useFrame actualiza uTime en cada frame (sólo para ShaderMaterial)
+  // useFrame actualiza uTime en cada frame (sólo para ShaderMaterial) y rota el Sol
   useFrame((_state, dt) => {
+    elapsedDays.current += dt * SUN_SPEEDUP;
+
     if (materialRef.current instanceof ShaderMaterial) {
       const uniforms = materialRef.current.uniforms as unknown as SunUniforms;
       if (uniforms.uTime) {
         uniforms.uTime.value += dt;
       }
     }
+
+    if (meshRef.current) {
+      meshRef.current.rotation.y = elapsedDays.current * SUN_OMEGA;
+    }
   });
 
   const geometry = useMemo(() => new SphereGeometry(SUN_VISUAL_RADIUS, 64, 64), []);
 
-  return <mesh geometry={geometry} material={material} name="sun" />;
+  return <mesh ref={meshRef} geometry={geometry} material={material} name="sun" />;
 });
 
 Sun.displayName = 'Sun';

@@ -12,12 +12,13 @@
 import React, { useRef, useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture, Html } from '@react-three/drei';
-import type { Mesh, Vector3 } from 'three';
+import type { Mesh, Group, Vector3 } from 'three';
 import { SphereGeometry, MeshStandardMaterial, Color } from 'three';
 import type { PlanetData } from '@/scenes/data/types';
 import { visualRadius } from '@/scenes/scale';
 import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
+import { degToRad } from '@/scenes/orbital';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -48,8 +49,10 @@ interface PlanetMeshProps {
 const LOD_SEGMENTS = [64, 32, 16] as const;
 
 function PlanetMeshInner({ planet, level, variant, onClick, positionsRef }: PlanetMeshProps) {
+  const groupRef = useRef<Group>(null);
   const meshRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
+  const elapsedDays = useRef(0);
 
   // Textura lazy — useTexture suspende hasta que carga
   const textureUrl = `${planet.texture_base}2k.jpg`;
@@ -64,28 +67,47 @@ function PlanetMeshInner({ planet, level, variant, onClick, positionsRef }: Plan
   // Material con textura
   const material = useMemo(() => new MeshStandardMaterial({ map: texture }), [texture]);
 
-  // Sincronizamos posición desde posRef (actualizado por useFrame en usePlanetPosition)
-  useFrame(() => {
-    if (meshRef.current) {
+  // Inclinación axial del planeta
+  const tiltRad = useMemo(() => degToRad(planet.axial_tilt_deg), [planet.axial_tilt_deg]);
+
+  // Velocidad angular de auto-rotación (rad/día simulado)
+  // rotation_period_h negativo = rotación retrógrada → la dirección es correcta naturalmente
+  const omega = useMemo(() => {
+    const periodDays = planet.rotation_period_h / 24;
+    return (2 * Math.PI) / periodDays;
+  }, [planet.rotation_period_h]);
+
+  // Sincronizamos posición y rotación en cada frame
+  useFrame((_, dt) => {
+    const SPEEDUP = 10; // días simulados por segundo real
+    elapsedDays.current += dt * SPEEDUP;
+
+    if (groupRef.current) {
       const pos = posRef.current;
-      meshRef.current.position.set(pos.x, pos.y, pos.z);
+      groupRef.current.position.set(pos.x, pos.y, pos.z);
       // Publicar posición actual para CameraController (follow mode)
       if (positionsRef) {
         positionsRef.current[planet.id] = pos.clone();
       }
     }
+
+    if (meshRef.current) {
+      meshRef.current.rotation.y = elapsedDays.current * omega;
+    }
   });
 
   return (
-    <group>
-      {/* Usar el primer nivel de geometría como único mesh */}
-      <mesh
-        ref={meshRef}
-        geometry={geometries[0]}
-        material={material}
-        name={planet.id}
-        onClick={() => onClick?.(planet.id)}
-      />
+    <group ref={groupRef} name={planet.id} onClick={() => onClick?.(planet.id)}>
+      {/* Grupo con inclinación axial: la rotación self se hace sobre el eje inclinado */}
+      <group rotation={[0, 0, tiltRad]}>
+        {/* Usar el primer nivel de geometría como único mesh */}
+        <mesh
+          ref={meshRef}
+          geometry={geometries[0]}
+          material={material}
+          name={`${planet.id}-sphere`}
+        />
+      </group>
       <Html center distanceFactor={10}>
         <div
           style={{
@@ -110,8 +132,11 @@ function PlanetMeshInner({ planet, level, variant, onClick, positionsRef }: Plan
 // ---------------------------------------------------------------------------
 
 function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProps) {
+  const groupRef = useRef<Group>(null);
   const meshRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
+  const elapsedDays = useRef(0);
+
   const geometry = useMemo(
     () => new SphereGeometry(visualRadius(planet.radius_km), 16, 16),
     [planet.radius_km],
@@ -121,23 +146,35 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
     [planet.color_hex],
   );
 
-  useFrame(() => {
-    if (meshRef.current) {
-      meshRef.current.position.copy(posRef.current);
+  const tiltRad = useMemo(() => degToRad(planet.axial_tilt_deg), [planet.axial_tilt_deg]);
+
+  const omega = useMemo(() => {
+    const periodDays = planet.rotation_period_h / 24;
+    return (2 * Math.PI) / periodDays;
+  }, [planet.rotation_period_h]);
+
+  useFrame((_, dt) => {
+    const SPEEDUP = 10;
+    elapsedDays.current += dt * SPEEDUP;
+
+    if (groupRef.current) {
+      groupRef.current.position.copy(posRef.current);
       if (positionsRef) {
         positionsRef.current[planet.id] = posRef.current.clone();
       }
     }
+
+    if (meshRef.current) {
+      meshRef.current.rotation.y = elapsedDays.current * omega;
+    }
   });
 
   return (
-    <mesh
-      ref={meshRef}
-      geometry={geometry}
-      material={material}
-      name={planet.id}
-      onClick={() => onClick?.(planet.id)}
-    />
+    <group ref={groupRef} name={planet.id} onClick={() => onClick?.(planet.id)}>
+      <group rotation={[0, 0, tiltRad]}>
+        <mesh ref={meshRef} geometry={geometry} material={material} name={`${planet.id}-sphere`} />
+      </group>
+    </group>
   );
 }
 

@@ -14,7 +14,7 @@
 import React, { useRef, useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
-import type { Group, Vector3 } from 'three';
+import type { Group, Mesh, Vector3 } from 'three';
 import {
   SphereGeometry,
   MeshStandardMaterial,
@@ -56,7 +56,15 @@ function ringRadiusToVisual(ringKm: number, planetKm: number, planetVisual: numb
 
 function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) {
   const groupRef = useRef<Group>(null);
+  const sphereRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
+  const elapsedDays = useRef(0);
+
+  // Velocidad angular de auto-rotación (rad/día simulado), acotada ×0.4 para gigantes
+  const omega = useMemo(() => {
+    const periodDays = planet.rotation_period_h / 24;
+    return ((2 * Math.PI) / periodDays) * 0.4;
+  }, [planet.rotation_period_h]);
 
   const planetRadius = visualRadius(planet.radius_km);
 
@@ -97,7 +105,10 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
   // Inclinación axial de Saturno
   const tiltRad = degToRad(planet.axial_tilt_deg);
 
-  useFrame(() => {
+  useFrame((_, dt) => {
+    const SPEEDUP = 10;
+    elapsedDays.current += dt * SPEEDUP;
+
     if (groupRef.current) {
       groupRef.current.position.copy(posRef.current);
       // Publicar posición actual para CameraController (follow mode)
@@ -105,14 +116,24 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
         positionsRef.current[planet.id] = posRef.current.clone();
       }
     }
+
+    // Solo la esfera rota; los anillos son independientes (partículas)
+    if (sphereRef.current) {
+      sphereRef.current.rotation.y = elapsedDays.current * omega;
+    }
   });
 
   return (
     <group ref={groupRef} name={planet.id} onClick={() => onClick?.(planet.id)}>
-      {/* Esfera del planeta con inclinación axial */}
+      {/* Grupo con inclinación axial: esfera rota sobre su eje inclinado */}
       <group rotation={[0, 0, tiltRad]}>
-        <mesh geometry={sphereGeometry} material={sphereMaterial} name={`${planet.id}-sphere`} />
-        {/* Anillos alineados con el ecuador del planeta (ya rotados con el grupo) */}
+        <mesh
+          ref={sphereRef}
+          geometry={sphereGeometry}
+          material={sphereMaterial}
+          name={`${planet.id}-sphere`}
+        />
+        {/* Anillos: no rotan con el planeta, son estructuras independientes */}
         {ringGeometry && (
           <mesh
             geometry={ringGeometry}

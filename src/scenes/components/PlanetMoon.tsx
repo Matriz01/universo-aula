@@ -74,6 +74,8 @@ function MoonMeshInner({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPr
         earthPos.y,
         earthPos.z + MOON_ORBIT_RADIUS * Math.sin(theta),
       );
+      // Rotación síncrona (tidal lock): misma velocidad angular que la órbita
+      meshRef.current.rotation.y = theta;
     }
   });
 
@@ -112,6 +114,8 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
         earthPos.y,
         earthPos.z + MOON_ORBIT_RADIUS * Math.sin(theta),
       );
+      // Rotación síncrona (tidal lock)
+      meshRef.current.rotation.y = theta;
     }
   });
 
