@@ -59,24 +59,24 @@ describe('visualRadius', () => {
 });
 
 describe('visualDistance', () => {
-  it('Mercury AU=0.387098 → ≈12.137', () => {
-    expect(visualDistance(0.387098)).toBeCloseTo(12.137, 1);
+  it('Mercury AU=0.387098 → ≈24.27', () => {
+    expect(visualDistance(0.387098)).toBeCloseTo(24.27, 1);
   });
 
-  it('Earth AU=1.0 → ≈19.000', () => {
-    expect(visualDistance(1.0)).toBeCloseTo(19.0, 1);
+  it('Earth AU=1.0 → ≈38.0', () => {
+    expect(visualDistance(1.0)).toBeCloseTo(38.0, 1);
   });
 
-  it('Neptune AU=30.07 → ≈70.447', () => {
-    expect(visualDistance(30.07)).toBeCloseTo(70.447, 1);
+  it('Neptune AU=30.07 → ≈140.88', () => {
+    expect(visualDistance(30.07)).toBeCloseTo(140.88, 1);
   });
 
-  it('Venus AU=0.7233 → ≈16.207', () => {
-    expect(visualDistance(0.7233)).toBeCloseTo(16.207, 1);
+  it('Venus AU=0.7233 → ≈32.41', () => {
+    expect(visualDistance(0.7233)).toBeCloseTo(32.41, 1);
   });
 
-  it('Pluto AU=39.482 → ≈75.410', () => {
-    expect(visualDistance(39.482)).toBeCloseTo(75.41, 1);
+  it('Pluto AU=39.482 → ≈150.81', () => {
+    expect(visualDistance(39.482)).toBeCloseTo(150.81, 1);
   });
 
   it('es monótonamente creciente para AU creciente', () => {

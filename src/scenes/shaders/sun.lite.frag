@@ -74,7 +74,8 @@ void main() {
   float intensity = clamp(0.6 + 0.4 * g1, 0.0, 1.0);
 
   vec3 viewDir = normalize(cameraPosition - vWorldPos);
-  float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 1.5);
+  // Limb darkening sutil — el Sol no tiene cara oscura
+  float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 0.6);
   vec3 base = mix(uColorCore, uColorEdge, fresnel);
 
   gl_FragColor = vec4(base * intensity, 1.0);

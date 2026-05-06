@@ -1,0 +1,20 @@
+change_name: solar-system-mvp
+created: 2026-05-06
+artifact_store: openspec
+mode: interactive
+status: tasked
+phases:
+  explore: completed
+  propose: completed
+  spec: completed
+  design: completed
+  tasks: completed
+  apply: pending
+  verify: pending
+  archive: pending
+artifacts:
+  exploration: openspec/changes/solar-system-mvp/exploration.md
+  proposal: openspec/changes/solar-system-mvp/proposal.md
+  specs: openspec/changes/solar-system-mvp/specs/
+  design: openspec/changes/solar-system-mvp/design.md
+  tasks: openspec/changes/solar-system-mvp/tasks.md

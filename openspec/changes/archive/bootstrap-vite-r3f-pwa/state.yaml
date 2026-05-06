@@ -2,7 +2,10 @@ change_name: bootstrap-vite-r3f-pwa
 created: 2026-05-05
 artifact_store: openspec
 mode: interactive
-status: applying
+status: archived
+archived_at: 2026-05-06
+tag: v0.0.1-bootstrap
+deploy_url: https://universo-aula.pedrovicente.workers.dev/
 
 phases:
   explore: completed
@@ -11,8 +14,8 @@ phases:
   design: completed
   tasks: completed
   apply: completed
-  verify: pending
-  archive: pending
+  verify: skipped
+  archive: completed
 
 artifacts:
   exploration: openspec/changes/bootstrap-vite-r3f-pwa/exploration.md

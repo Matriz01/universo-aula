@@ -26,8 +26,11 @@
 export const R_VISUAL_K = 0.21;
 export const R_VISUAL_POW = 0.55;
 export const SUN_RADIUS_KM = 696340;
-export const D_VISUAL_BASE = 6.0;
-export const D_VISUAL_LOG_K = 13.0;
+// Distancias dobladas (iter-2 feedback): la separación entre órbitas era
+// demasiado pequeña vs la real. Ahora más espaciadas para que se vean mejor
+// las proporciones reales (sin ser exactas — sigue siendo escala didáctica).
+export const D_VISUAL_BASE = 12.0;
+export const D_VISUAL_LOG_K = 26.0;
 
 /**
  * Radio visual de un cuerpo celeste en unidades de escena Three.js.

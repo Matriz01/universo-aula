@@ -57,7 +57,9 @@ const FLOW_SPEED_NOMINAL = 0.2;
 // HDR: valores > 1.0 para superar el luminanceThreshold del Bloom (0.85)
 // Valores elevados para mayor halo bloom visible
 const COLOR_CORE = new Color(5.0, 3.5, 1.8);
-const COLOR_EDGE = new Color(1.2, 0.5, 0.1);
+// Borde sólo ligeramente menos brillante que el núcleo — el Sol no tiene cara
+// oscura (es el foco). Mantenemos un leve gradiente para evitar plano sólido.
+const COLOR_EDGE = new Color(4.0, 2.5, 1.2);
 const GRANULATION_SCALE = 3.0;
 const FLOW_SCALE = 8.0;
 
@@ -132,7 +134,8 @@ export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunPro
     if (materialRef.current instanceof ShaderMaterial) {
       const uniforms = materialRef.current.uniforms as unknown as SunUniforms;
       if (uniforms.uTime) {
-        uniforms.uTime.value += dt;
+        // Usar dtScaled para que en pausa (speed=0) el shader se congele
+        uniforms.uTime.value += dtScaled;
       }
     }
 

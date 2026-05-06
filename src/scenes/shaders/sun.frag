@@ -87,7 +87,9 @@ void main() {
 
   // Color base: gradiente desde el centro (proyección normal·view)
   vec3 viewDir = normalize(cameraPosition - vWorldPos);
-  float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 1.5);
+  // Limb darkening muy sutil: exponente bajo para que el efecto sólo aparezca
+  // en los bordes extremos del disco. El Sol no tiene cara oscura.
+  float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 0.6);
   vec3 base = mix(uColorCore, uColorEdge, fresnel);
 
   // Capa 3: Sunspots (opcional, sólo en GPU high)
