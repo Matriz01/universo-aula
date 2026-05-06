@@ -16,7 +16,8 @@ import type { AsteroidBeltConfig } from '@/scenes/data/types';
 // ---------------------------------------------------------------------------
 
 const { useGpuCapabilitySpy, instancedMeshSpy, icosahedronGeometrySpy } = vi.hoisted(() => {
-  const gpuSpy = vi.fn<[], 'low' | 'mid' | 'high' | null>().mockReturnValue('high');
+  type GpuResult = 'low' | 'mid' | 'high' | null;
+  const gpuSpy = vi.fn<() => GpuResult>().mockReturnValue('high');
 
   const capturedCount = 0;
   const instancedSpy = vi.fn().mockImplementation(function (this: object) {

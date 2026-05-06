@@ -144,10 +144,18 @@ export const Planet = React.memo(function Planet({
   return (
     <Suspense
       fallback={
-        <PlanetFallback planet={planet} level={level} variant={variant} onClick={onClick} />
+        onClick ? (
+          <PlanetFallback planet={planet} level={level} variant={variant} onClick={onClick} />
+        ) : (
+          <PlanetFallback planet={planet} level={level} variant={variant} />
+        )
       }
     >
-      <PlanetMeshInner planet={planet} level={level} variant={variant} onClick={onClick} />
+      {onClick ? (
+        <PlanetMeshInner planet={planet} level={level} variant={variant} onClick={onClick} />
+      ) : (
+        <PlanetMeshInner planet={planet} level={level} variant={variant} />
+      )}
     </Suspense>
   );
 });

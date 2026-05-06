@@ -102,7 +102,7 @@ export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunPro
     const uniforms = createUniforms(reducedMotion, sunspotsEnabled);
 
     const mat = new ShaderMaterial({
-      uniforms: uniforms as Record<string, { value: unknown }>,
+      uniforms: uniforms as unknown as Record<string, { value: unknown }>,
       vertexShader: sunVertSrc,
       fragmentShader,
     });

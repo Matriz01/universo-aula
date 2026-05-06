@@ -7,11 +7,37 @@ vi.mock('@react-three/fiber', () => ({
   Canvas: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="canvas">{children}</div>
   ),
+  useFrame: vi.fn(),
+  useThree: () => ({
+    camera: { position: { set: vi.fn() } },
+    gl: { domElement: document.createElement('canvas') },
+    scene: {},
+  }),
+  extend: vi.fn(),
 }));
 
-// OrbitControls no renderiza nada relevante — noop
+// Mock de Drei — incluye todos los exports que se usan en App + hijos
 vi.mock('@react-three/drei', () => ({
   OrbitControls: () => null,
+  Stars: () => null,
+  useProgress: () => ({ progress: 100 }),
+  useTexture: vi.fn().mockReturnValue({}),
+  Html: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Line: () => null,
+}));
+
+// Mock de SolarSystemScene para evitar cargar Three.js completo en tests de App
+vi.mock('@/scenes/SolarSystemScene', () => ({
+  SolarSystemScene: () => <div data-testid="solar-system-scene" />,
+}));
+
+// Mocks adicionales que SolarSystemScene usa internamente
+vi.mock('@/scenes/hooks/usePlanetsData', () => ({
+  usePlanetsData: () => ({ data: null, loading: true, error: null }),
+}));
+
+vi.mock('@/scenes/hooks/useGpuCapability', () => ({
+  useGpuCapability: () => 'high',
 }));
 
 describe('App', () => {
@@ -42,13 +68,15 @@ describe('App', () => {
     expect(screen.getByRole('combobox')).toBeInTheDocument();
   });
 
-  it('monta el canvas 3D', () => {
-    render(
+  it('monta la escena 3D (SolarSystemScene)', async () => {
+    const { findByTestId } = render(
       <Providers>
         <App />
       </Providers>,
     );
-    expect(screen.getByTestId('canvas')).toBeInTheDocument();
+    // SolarSystemScene está lazy-loaded — esperamos el testid del mock
+    const scene = await findByTestId('solar-system-scene');
+    expect(scene).toBeInTheDocument();
   });
 
   it('muestra el footer con los enlaces legales', () => {

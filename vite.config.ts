@@ -14,10 +14,46 @@ export default defineConfig({
       manifest: false,
       workbox: {
         maximumFileSizeToCacheInBytes: 5_242_880,
+        runtimeCaching: [
+          {
+            urlPattern: /\/textures\/.+\.(jpg|png|webp)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'solar-textures-v1',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 30 * 24 * 60 * 60,
+              },
+            },
+          },
+          {
+            urlPattern: /\/data\/.+\.json$/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'solar-data-v1',
+            },
+          },
+        ],
       },
       devOptions: {
         enabled: false,
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-three': [
+            'three',
+            '@react-three/fiber',
+            '@react-three/drei',
+            '@react-spring/three',
+          ],
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
+        },
+      },
+    },
+  },
 });

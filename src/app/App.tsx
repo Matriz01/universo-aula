@@ -1,3 +1,4 @@
+import React, { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/store/useAppStore';
 import { EmptyScene } from '@/scenes/EmptyScene';
@@ -5,10 +6,27 @@ import { LevelSelector } from '@/components/ui/LevelSelector';
 import { InfoPanel } from '@/components/ui/InfoPanel';
 import { AttributionFooter } from '@/components/ui/AttributionFooter';
 import { CreditsModal } from '@/components/ui/CreditsModal';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { ErrorBoundary } from '@/app/ErrorBoundary';
+
+// Lazy import de SolarSystemScene — Three.js sólo se carga cuando se necesita
+const SolarSystemScene = lazy(() =>
+  import('@/scenes/SolarSystemScene').then((m) => ({ default: m.SolarSystemScene })),
+);
+
+/** Lee el query param ?legacy=1 de la URL para el fallback de emergencia */
+function readLegacyFlag(): boolean {
+  try {
+    return new URLSearchParams(window.location.search).get('legacy') === '1';
+  } catch {
+    return false;
+  }
+}
 
 export function App() {
   const { t, i18n } = useTranslation('common');
   const setLocale = useAppStore((s) => s.setLocale);
+  const legacyFlag = useAppStore((s) => s.legacyFlag) || readLegacyFlag();
 
   function handleLocaleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const lang = e.target.value;
@@ -20,7 +38,15 @@ export function App() {
     <div className="relative h-screen w-screen overflow-hidden bg-[#0b0b14] text-white">
       {/* Capa 3D — ocupa toda la pantalla */}
       <div className="absolute inset-0">
-        <EmptyScene />
+        {legacyFlag ? (
+          <EmptyScene />
+        ) : (
+          <ErrorBoundary>
+            <Suspense fallback={<LoadingScreen />}>
+              <SolarSystemScene />
+            </Suspense>
+          </ErrorBoundary>
+        )}
       </div>
 
       {/* HUD superpuesto */}

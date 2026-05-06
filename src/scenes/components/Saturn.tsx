@@ -176,8 +176,20 @@ function SaturnFallback({ planet, level, onClick }: SaturnProps) {
 
 export const Saturn = React.memo(function Saturn({ planet, level, onClick }: SaturnProps) {
   return (
-    <Suspense fallback={<SaturnFallback planet={planet} level={level} onClick={onClick} />}>
-      <SaturnMeshInner planet={planet} level={level} onClick={onClick} />
+    <Suspense
+      fallback={
+        onClick ? (
+          <SaturnFallback planet={planet} level={level} onClick={onClick} />
+        ) : (
+          <SaturnFallback planet={planet} level={level} />
+        )
+      }
+    >
+      {onClick ? (
+        <SaturnMeshInner planet={planet} level={level} onClick={onClick} />
+      ) : (
+        <SaturnMeshInner planet={planet} level={level} />
+      )}
     </Suspense>
   );
 });

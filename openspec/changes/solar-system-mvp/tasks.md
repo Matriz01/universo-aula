@@ -120,18 +120,18 @@
 
 ## Phase 8: Escena principal y App.tsx
 
-- [ ] 8.1 (TEST) `tests/unit/scenes/SolarSystemScene.test.tsx` — mock de todos los componentes hijos (Sun, Planet, Saturn, etc.); assertar que se montan exactamente 9 Planets + 1 Saturn + 1 Sun + 1 AsteroidBelt + 1 PlanetMoon; assertar que el Canvas tiene `dpr={[1,2]}` y `gl={{ powerPreference: 'high-performance' }}`. _Estrategia: snapshot con mocks._
-- [ ] 8.2 (IMPL) `src/scenes/SolarSystemScene.tsx` — árbol R3F del design §1.2; importa datos de `planets.json`; distribuye el prop `level` de `useAppStore`; coordina `<CameraController>` con `<Sun>`, `<Planet>`, `<Saturn>`, `<PlanetMoon>`, `<AsteroidBelt>`, `<OrbitPath>`, `<StarField>`.
-- [ ] 8.3 (IMPL) Modificar `src/App.tsx` — reemplazar `<EmptyScene />` por `React.lazy(() => import('./scenes/SolarSystemScene'))` envuelto en `<Suspense fallback={<LoadingScreen/>}>`; añadir `ErrorBoundary` que captura fallos del chunk; leer `?legacy=1` de URL y renderizar `<EmptyScene />` como fallback de emergencia.
-- [ ] 8.4 (REFACTOR) Verificar que la escena no se desmonta al cambiar de nivel (el `<canvas>` mantiene el mismo nodo DOM); añadir tests de no-remount si no existían en 8.1.
+- [x] 8.1 (TEST) `tests/unit/scenes/SolarSystemScene.test.tsx` — mock de todos los componentes hijos (Sun, Planet, Saturn, etc.); assertar que se montan exactamente 9 Planets + 1 Saturn + 1 Sun + 1 AsteroidBelt + 1 PlanetMoon; assertar que el Canvas tiene `dpr={[1,2]}` y `gl={{ powerPreference: 'high-performance' }}`. _Estrategia: snapshot con mocks._
+- [x] 8.2 (IMPL) `src/scenes/SolarSystemScene.tsx` — árbol R3F del design §1.2; importa datos de `planets.json`; distribuye el prop `level` de `useAppStore`; coordina `<CameraController>` con `<Sun>`, `<Planet>`, `<Saturn>`, `<PlanetMoon>`, `<AsteroidBelt>`, `<OrbitPath>`, `<StarField>`.
+- [x] 8.3 (IMPL) Modificar `src/App.tsx` — reemplazar `<EmptyScene />` por `React.lazy(() => import('./scenes/SolarSystemScene'))` envuelto en `<Suspense fallback={<LoadingScreen/>}>`; añadir `ErrorBoundary` que captura fallos del chunk; leer `?legacy=1` de URL y renderizar `<EmptyScene />` como fallback de emergencia.
+- [x] 8.4 (REFACTOR) Verificar que la escena no se desmonta al cambiar de nivel (el `<canvas>` mantiene el mismo nodo DOM); añadir tests de no-remount si no existían en 8.1.
 
 ---
 
 ## Phase 9: Performance y bundling
 
-- [ ] 9.1 (TEST — verificación manual) Ejecutar `pnpm build` y verificar que en `dist/assets/` existe un fichero `vendor-three-*.js`. Medir con `gzip -k dist/assets/vendor-three-*.js` que es <500 KB gzip. Medir chunk inicial <300 KB gzip.
-- [ ] 9.2 (IMPL) Configurar `vite.config.ts` — `build.rollupOptions.output.manualChunks` separando `vendor-three` (three, @react-three/fiber, @react-three/drei, @react-spring/three), `vendor-react` (react, react-dom), `vendor-i18n` (i18next, react-i18next), `app-solar` (src/scenes/).
-- [ ] 9.3 (IMPL) Configurar `vite-plugin-pwa` en `vite.config.ts` — `workbox.runtimeCaching` con regla `CacheFirst` para `/textures/*` (cache name: `solar-textures-v1`) y `StaleWhileRevalidate` para `/data/*.json`.
+- [x] 9.1 (TEST — verificación manual) Ejecutar `pnpm build` y verificar que en `dist/assets/` existe un fichero `vendor-three-*.js`. Medir con `gzip -k dist/assets/vendor-three-*.js` que es <500 KB gzip. Medir chunk inicial <300 KB gzip.
+- [x] 9.2 (IMPL) Configurar `vite.config.ts` — `build.rollupOptions.output.manualChunks` separando `vendor-three` (three, @react-three/fiber, @react-three/drei, @react-spring/three), `vendor-react` (react, react-dom), `vendor-i18n` (i18next, react-i18next), `app-solar` (src/scenes/).
+- [x] 9.3 (IMPL) Configurar `vite-plugin-pwa` en `vite.config.ts` — `workbox.runtimeCaching` con regla `CacheFirst` para `/textures/*` (cache name: `solar-textures-v1`) y `StaleWhileRevalidate` para `/data/*.json`.
 - [ ] 9.4 (REFACTOR) Verificar con `pnpm build && pnpm preview` que Lighthouse Performance ≥85 en localhost; ajustar si es necesario (reducir tamaño texturas 1K para low, reducir segmentos de esferas, etc.).
 
 ---
@@ -140,7 +140,7 @@
 
 > Tareas no-código de preparación de assets. Deben realizarse antes de los tests E2E.
 
-- [ ] 10.1 (ASSETS) Descargar texturas Solar System Scope para los 11 cuerpos (Sol, 8 planetas, Luna, anillos de Saturno) en resoluciones 1K, 2K y 4K:
+- [x] 10.1 (ASSETS) Descargar texturas Solar System Scope para los 11 cuerpos (Sol, 8 planetas, Luna, anillos de Saturno) en resoluciones 1K, 2K y 4K:
   - URL base: https://www.solarsystemscope.com/textures/
   - Formato: `.jpg` para todos excepto anillos de Saturno (`.png` con alpha canal)
   - Estructura destino: `public/textures/{id}/{1k,2k,4k}.jpg` y `public/textures/saturn-rings/{2k,4k}.png`
@@ -150,7 +150,7 @@
   - `.jpg`: `find public/textures -name "*.jpg" -exec mozcjpeg -quality 85 -outfile {} {} \;` (o `squoosh-cli`)
   - `.png`: `oxipng -o 4 public/textures/saturn-rings/*.png`
   - Verificar que el total de texturas 2K es <20 MB (objetivo primera carga)
-- [ ] 10.3 (DOCS) Actualizar `CREDITS.md` en la raíz del repositorio con secciones obligatorias:
+- [x] 10.3 (DOCS) Actualizar `CREDITS.md` en la raíz del repositorio con secciones obligatorias:
   - Solar System Scope (CC BY 4.0, URL, accedido en 2026)
   - NASA JPL Horizons J2000 (dominio público, URL)
   - NASA Planetary Fact Sheets (dominio público, URL)

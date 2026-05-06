@@ -116,8 +116,10 @@ function MoonFallback({ earthPosition = [0, 0, 0] }: PlanetMoonProps) {
 
 export const PlanetMoon = React.memo(function PlanetMoon({ earthPosition }: PlanetMoonProps) {
   return (
-    <Suspense fallback={<MoonFallback earthPosition={earthPosition} />}>
-      <MoonMeshInner earthPosition={earthPosition} />
+    <Suspense
+      fallback={earthPosition ? <MoonFallback earthPosition={earthPosition} /> : <MoonFallback />}
+    >
+      {earthPosition ? <MoonMeshInner earthPosition={earthPosition} /> : <MoonMeshInner />}
     </Suspense>
   );
 });
