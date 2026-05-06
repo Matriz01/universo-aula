@@ -83,22 +83,22 @@
 
 ## Phase 5: Cámara y navegación
 
-- [ ] 5.1 (TEST) `tests/unit/hooks/useFocusCamera.test.ts` — mock de `useThree` con camera/controls; assertar que al cambiar `target`, `api.start` es invocado con la posición correcta; assertar que al `target=null` la cámara vuelve a `[0, 35, 70]`; assertar que `durationMs=300` cuando `reducedMotion=true`. _Esperar: fallan._
-- [ ] 5.2 (IMPL) `src/scenes/hooks/useFocusCamera.ts` — implementar el design §8: `useSpring` de `@react-spring/three`, `onChange` actualiza `camera.position` y `controls.target`, `aborted.current` previene escritura tras unmount; respeta `prefersReducedMotion` → `durationMs=300`.
-- [ ] 5.3 (TEST) `tests/unit/scenes/CameraController.test.tsx` — mock `useFocusCamera`; assertar que Tab key emitida sobre el canvas mueve `selectedBody` al siguiente en orden; que Shift+Tab retrocede; que Escape llama a `setSelectedPlanet(null)`; que T alterna `tourActive`. _Estrategia: JSDOM + eventos de teclado simulados._
-- [ ] 5.4 (IMPL) `src/scenes/components/CameraController.tsx` — integra `<OrbitControls>` de Drei; escucha `keydown` en `window`; implementa lógica Tab/Shift+Tab (array ordenado Sol→Plutón), Enter/Space (focus cámara), Escape (vista general), T (toggle tour); delega animación a `useFocusCamera`; integra `<A11yLiveRegion>` anunciando el cuerpo enfocado.
-- [ ] 5.5 (REFACTOR) Extraer el array de cuerpos ordenado a una constante `CELESTIAL_ORDER` en `data/types.ts`; asegurar que `CameraController` no tiene lógica duplicada con `useTour`.
+- [x] 5.1 (TEST) `tests/unit/hooks/useFocusCamera.test.ts` — mock de `useThree` con camera/controls; assertar que al cambiar `target`, `api.start` es invocado con la posición correcta; assertar que al `target=null` la cámara vuelve a `[0, 35, 70]`; assertar que `durationMs=300` cuando `reducedMotion=true`. _Esperar: fallan._
+- [x] 5.2 (IMPL) `src/scenes/hooks/useFocusCamera.ts` — implementar el design §8: `useSpring` de `@react-spring/three`, `onChange` actualiza `camera.position` y `controls.target`, `aborted.current` previene escritura tras unmount; respeta `prefersReducedMotion` → `durationMs=300`.
+- [x] 5.3 (TEST) `tests/unit/scenes/CameraController.test.tsx` — mock `useFocusCamera`; assertar que Tab key emitida sobre el canvas mueve `selectedBody` al siguiente en orden; que Shift+Tab retrocede; que Escape llama a `setSelectedPlanet(null)`; que T alterna `tourActive`. _Estrategia: JSDOM + eventos de teclado simulados._
+- [x] 5.4 (IMPL) `src/scenes/components/CameraController.tsx` — integra `<OrbitControls>` de Drei; escucha `keydown` en `window`; implementa lógica Tab/Shift+Tab (array ordenado Sol→Plutón), Enter/Space (focus cámara), Escape (vista general), T (toggle tour); delega animación a `useFocusCamera`; integra `<A11yLiveRegion>` anunciando el cuerpo enfocado.
+- [x] 5.5 (REFACTOR) Extraer el array de cuerpos ordenado a una constante `CELESTIAL_ORDER` en `data/types.ts`; asegurar que `CameraController` no tiene lógica duplicada con `useTour`.
 
 ---
 
 ## Phase 6: Tour automático y voz
 
-- [ ] 6.1 (TEST) `tests/unit/hooks/useTour.test.ts` — testear el reducer directamente: `idle + start → focus_planet(0)`; `focus_planet + tween_done → narration`; `narration + tts_done → next_planet`; `next_planet + user_interrupt → idle`; `next_planet (último) + last_planet_done → idle`; testear el ciclo completo hasta Plutón (10 cuerpos, 10 iteraciones). _Esperar: fallan._
-- [ ] 6.2 (IMPL) `src/scenes/hooks/useTour.ts` — reducer del design §7.3 (60 líneas); tipo `TourState`/`TourEvent`; duraciones por nivel del design §7.4; `useRef<AbortController>` para cancelar tweens y TTS; lógica de `prefers-reduced-motion` → avance manual.
-- [ ] 6.3 (TEST) `tests/unit/voice/speakName.test.ts` — mock de `window.speechSynthesis`; assertar que `speakName('Marte', 'es-ES')` invoca `speak` con `text='Marte'` y `lang='es-ES'`; assertar que click en segundo planeta invoca `cancel()` antes de `speak`; assertar que cuando `speechSynthesis` es `undefined` no se lanza excepción; verificar que el fichero tiene ≤15 líneas. _Esperar: fallan._
-- [ ] 6.4 (IMPL) `src/voice/speakName.ts` — implementación de 5-15 líneas usando Web Speech API nativa; `cancel()` antes de `speak()`; guarda comprobación de soporte con `if (!window.speechSynthesis) return`.
-- [ ] 6.5 (IMPL) `src/components/ui/TourControls.tsx` — botones "Iniciar tour", "Pausar tour", "Saltar tour", "Siguiente" (visible sólo con `reducedMotion`); usa las keys `solar:ui.tour.*`; visibilidad condicionada al estado del tour; contraste WCAG AA.
-- [ ] 6.6 (REFACTOR) Asegurar que `useTour` y `speakName` no tienen acoplamiento directo (TTS se invoca desde el componente que observa el estado `narration`, no desde el reducer).
+- [x] 6.1 (TEST) `tests/unit/hooks/useTour.test.ts` — testear el reducer directamente: `idle + start → focus_planet(0)`; `focus_planet + tween_done → narration`; `narration + tts_done → next_planet`; `next_planet + user_interrupt → idle`; `next_planet (último) + last_planet_done → idle`; testear el ciclo completo hasta Plutón (10 cuerpos, 10 iteraciones). _Esperar: fallan._
+- [x] 6.2 (IMPL) `src/scenes/hooks/useTour.ts` — reducer del design §7.3 (60 líneas); tipo `TourState`/`TourEvent`; duraciones por nivel del design §7.4; `useRef<AbortController>` para cancelar tweens y TTS; lógica de `prefers-reduced-motion` → avance manual.
+- [x] 6.3 (TEST) `tests/unit/voice/speakName.test.ts` — mock de `window.speechSynthesis`; assertar que `speakName('Marte', 'es-ES')` invoca `speak` con `text='Marte'` y `lang='es-ES'`; assertar que click en segundo planeta invoca `cancel()` antes de `speak`; assertar que cuando `speechSynthesis` es `undefined` no se lanza excepción; verificar que el fichero tiene ≤15 líneas. _Esperar: fallan._
+- [x] 6.4 (IMPL) `src/voice/speakName.ts` — implementación de 5-15 líneas usando Web Speech API nativa; `cancel()` antes de `speak()`; guarda comprobación de soporte con `if (!window.speechSynthesis) return`.
+- [x] 6.5 (IMPL) `src/components/ui/TourControls.tsx` — botones "Iniciar tour", "Pausar tour", "Saltar tour", "Siguiente" (visible sólo con `reducedMotion`); usa las keys `solar:ui.tour.*`; visibilidad condicionada al estado del tour; contraste WCAG AA.
+- [x] 6.6 (REFACTOR) Asegurar que `useTour` y `speakName` no tienen acoplamiento directo (TTS se invoca desde el componente que observa el estado `narration`, no desde el reducer).
 
 ---
 

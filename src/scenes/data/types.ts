@@ -68,3 +68,20 @@ export interface SolarSystemDataset {
   readonly planets: readonly PlanetData[];
   readonly asteroid_belt: AsteroidBeltConfig;
 }
+
+/**
+ * Orden canónico de cuerpos celestes para navegación por teclado y tour.
+ * Sol (null) es el primer elemento; los planetas siguen en orden heliocéntrico.
+ */
+export const CELESTIAL_ORDER: Array<PlanetId | null> = [
+  null, // Sol
+  'mercury',
+  'venus',
+  'earth',
+  'mars',
+  'jupiter',
+  'saturn',
+  'uranus',
+  'neptune',
+  'pluto',
+];
