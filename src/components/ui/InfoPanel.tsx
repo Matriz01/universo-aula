@@ -254,7 +254,7 @@ export const InfoPanel = React.memo(function InfoPanel() {
     ? 'pointer-events-none fixed inset-x-4 top-4 bottom-16 z-30 max-w-lg mx-auto'
     : 'pointer-events-none fixed right-4 top-4 bottom-16 z-30 w-80';
 
-  if (selectedPlanet === null) return <div className={wrapperClass} aria-hidden="true" />;
+  if (selectedPlanet === null) return null;
 
   const panelClass = isExplorador
     ? 'pointer-events-auto h-full rounded-2xl bg-black/80 p-6 backdrop-blur-md'

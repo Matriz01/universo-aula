@@ -12,7 +12,7 @@
  * directamente de useBodyPosition(selectedPlanetData, simulationTime, viewMode).
  */
 
-import React, { type Ref, useMemo, useRef } from 'react';
+import React, { type Ref, useEffect, useMemo, useRef } from 'react';
 import { OrbitControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Vector3 } from 'three';
@@ -40,6 +40,9 @@ export const CameraController = React.memo(function CameraController(
 
   /** Posición del planeta en el frame anterior — para calcular el delta orbital */
   const lastPlanetPos = useRef<Vector3 | null>(null);
+
+  /** Flag: el usuario está interactuando con OrbitControls (mouse/touch down) */
+  const isInteracting = useRef(false);
 
   // Datos del planeta seleccionado
   const selectedPlanetData = useMemo(
@@ -81,6 +84,30 @@ export const CameraController = React.memo(function CameraController(
     reducedMotion: prefersReducedMotion,
   });
 
+  // Detectar interacción del usuario con OrbitControls para pausar el delta-follow.
+  // OrbitControlsImpl extiende EventDispatcher; casteamos para acceder a sus métodos.
+  useEffect(() => {
+    interface OrbitControlsWithEvents {
+      addEventListener?: (type: string, listener: () => void) => void;
+      removeEventListener?: (type: string, listener: () => void) => void;
+    }
+    const controls = controlsRef.current as unknown as OrbitControlsWithEvents | null;
+    if (!controls) return;
+    const onStart = () => {
+      isInteracting.current = true;
+    };
+    const onEnd = () => {
+      isInteracting.current = false;
+    };
+    controls.addEventListener?.('start', onStart);
+    controls.addEventListener?.('end', onEnd);
+    return () => {
+      controls.removeEventListener?.('start', onStart);
+      controls.removeEventListener?.('end', onEnd);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [controlsRef.current]);
+
   // Follow mode: traslación rígida (delta-vector approach)
   useFrame(() => {
     if (cameraMode !== 'focus' || !selectedPlanetData) {
@@ -96,6 +123,12 @@ export const CameraController = React.memo(function CameraController(
 
     if (lastPlanetPos.current === null) {
       lastPlanetPos.current = currentPos.clone();
+      return;
+    }
+
+    // Pausar delta-follow mientras el usuario rota/hace zoom — evita lucha de movimientos
+    if (isInteracting.current) {
+      lastPlanetPos.current.copy(currentPos);
       return;
     }
 
