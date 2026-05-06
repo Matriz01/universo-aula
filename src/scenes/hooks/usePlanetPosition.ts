@@ -1,4 +1,5 @@
 /**
+ * @deprecated Usar useBodyPosition (src/scenes/hooks/useBodyPosition.ts) en su lugar.
  * Hook usePlanetPosition — calcula la posición de un planeta en la escena R3F.
  *
  * Implementa los tres modelos orbitales del design §4.2:

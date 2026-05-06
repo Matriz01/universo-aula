@@ -115,6 +115,8 @@
     "speed_label": "Speed",
     "pause": "Pause",
     "play": "Resume",
+    "date_label": "Date",
+    "go_to_today": "Today",
     "preset": {
       "pause": "Pause",
       "slow": "Very slow",

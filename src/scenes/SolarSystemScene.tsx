@@ -2,6 +2,7 @@
  * SolarSystemScene — escena principal R3F del Sistema Solar.
  *
  * Compone todos los componentes 3D:
+ * - <TimeTicker> avanza simulationTime en el store (único tick central de tiempo)
  * - <Sun> con shader procedural
  * - Modo global: <Planet> × 8 + <Saturn> + <PlanetMoon> + <AsteroidBelt> + <OrbitPath> × 9
  * - Modo local: planeta seleccionado (full detail) + <DistantMarker> para el resto +
@@ -10,20 +11,22 @@
  * - <Stars> de Drei como fondo
  * - <KnownEventsLayer> cuando showKnownEvents === true (solo en modo local)
  *
+ * Post-refactor-C: simulationTime es la única fuente de verdad para posiciones orbitales.
+ * planetPositionsRef ya no se propaga a Planet/Saturn/CameraController.
+ *
  * Lee el dataset de planetas con usePlanetsData.
  * Lee el nivel pedagógico activo del store.
  * Canvas configurado con dpr={[1,2]} y gl.powerPreference='high-performance'.
  */
 
-import React, { Suspense, useRef, useMemo } from 'react';
+import React, { Suspense, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { PerformanceMonitor, Line } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Vector3 } from 'three';
-import type { Vector3 as Vector3Type, Group } from 'three';
 import { useAppStore } from '@/store/useAppStore';
 import { usePlanetsData } from '@/scenes/hooks/usePlanetsData';
-import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
+import { useBodyPosition } from '@/scenes/hooks/useBodyPosition';
 import { useGpuCapability } from '@/scenes/hooks/useGpuCapability';
 import { Sun } from '@/scenes/components/Sun';
 import { Planet } from '@/scenes/components/Planet';
@@ -34,9 +37,31 @@ import { OrbitPath } from '@/scenes/components/OrbitPath';
 import { CameraController } from '@/scenes/components/CameraController';
 import { DistantMarker } from '@/scenes/components/DistantMarker';
 import { KnownEventsLayer } from '@/scenes/components/KnownEventsLayer';
-import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
 import type { GpuCapabilityExtended } from '@/scenes/components/Sun';
-import type { PlanetId } from '@/scenes/data/types';
+import type { PlanetId, PlanetData } from '@/scenes/data/types';
+
+// ---------------------------------------------------------------------------
+// Constantes para el tick de tiempo central
+// ---------------------------------------------------------------------------
+
+/** A speed=1, avanzamos 1 día simulado por segundo real */
+const MS_PER_DAY = 86_400_000;
+
+// ---------------------------------------------------------------------------
+// TimeTicker — único useFrame que avanza simulationTime
+// Debe montarse una sola vez dentro del Canvas
+// ---------------------------------------------------------------------------
+
+function TimeTicker() {
+  useFrame((_, dt) => {
+    const speed = useAppStore.getState().simulationSpeed;
+    if (speed === 0) return;
+    const current = useAppStore.getState().simulationTime;
+    const advanceMs = dt * speed * MS_PER_DAY;
+    useAppStore.getState().setSimulationTime(new Date(current.getTime() + advanceMs));
+  });
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // Constantes para órbita lunar
@@ -45,10 +70,10 @@ import type { PlanetId } from '@/scenes/data/types';
 const MOON_ORBIT_RADIUS_LOCAL = 384_400 / 1000; // 384.4 unidades (1 u = 1000 km)
 const MOON_ORBIT_SEGMENTS = 64;
 
-// Objeto Earth mínimo de fallback para usePlanetPosition (cuando data aún no carga)
-const EARTH_FALLBACK_DATA = {
-  id: 'earth' as const,
-  classification: 'terrestrial' as const,
+// Objeto Earth mínimo de fallback para useBodyPosition (cuando data aún no carga)
+const EARTH_FALLBACK_DATA: PlanetData = {
+  id: 'earth',
+  classification: 'terrestrial',
   radius_km: 6371,
   mass_kg: 5.972e24,
   density_g_cm3: 5.514,
@@ -76,14 +101,16 @@ const EARTH_FALLBACK_DATA = {
 /**
  * Dibuja la órbita de la Luna centrada en la posición actual de la Tierra.
  * Solo se usa en modo local cuando la Tierra está seleccionada.
- * Calcula la posición de la Tierra internamente con usePlanetPosition.
+ * Calcula la posición de la Tierra con useBodyPosition (time-driven).
  */
 function MoonOrbitPath() {
-  const groupRef = useRef<Group>(null);
-  const level = useAppStore((s) => s.level);
+  const time = useAppStore((s) => s.simulationTime);
+  const viewMode = useAppStore((s) => s.viewMode);
   const { data } = usePlanetsData();
   const earthData = data?.planets.find((p) => p.id === 'earth') ?? EARTH_FALLBACK_DATA;
-  const earthPosRef = usePlanetPosition(earthData, level);
+
+  // Posición de la Tierra time-driven
+  const earthPos = useBodyPosition(earthData, time, viewMode);
 
   // Pre-computamos los puntos del círculo (radio = 384.4 unidades)
   const points = useMemo(() => {
@@ -99,14 +126,11 @@ function MoonOrbitPath() {
     return pts;
   }, []);
 
-  useFrame(() => {
-    if (!groupRef.current) return;
-    const pos = earthPosRef.current;
-    groupRef.current.position.set(pos.x, pos.y, pos.z);
-  });
+  // Calcular centro del grupo con la posición actual de la Tierra
+  const groupPos = new Vector3(earthPos.x, earthPos.y, earthPos.z);
 
   return (
-    <group ref={groupRef}>
+    <group position={groupPos}>
       <Line points={points} color="#aaccff" lineWidth={1} transparent opacity={0.5} />
     </group>
   );
@@ -117,11 +141,10 @@ function MoonOrbitPath() {
 // ---------------------------------------------------------------------------
 
 interface SolarSystemContentProps {
-  level: PedagogicalLevel;
+  level: 'explorador' | 'aprendiz' | 'investigador';
   gpu: GpuCapabilityExtended;
   reducedMotion: boolean;
   onSelectPlanet: (id: PlanetId | null) => void;
-  planetPositionsRef: React.MutableRefObject<Record<string, Vector3Type>>;
   viewMode: 'global' | 'local';
   selectedPlanet: PlanetId | null;
   showKnownEvents: boolean;
@@ -132,7 +155,6 @@ function SolarSystemContent({
   gpu,
   reducedMotion,
   onSelectPlanet,
-  planetPositionsRef,
   viewMode,
   selectedPlanet,
   showKnownEvents,
@@ -153,21 +175,11 @@ function SolarSystemContent({
   const isLocal = viewMode === 'local';
   const isEarthSelected = selectedPlanet === 'earth';
 
-  // En modo local: posición del Sol (0,0,0) hacia el planeta seleccionado
-  // La luz direccional sigue al planeta seleccionado para simular sombras desde el Sol
-  const shadowLightPos = new Vector3(0, 10, 0); // posición por defecto
-  if (isLocal && selectedPlanet && planetPositionsRef.current[selectedPlanet]) {
-    const pPos = planetPositionsRef.current[selectedPlanet];
-    if (pPos) {
-      // Dirección de la luz: desde el Sol (0,0,0) hacia el planeta, pero invertida
-      // para que la luz LLEGUE al planeta desde el Sol
-      const dir = pPos.clone().normalize();
-      shadowLightPos.copy(dir.multiplyScalar(50));
-    }
-  }
-
   return (
     <>
+      {/* Tick central de tiempo — único en la escena */}
+      <TimeTicker />
+
       {/* Luz ambiental — baja para conservar contraste claro/oscuro natural */}
       <ambientLight intensity={0.18} />
 
@@ -180,7 +192,7 @@ function SolarSystemContent({
       {/* Luz direccional para sombras Luna↔Tierra — solo en modo local con Tierra */}
       {isLocal && isEarthSelected && (
         <directionalLight
-          position={shadowLightPos.toArray()}
+          position={[0, 10, 0]}
           intensity={2}
           castShadow
           shadow-mapSize-width={512}
@@ -190,7 +202,7 @@ function SolarSystemContent({
       )}
 
       {/* Cámara y controles */}
-      <CameraController planetPositionsRef={planetPositionsRef} />
+      <CameraController />
 
       {/* El Sol — siempre presente */}
       <Sun capability={gpu} reducedMotion={reducedMotion} />
@@ -203,10 +215,8 @@ function SolarSystemContent({
             <React.Fragment key={planet.id}>
               <Planet
                 planet={planet}
-                level={level}
                 variant={planet.classification === 'dwarf_planet' ? 'dwarf' : 'normal'}
                 onClick={handlePlanetClick}
-                positionsRef={planetPositionsRef}
               />
               <OrbitPath planet={planet} level={level} />
             </React.Fragment>
@@ -215,18 +225,13 @@ function SolarSystemContent({
           {/* Saturno con anillos */}
           {saturnData && (
             <>
-              <Saturn
-                planet={saturnData}
-                level={level}
-                onClick={handlePlanetClick}
-                positionsRef={planetPositionsRef}
-              />
-              <OrbitPath planet={saturnData} level={level} />
+              <Saturn planet={saturnData} onClick={handlePlanetClick} />
+              <OrbitPath planet={saturnData} level="aprendiz" />
             </>
           )}
 
           {/* Luna de la Tierra */}
-          <PlanetMoon positionsRef={planetPositionsRef} />
+          <PlanetMoon />
 
           {/* Cinturón de asteroides */}
           <AsteroidBelt config={data.asteroid_belt} />
@@ -239,13 +244,8 @@ function SolarSystemContent({
           {/* Planeta seleccionado (full detail) */}
           {selectedPlanet === 'saturn' && saturnData ? (
             <>
-              <Saturn
-                planet={saturnData}
-                level={level}
-                onClick={handlePlanetClick}
-                positionsRef={planetPositionsRef}
-              />
-              <OrbitPath planet={saturnData} level={level} />
+              <Saturn planet={saturnData} onClick={handlePlanetClick} />
+              <OrbitPath planet={saturnData} level="aprendiz" />
             </>
           ) : (
             (() => {
@@ -255,14 +255,12 @@ function SolarSystemContent({
                 <>
                   <Planet
                     planet={selectedData}
-                    level={level}
                     variant={selectedData.classification === 'dwarf_planet' ? 'dwarf' : 'normal'}
                     onClick={handlePlanetClick}
-                    positionsRef={planetPositionsRef}
                     castShadow={isEarthSelected}
                     receiveShadow={isEarthSelected}
                   />
-                  <OrbitPath planet={selectedData} level={level} />
+                  <OrbitPath planet={selectedData} level="aprendiz" />
                 </>
               );
             })()
@@ -271,7 +269,7 @@ function SolarSystemContent({
           {/* Luna de la Tierra — solo si Tierra seleccionada */}
           {isEarthSelected && (
             <>
-              <PlanetMoon positionsRef={planetPositionsRef} castShadow receiveShadow />
+              <PlanetMoon castShadow receiveShadow />
               <MoonOrbitPath />
             </>
           )}
@@ -280,14 +278,10 @@ function SolarSystemContent({
           {nonSaturnPlanets
             .filter((p) => p.id !== selectedPlanet)
             .map((planet) => (
-              <DistantMarker
-                key={`dm-${planet.id}`}
-                planet={planet}
-                positionsRef={planetPositionsRef}
-              />
+              <DistantMarker key={`dm-${planet.id}`} planet={planet} />
             ))}
           {saturnData && selectedPlanet !== 'saturn' && (
-            <DistantMarker key="dm-saturn" planet={saturnData} positionsRef={planetPositionsRef} />
+            <DistantMarker key="dm-saturn" planet={saturnData} />
           )}
 
           {/* Eventos conocidos (cometa Halley, etc.) */}
@@ -307,7 +301,6 @@ function SolarSystemContent({
         bounds={() => [45, 60]}
         flipflops={3}
         onDecline={() => {
-          // En iteración futura: bajar dpr o desactivar bloom automáticamente
           console.warn('[perf] FPS bajo detectado, considerar adaptar calidad');
         }}
       />
@@ -336,9 +329,6 @@ export function SolarSystemScene() {
   // Mapear sunShaderVariant a capability extendida
   const resolvedGpu: GpuCapabilityExtended = sunShaderVariant === 'texture' ? 'fallback' : gpu;
 
-  // Ref compartido: posiciones reales de planetas (actualizadas en useFrame por Planet/Saturn)
-  const planetPositionsRef = useRef<Record<string, Vector3Type>>({});
-
   // Shadows solo relevantes en modo local con Tierra seleccionada
   const shadowsEnabled = viewMode === 'local' && selectedPlanet === 'earth';
 
@@ -350,14 +340,8 @@ export function SolarSystemScene() {
         powerPreference: 'high-performance',
         antialias: true,
         stencil: false,
-        // logarithmicDepthBuffer necesario en modo local: la escena abarca desde
-        // ~6 unidades (radio Tierra) hasta ~5,900,000 unidades (Plutón).
-        // Sin él, el Z-fighting entre objetos a distintas distancias es grave.
         logarithmicDepthBuffer: true,
       }}
-      // far: 1_000_000 — cubre hasta Júpiter (778,500 u) en escala real con margen.
-      // Para ver Plutón en local se necesitarían ~6M unidades, pero en modo local
-      // el planeta enfocado siempre está próximo a la cámara.
       camera={{ position: [0, 35, 70], fov: 60, near: 0.1, far: 1_000_000 }}
       shadows={shadowsEnabled}
     >
@@ -367,7 +351,6 @@ export function SolarSystemScene() {
           gpu={resolvedGpu}
           reducedMotion={prefersReducedMotion}
           onSelectPlanet={goToBody}
-          planetPositionsRef={planetPositionsRef}
           viewMode={viewMode}
           selectedPlanet={selectedPlanet}
           showKnownEvents={showKnownEvents}

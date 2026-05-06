@@ -9,6 +9,7 @@ import { CreditsModal } from '@/components/ui/CreditsModal';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ViewModeIndicator } from '@/components/ui/ViewModeIndicator';
 import { SpeedControl } from '@/components/ui/SpeedControl';
+import { DateControl } from '@/components/ui/DateControl';
 import { ErrorBoundary } from '@/app/ErrorBoundary';
 
 // Lazy import de SolarSystemScene — Three.js sólo se carga cuando se necesita
@@ -83,6 +84,9 @@ export function App() {
           <CreditsModal />
         </div>
       </div>
+
+      {/* Control de fecha de simulación (top-right) */}
+      <DateControl />
 
       {/* Panel de información del planeta seleccionado */}
       <InfoPanel />

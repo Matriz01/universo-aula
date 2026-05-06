@@ -7,11 +7,10 @@
  * - transparent: true + side: THREE.DoubleSide
  * - Inclinación correcta del eje (axial_tilt_deg)
  *
- * Estrategia: reutiliza la lógica de posición de usePlanetPosition.
- * Los anillos se posicionan en el mismo grupo que la esfera.
+ * Usa useBodyPosition (time-driven) en lugar de usePlanetPosition (legacy).
  */
 
-import React, { useRef, useMemo, Suspense } from 'react';
+import React, { useRef, useMemo, useEffect, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import type { Group, Mesh, Vector3 } from 'three';
@@ -25,8 +24,7 @@ import {
 } from 'three';
 import type { PlanetData } from '@/scenes/data/types';
 import { useScaledRadius } from '@/scenes/hooks/useScaledRadius';
-import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
-import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
+import { useBodyPosition } from '@/scenes/hooks/useBodyPosition';
 import { degToRad } from '@/scenes/orbital';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -36,15 +34,15 @@ import { useAppStore } from '@/store/useAppStore';
 
 export interface SaturnProps {
   planet: PlanetData;
-  level: PedagogicalLevel;
+  /** @deprecated Level is unused post-refactor-C; kept for API compatibility */
+  level?: string;
   onClick?: (id: string) => void;
-  /** Ref al mapa de posiciones reales compartido con CameraController */
+  /** @deprecated positionsRef ya no es necesario; useBodyPosition es la fuente de verdad */
   positionsRef?: React.MutableRefObject<Record<string, Vector3>>;
 }
 
 // ---------------------------------------------------------------------------
 // Factor de conversión km → unidades visuales para los anillos
-// Usamos la relación: ring_radius_km / planet_radius_km * visual_radius(planet)
 // ---------------------------------------------------------------------------
 
 function ringRadiusToVisual(ringKm: number, planetKm: number, planetVisual: number): number {
@@ -55,12 +53,17 @@ function ringRadiusToVisual(ringKm: number, planetKm: number, planetVisual: numb
 // Subcomponente con textura (dentro de Suspense)
 // ---------------------------------------------------------------------------
 
-function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) {
+function SaturnMeshInner({ planet, onClick }: SaturnProps) {
   const groupRef = useRef<Group>(null);
   const sphereRef = useRef<Mesh>(null);
-  const posRef = usePlanetPosition(planet, level);
-  const elapsedDays = useRef(0);
+  const elapsedRotation = useRef(0);
+
+  const time = useAppStore((s) => s.simulationTime);
+  const viewMode = useAppStore((s) => s.viewMode);
   const speed = useAppStore((s) => s.simulationSpeed);
+
+  // Posición orbital time-driven
+  const pos = useBodyPosition(planet, time, viewMode);
 
   // Velocidad angular de auto-rotación (rad/día simulado), acotada ×0.4 para gigantes
   const omega = useMemo(() => {
@@ -108,22 +111,18 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
   // Inclinación axial de Saturno
   const tiltRad = degToRad(planet.axial_tilt_deg);
 
-  useFrame((_, dt) => {
-    const SPEEDUP = 1; // días simulados por segundo real (base: 1 día/seg a speed=1)
-    const dtScaled = dt * speed;
-    elapsedDays.current += dtScaled * SPEEDUP;
-
-    if (groupRef.current) {
-      groupRef.current.position.copy(posRef.current);
-      // Publicar posición actual para CameraController (follow mode)
-      if (positionsRef) {
-        positionsRef.current[planet.id] = posRef.current.clone();
-      }
+  // Aplicar posición orbital al grupo cuando cambia
+  useEffect(() => {
+    if (groupRef.current && 'position' in groupRef.current && groupRef.current.position) {
+      groupRef.current.position.copy(pos);
     }
+  }, [pos]);
 
-    // Solo la esfera rota; los anillos son independientes (partículas)
+  // Rotación self — local al componente
+  useFrame((_, dt) => {
+    elapsedRotation.current += dt * speed;
     if (sphereRef.current) {
-      sphereRef.current.rotation.y = elapsedDays.current * omega;
+      sphereRef.current.rotation.y = elapsedRotation.current * omega;
     }
   });
 
@@ -155,9 +154,13 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
 // Fallback (color sólido)
 // ---------------------------------------------------------------------------
 
-function SaturnFallback({ planet, level, onClick, positionsRef }: SaturnProps) {
+function SaturnFallback({ planet, onClick }: SaturnProps) {
   const groupRef = useRef<Group>(null);
-  const posRef = usePlanetPosition(planet, level);
+
+  const time = useAppStore((s) => s.simulationTime);
+  const viewMode = useAppStore((s) => s.viewMode);
+
+  const pos = useBodyPosition(planet, time, viewMode);
 
   // Radio visual según modo activo (real en local, didáctico en global)
   const planetRadius = useScaledRadius(planet.radius_km);
@@ -186,14 +189,11 @@ function SaturnFallback({ planet, level, onClick, positionsRef }: SaturnProps) {
     [],
   );
 
-  useFrame(() => {
-    if (groupRef.current) {
-      groupRef.current.position.copy(posRef.current);
-      if (positionsRef) {
-        positionsRef.current[planet.id] = posRef.current.clone();
-      }
+  useEffect(() => {
+    if (groupRef.current && 'position' in groupRef.current && groupRef.current.position) {
+      groupRef.current.position.copy(pos);
     }
-  });
+  }, [pos]);
 
   return (
     <group ref={groupRef} name={planet.id} onClick={() => onClick?.(planet.id)}>
@@ -215,11 +215,13 @@ export const Saturn = React.memo(function Saturn({
   onClick,
   positionsRef,
 }: SaturnProps) {
-  const shared = {
+  // level y positionsRef se ignoran post-refactor-C (kept for API compat)
+  void level;
+  void positionsRef;
+
+  const shared: SaturnProps = {
     planet,
-    level,
     ...(onClick !== undefined ? { onClick } : {}),
-    ...(positionsRef !== undefined ? { positionsRef } : {}),
   };
 
   return (

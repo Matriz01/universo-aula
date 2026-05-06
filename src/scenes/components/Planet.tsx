@@ -6,10 +6,11 @@
  * - LOD con 3 niveles de detalle (64/32/16 segments)
  * - Color fallback si textura no carga (<Suspense>)
  * - onClick → setSelectedPlanet en el store
- * - usePlanetPosition para posición actualizada en useFrame
+ * - useBodyPosition para posición kepleriana time-driven
+ * - Rotación self en useFrame (local al componente)
  */
 
-import React, { useRef, useMemo, Suspense } from 'react';
+import React, { useRef, useMemo, useEffect, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture, Html } from '@react-three/drei';
 import { useTranslation } from 'react-i18next';
@@ -17,8 +18,7 @@ import type { Mesh, Group, Vector3 } from 'three';
 import { SphereGeometry, MeshStandardMaterial, Color } from 'three';
 import type { PlanetData } from '@/scenes/data/types';
 import { useScaledRadius } from '@/scenes/hooks/useScaledRadius';
-import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
-import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
+import { useBodyPosition } from '@/scenes/hooks/useBodyPosition';
 import { degToRad } from '@/scenes/orbital';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -28,11 +28,12 @@ import { useAppStore } from '@/store/useAppStore';
 
 export interface PlanetProps {
   planet: PlanetData;
-  level: PedagogicalLevel;
+  /** @deprecated Level is unused post-refactor-C; kept for API compatibility */
+  level?: string;
   /** 'dwarf' para Plutón — label diferenciado */
   variant?: 'normal' | 'dwarf';
   onClick?: (id: string) => void;
-  /** Ref al mapa de posiciones reales compartido con CameraController */
+  /** @deprecated positionsRef ya no es necesario; useBodyPosition es la fuente de verdad */
   positionsRef?: React.MutableRefObject<Record<string, Vector3>>;
   /** Solo activo en modo local con Tierra seleccionada (sombras eclipses) */
   castShadow?: boolean;
@@ -45,10 +46,8 @@ export interface PlanetProps {
 
 interface PlanetMeshProps {
   planet: PlanetData;
-  level: PedagogicalLevel;
   variant: 'normal' | 'dwarf';
   onClick?: (id: string) => void;
-  positionsRef?: React.MutableRefObject<Record<string, Vector3>>;
   castShadow?: boolean;
   receiveShadow?: boolean;
 }
@@ -57,20 +56,22 @@ const LOD_SEGMENTS = [64, 32, 16] as const;
 
 function PlanetMeshInner({
   planet,
-  level,
   variant,
   onClick,
-  positionsRef,
   castShadow: cs,
   receiveShadow: rs,
 }: PlanetMeshProps) {
   const groupRef = useRef<Group>(null);
   const meshRef = useRef<Mesh>(null);
-  const posRef = usePlanetPosition(planet, level);
-  const elapsedDays = useRef(0);
-  const speed = useAppStore((s) => s.simulationSpeed);
+  const elapsedRotation = useRef(0);
+
+  const time = useAppStore((s) => s.simulationTime);
   const viewMode = useAppStore((s) => s.viewMode);
+  const speed = useAppStore((s) => s.simulationSpeed);
   const { t } = useTranslation('solar');
+
+  // Posición orbital time-driven (fuente única de verdad)
+  const pos = useBodyPosition(planet, time, viewMode);
 
   // Textura lazy — useTexture suspende hasta que carga
   const textureUrl = `${planet.texture_base}2k.jpg`;
@@ -98,23 +99,18 @@ function PlanetMeshInner({
     return (2 * Math.PI) / periodDays;
   }, [planet.rotation_period_h]);
 
-  // Sincronizamos posición y rotación en cada frame
-  useFrame((_, dt) => {
-    const SPEEDUP = 1; // días simulados por segundo real (base: 1 día/seg a speed=1)
-    const dtScaled = dt * speed;
-    elapsedDays.current += dtScaled * SPEEDUP;
-
-    if (groupRef.current) {
-      const pos = posRef.current;
-      groupRef.current.position.set(pos.x, pos.y, pos.z);
-      // Publicar posición actual para CameraController (follow mode)
-      if (positionsRef) {
-        positionsRef.current[planet.id] = pos.clone();
-      }
+  // Aplicar posición orbital al grupo cuando cambia pos
+  useEffect(() => {
+    if (groupRef.current && 'position' in groupRef.current && groupRef.current.position) {
+      groupRef.current.position.copy(pos);
     }
+  }, [pos]);
 
+  // Rotación self — local al componente (necesita useFrame para animar continuo)
+  useFrame((_, dt) => {
+    elapsedRotation.current += dt * speed;
     if (meshRef.current) {
-      meshRef.current.rotation.y = elapsedDays.current * omega;
+      meshRef.current.rotation.y = elapsedRotation.current * omega;
     }
   });
 
@@ -155,12 +151,16 @@ function PlanetMeshInner({
 // Componente fallback (color sólido cuando textura no carga)
 // ---------------------------------------------------------------------------
 
-function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProps) {
+function PlanetFallback({ planet, onClick }: PlanetMeshProps) {
   const groupRef = useRef<Group>(null);
   const meshRef = useRef<Mesh>(null);
-  const posRef = usePlanetPosition(planet, level);
-  const elapsedDays = useRef(0);
+  const elapsedRotation = useRef(0);
+
+  const time = useAppStore((s) => s.simulationTime);
+  const viewMode = useAppStore((s) => s.viewMode);
   const speed = useAppStore((s) => s.simulationSpeed);
+
+  const pos = useBodyPosition(planet, time, viewMode);
 
   const planetRadius = useScaledRadius(planet.radius_km);
   const geometry = useMemo(() => new SphereGeometry(planetRadius, 16, 16), [planetRadius]);
@@ -176,20 +176,16 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
     return (2 * Math.PI) / periodDays;
   }, [planet.rotation_period_h]);
 
-  useFrame((_, dt) => {
-    const SPEEDUP = 1; // días simulados por segundo real (base: 1 día/seg a speed=1)
-    const dtScaled = dt * speed;
-    elapsedDays.current += dtScaled * SPEEDUP;
-
-    if (groupRef.current) {
-      groupRef.current.position.copy(posRef.current);
-      if (positionsRef) {
-        positionsRef.current[planet.id] = posRef.current.clone();
-      }
+  useEffect(() => {
+    if (groupRef.current && 'position' in groupRef.current && groupRef.current.position) {
+      groupRef.current.position.copy(pos);
     }
+  }, [pos]);
 
+  useFrame((_, dt) => {
+    elapsedRotation.current += dt * speed;
     if (meshRef.current) {
-      meshRef.current.rotation.y = elapsedDays.current * omega;
+      meshRef.current.rotation.y = elapsedRotation.current * omega;
     }
   });
 
@@ -208,19 +204,15 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
 
 export const Planet = React.memo(function Planet({
   planet,
-  level,
   variant = 'normal',
   onClick,
-  positionsRef,
   castShadow,
   receiveShadow,
 }: PlanetProps) {
-  const shared = {
+  const shared: PlanetMeshProps = {
     planet,
-    level,
     variant,
     ...(onClick !== undefined ? { onClick } : {}),
-    ...(positionsRef !== undefined ? { positionsRef } : {}),
     ...(castShadow !== undefined ? { castShadow } : {}),
     ...(receiveShadow !== undefined ? { receiveShadow } : {}),
   };

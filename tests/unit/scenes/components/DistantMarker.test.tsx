@@ -1,7 +1,8 @@
 /**
  * Tests del componente <DistantMarker>.
  *
- * Verifica que renderiza sin errores y usa usePlanetPosition como fallback.
+ * Post-refactor-C: usa useBodyPosition (time-driven) en lugar de usePlanetPosition (legacy).
+ * Verifica que renderiza sin errores y usa useBodyPosition para calcular la posición.
  */
 
 import { render } from '@testing-library/react';
@@ -10,20 +11,13 @@ import type { PlanetData } from '@/scenes/data/types';
 import type { Vector3 } from 'three';
 
 // ---------------------------------------------------------------------------
-// Hoisted mocks
+// Hoisted mocks (vi.hoisted se ejecuta antes de imports — no usar clases importadas)
 // ---------------------------------------------------------------------------
 
-const { usePlanetPositionSpy } = vi.hoisted(() => {
+const { useBodyPositionSpy } = vi.hoisted(() => {
+  const mockVec3 = { x: 10, y: 0, z: 5, copy: () => {}, set: () => {}, clone: () => mockVec3 };
   return {
-    usePlanetPositionSpy: vi.fn().mockReturnValue({
-      current: {
-        x: 10,
-        y: 0,
-        z: 5,
-        set: vi.fn(),
-        clone: vi.fn().mockReturnValue({ x: 10, y: 0, z: 5 }),
-      },
-    }),
+    useBodyPositionSpy: vi.fn().mockReturnValue(mockVec3),
   };
 });
 
@@ -49,8 +43,20 @@ vi.mock('@react-three/drei', () => ({
   Html: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock('@/scenes/hooks/usePlanetPosition', () => ({
-  usePlanetPosition: usePlanetPositionSpy,
+vi.mock('@/scenes/hooks/useBodyPosition', () => ({
+  useBodyPosition: useBodyPositionSpy,
+  computeBodyPosition: vi.fn().mockReturnValue({ x: 10, y: 0, z: 5 }),
+}));
+
+vi.mock('@/store/useAppStore', () => ({
+  useAppStore: vi.fn((selector: (s: Record<string, unknown>) => unknown) =>
+    selector({
+      simulationTime: new Date('2000-01-01T12:00:00Z'),
+      simulationSpeed: 1,
+      viewMode: 'global',
+      level: 'aprendiz',
+    }),
+  ),
 }));
 
 vi.mock('three', async (importOriginal) => {
@@ -98,6 +104,14 @@ const marsData: PlanetData = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  useBodyPositionSpy.mockReturnValue({
+    x: 10,
+    y: 0,
+    z: 5,
+    copy: () => {},
+    set: () => {},
+    clone: () => ({}),
+  });
 });
 
 describe('<DistantMarker> — render básico', () => {
@@ -111,16 +125,16 @@ describe('<DistantMarker> — render básico', () => {
     }).not.toThrow();
   });
 
-  it('usa usePlanetPosition como fallback', () => {
+  it('usa useBodyPosition para calcular posición (post-refactor-C)', () => {
     render(
       <div data-testid="canvas">
         <DistantMarker planet={marsData} />
       </div>,
     );
-    expect(usePlanetPositionSpy).toHaveBeenCalledWith(marsData, 'aprendiz');
+    expect(useBodyPositionSpy).toHaveBeenCalledWith(marsData, expect.any(Date), expect.any(String));
   });
 
-  it('monta con positionsRef sin errores', () => {
+  it('monta con positionsRef sin errores (prop deprecated ignorada)', () => {
     const ref = { current: { mars: { x: 10, y: 0, z: 5 } as unknown as Vector3 } };
     expect(() => {
       render(

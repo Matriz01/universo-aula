@@ -1,25 +1,25 @@
 /**
  * Tests del componente <PlanetMoon> — Luna orbitando la Tierra.
  *
- * Incluye mocks de usePlanetsData y usePlanetPosition para
- * verificar el comportamiento en modo local (bug fix iter-2).
+ * Post-refactor-C: usa useBodyPosition (time-driven) en lugar de
+ * usePlanetPosition (legacy).
  */
 
 import { render } from '@testing-library/react';
 import { vi, beforeEach, describe, it, expect } from 'vitest';
 
 // ---------------------------------------------------------------------------
-// Hoisted mocks
+// Hoisted mocks (vi.hoisted se ejecuta antes de imports — no usar clases importadas)
 // ---------------------------------------------------------------------------
 
-const { useTextureSpy, usePlanetPositionSpy, usePlanetsDataSpy } = vi.hoisted(() => {
+const { useTextureSpy, useBodyPositionSpy, usePlanetsDataSpy } = vi.hoisted(() => {
+  const mockVec3 = { x: 149598, y: 0, z: 0, copy: () => {}, set: () => {}, clone: () => mockVec3 };
   const textureSpy = vi.fn().mockReturnValue({});
-  // Usamos objeto plano en lugar de Vector3 — vi.hoisted no tiene acceso a imports de Three.js
-  const positionSpy = vi.fn().mockReturnValue({ current: { x: 149598, y: 0, z: 0 } });
+  const bodyPosSpy = vi.fn().mockReturnValue(mockVec3);
   const planetsDataSpy = vi.fn().mockReturnValue({ data: null, loading: false, error: null });
   return {
     useTextureSpy: textureSpy,
-    usePlanetPositionSpy: positionSpy,
+    useBodyPositionSpy: bodyPosSpy,
     usePlanetsDataSpy: planetsDataSpy,
   };
 });
@@ -55,15 +55,32 @@ vi.mock('three', async (importOriginal) => {
 });
 
 // ---------------------------------------------------------------------------
-// Mocks de hooks de escena
+// Mocks de hooks de escena (post-refactor-C)
 // ---------------------------------------------------------------------------
 
-vi.mock('@/scenes/hooks/usePlanetPosition', () => ({
-  usePlanetPosition: usePlanetPositionSpy,
+vi.mock('@/scenes/hooks/useBodyPosition', () => ({
+  useBodyPosition: useBodyPositionSpy,
+  computeBodyPosition: vi.fn().mockReturnValue({ x: 149598, y: 0, z: 0 }),
 }));
 
 vi.mock('@/scenes/hooks/usePlanetsData', () => ({
   usePlanetsData: usePlanetsDataSpy,
+}));
+
+// ---------------------------------------------------------------------------
+// Mock del store
+// ---------------------------------------------------------------------------
+
+vi.mock('@/store/useAppStore', () => ({
+  useAppStore: vi.fn((selector: (s: Record<string, unknown>) => unknown) =>
+    selector({
+      simulationTime: new Date('2000-01-01T12:00:00Z'),
+      simulationSpeed: 1,
+      viewMode: 'global',
+      selectedPlanet: null,
+      level: 'aprendiz',
+    }),
+  ),
 }));
 
 // ---------------------------------------------------------------------------
@@ -78,9 +95,9 @@ import { PlanetMoon } from '@/scenes/components/PlanetMoon';
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Reset de mocks a valores por defecto
+  const mockVec3 = { x: 149598, y: 0, z: 0, copy: () => {}, set: () => {}, clone: () => mockVec3 };
   useTextureSpy.mockReturnValue({});
-  usePlanetPositionSpy.mockReturnValue({ current: { x: 149598, y: 0, z: 0 } });
+  useBodyPositionSpy.mockReturnValue(mockVec3);
   usePlanetsDataSpy.mockReturnValue({ data: null, loading: false, error: null });
 });
 
@@ -95,7 +112,7 @@ describe('<PlanetMoon> — render básico', () => {
     }).not.toThrow();
   });
 
-  it('monta con earthPosition prop sin errores', () => {
+  it('monta con earthPosition prop sin errores (prop deprecated, se ignora)', () => {
     expect(() => {
       render(
         <div data-testid="canvas">
@@ -117,15 +134,15 @@ describe('<PlanetMoon> — render básico', () => {
   });
 });
 
-describe('<PlanetMoon> — modo local (bug fix)', () => {
-  it('invoca usePlanetPosition para calcular posición de la Tierra en modo local', () => {
+describe('<PlanetMoon> — modo local (post-refactor-C)', () => {
+  it('invoca useBodyPosition para calcular posición de la Tierra', () => {
     render(
       <div data-testid="canvas">
         <PlanetMoon />
       </div>,
     );
-    // usePlanetPosition debe haberse llamado (para la Tierra)
-    expect(usePlanetPositionSpy).toHaveBeenCalled();
+    // useBodyPosition debe haberse llamado (para la Tierra)
+    expect(useBodyPositionSpy).toHaveBeenCalled();
   });
 
   it('monta sin errores cuando usePlanetsData devuelve datos de Tierra', () => {
@@ -171,9 +188,10 @@ describe('<PlanetMoon> — modo local (bug fix)', () => {
       );
     }).not.toThrow();
 
-    // usePlanetPosition recibe los datos reales de Tierra
-    expect(usePlanetPositionSpy).toHaveBeenCalledWith(
+    // useBodyPosition recibe los datos reales de Tierra
+    expect(useBodyPositionSpy).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'earth' }),
+      expect.any(Date),
       expect.any(String),
     );
   });
@@ -189,9 +207,10 @@ describe('<PlanetMoon> — modo local (bug fix)', () => {
       );
     }).not.toThrow();
 
-    // Incluso sin datos, usePlanetPosition se llama con el objeto fallback de la Tierra
-    expect(usePlanetPositionSpy).toHaveBeenCalledWith(
+    // Incluso sin datos, useBodyPosition se llama con el objeto fallback de la Tierra
+    expect(useBodyPositionSpy).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'earth', semi_major_axis_AU: 1.0 }),
+      expect.any(Date),
       expect.any(String),
     );
   });
