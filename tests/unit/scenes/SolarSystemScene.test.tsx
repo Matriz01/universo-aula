@@ -373,6 +373,13 @@ vi.mock('@react-three/fiber', () => ({
   extend: vi.fn(),
 }));
 
+vi.mock('@react-three/postprocessing', () => ({
+  EffectComposer: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="effect-composer">{children}</div>
+  ),
+  Bloom: () => null,
+}));
+
 // ---------------------------------------------------------------------------
 // Mock de @react-three/drei
 // ---------------------------------------------------------------------------

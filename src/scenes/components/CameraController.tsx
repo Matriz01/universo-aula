@@ -4,44 +4,57 @@
  * - Monta <OrbitControls> de Drei con la ref de useFocusCamera
  * - Delega navegación por teclado a useKeyboardNavigation
  * - Lee selectedPlanet y prefersReducedMotion del store
- * - Convierte PlanetId → Vector3 para useFocusCamera
+ * - Lee posición REAL del planeta desde planetPositionsRef (actualizado por Planet/Saturn)
+ * - En cameraMode === 'focus': sigue al planeta en cada frame (follow mode)
  */
 
 import React, { type Ref } from 'react';
 import { OrbitControls } from '@react-three/drei';
-import { Vector3 } from 'three';
+import { useFrame } from '@react-three/fiber';
+import type { Vector3 } from 'three';
 import { useAppStore } from '@/store/useAppStore';
 import { useFocusCamera } from '@/scenes/hooks/useFocusCamera';
 import { useKeyboardNavigation } from '@/scenes/hooks/useKeyboardNavigation';
 
-// Posiciones aproximadas de los planetas para el focus (se actualizarán con los valores reales)
-// En un sistema real, estas posiciones vendrían de usePlanetPosition;
-// para el MVP usamos posiciones estáticas basadas en visualDistance
-const PLANET_POSITIONS: Record<string, Vector3> = {
-  mercury: new Vector3(8.777, 0, 0),
-  venus: new Vector3(11.282, 0, 0),
-  earth: new Vector3(13.0, 0, 0),
-  mars: new Vector3(16.0, 0, 0),
-  jupiter: new Vector3(26.0, 0, 0),
-  saturn: new Vector3(32.0, 0, 0),
-  uranus: new Vector3(39.0, 0, 0),
-  neptune: new Vector3(44.66, 0, 0),
-  pluto: new Vector3(50.0, 0, 0),
-};
+export interface CameraControllerProps {
+  /** Ref al mapa de posiciones reales de planetas (actualizado por Planet/Saturn en useFrame) */
+  planetPositionsRef?: React.MutableRefObject<Record<string, Vector3>>;
+}
 
-export const CameraController = React.memo(function CameraController() {
+export const CameraController = React.memo(function CameraController({
+  planetPositionsRef,
+}: CameraControllerProps) {
   const selectedPlanet = useAppStore((s) => s.selectedPlanet);
   const prefersReducedMotion = useAppStore((s) => s.prefersReducedMotion);
+  const cameraMode = useAppStore((s) => s.cameraMode);
 
   // Activa navegación por teclado
   useKeyboardNavigation();
 
-  // Calcula el target de la cámara
-  const target = selectedPlanet ? (PLANET_POSITIONS[selectedPlanet] ?? null) : null;
+  // Obtener la posición REAL del planeta seleccionado desde el ref compartido
+  // Si el ref no tiene la posición aún (primera frame), target será null → no tween
+  const target =
+    selectedPlanet && planetPositionsRef?.current[selectedPlanet]
+      ? planetPositionsRef.current[selectedPlanet]
+      : null;
 
   const controlsRef = useFocusCamera({
     target,
     reducedMotion: prefersReducedMotion,
+  });
+
+  // Follow mode: si cameraMode === 'focus' y hay planeta seleccionado,
+  // actualizar controls.target en cada frame para seguir al planeta en órbita
+  useFrame(() => {
+    if (cameraMode !== 'focus') return;
+    if (!selectedPlanet) return;
+    const pos = planetPositionsRef?.current[selectedPlanet];
+    if (!pos) return;
+    const controls = controlsRef.current;
+    if (!controls) return;
+    // Actualizar el target de OrbitControls directamente (sin tween)
+    controls.target.fromArray([pos.x, pos.y, pos.z]);
+    controls.update();
   });
 
   return (

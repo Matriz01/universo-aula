@@ -49,6 +49,7 @@ export default defineConfig({
             '@react-three/fiber',
             '@react-three/drei',
             '@react-spring/three',
+            '@react-three/postprocessing',
           ],
           'vendor-react': ['react', 'react-dom'],
           'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],

@@ -14,7 +14,7 @@
 precision highp float;
 
 uniform float uTime;
-uniform vec3  uColorCore;        // ej. vec3(1.0, 0.95, 0.55)
+uniform vec3  uColorCore;        // HDR: vec3(2.5, 2.0, 1.0) — luminancia > 0.85 para bloom
 uniform vec3  uColorEdge;        // ej. vec3(1.0, 0.45, 0.10)
 uniform float uGranulationScale; // 3.0
 uniform float uFlowScale;        // 8.0

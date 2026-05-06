@@ -72,7 +72,16 @@ function MoonMeshInner({ earthPosition = [0, 0, 0] }: PlanetMoonProps) {
     }
   });
 
-  return <mesh ref={meshRef} geometry={geometry} material={material} name="moon" />;
+  return (
+    <mesh
+      ref={meshRef}
+      geometry={geometry}
+      material={material}
+      name="moon"
+      castShadow
+      receiveShadow
+    />
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -107,7 +116,16 @@ function MoonFallback({ earthPosition = [0, 0, 0] }: PlanetMoonProps) {
     }
   });
 
-  return <mesh ref={meshRef} geometry={geometry} material={material} name="moon-fallback" />;
+  return (
+    <mesh
+      ref={meshRef}
+      geometry={geometry}
+      material={material}
+      name="moon-fallback"
+      castShadow
+      receiveShadow
+    />
+  );
 }
 
 // ---------------------------------------------------------------------------

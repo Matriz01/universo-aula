@@ -14,7 +14,7 @@
 import React, { useRef, useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
-import type { Group } from 'three';
+import type { Group, Vector3 } from 'three';
 import {
   SphereGeometry,
   MeshStandardMaterial,
@@ -37,6 +37,8 @@ export interface SaturnProps {
   planet: PlanetData;
   level: PedagogicalLevel;
   onClick?: (id: string) => void;
+  /** Ref al mapa de posiciones reales compartido con CameraController */
+  positionsRef?: React.MutableRefObject<Record<string, Vector3>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -52,7 +54,7 @@ function ringRadiusToVisual(ringKm: number, planetKm: number, planetVisual: numb
 // Subcomponente con textura (dentro de Suspense)
 // ---------------------------------------------------------------------------
 
-function SaturnMeshInner({ planet, level, onClick }: SaturnProps) {
+function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) {
   const groupRef = useRef<Group>(null);
   const posRef = usePlanetPosition(planet, level);
 
@@ -98,6 +100,10 @@ function SaturnMeshInner({ planet, level, onClick }: SaturnProps) {
   useFrame(() => {
     if (groupRef.current) {
       groupRef.current.position.copy(posRef.current);
+      // Publicar posición actual para CameraController (follow mode)
+      if (positionsRef) {
+        positionsRef.current[planet.id] = posRef.current.clone();
+      }
     }
   });
 
@@ -105,7 +111,13 @@ function SaturnMeshInner({ planet, level, onClick }: SaturnProps) {
     <group ref={groupRef} name={planet.id} onClick={() => onClick?.(planet.id)}>
       {/* Esfera del planeta con inclinación axial */}
       <group rotation={[0, 0, tiltRad]}>
-        <mesh geometry={sphereGeometry} material={sphereMaterial} name={`${planet.id}-sphere`} />
+        <mesh
+          geometry={sphereGeometry}
+          material={sphereMaterial}
+          name={`${planet.id}-sphere`}
+          castShadow
+          receiveShadow
+        />
         {/* Anillos alineados con el ecuador del planeta (ya rotados con el grupo) */}
         {ringGeometry && (
           <mesh
@@ -113,6 +125,7 @@ function SaturnMeshInner({ planet, level, onClick }: SaturnProps) {
             material={ringMaterial}
             rotation={[Math.PI / 2, 0, 0]}
             name={`${planet.id}-rings`}
+            receiveShadow
           />
         )}
       </group>
@@ -124,7 +137,7 @@ function SaturnMeshInner({ planet, level, onClick }: SaturnProps) {
 // Fallback (color sólido)
 // ---------------------------------------------------------------------------
 
-function SaturnFallback({ planet, level, onClick }: SaturnProps) {
+function SaturnFallback({ planet, level, onClick, positionsRef }: SaturnProps) {
   const groupRef = useRef<Group>(null);
   const posRef = usePlanetPosition(planet, level);
 
@@ -157,14 +170,22 @@ function SaturnFallback({ planet, level, onClick }: SaturnProps) {
   useFrame(() => {
     if (groupRef.current) {
       groupRef.current.position.copy(posRef.current);
+      if (positionsRef) {
+        positionsRef.current[planet.id] = posRef.current.clone();
+      }
     }
   });
 
   return (
     <group ref={groupRef} name={planet.id} onClick={() => onClick?.(planet.id)}>
-      <mesh geometry={sphereGeometry} material={sphereMaterial} />
+      <mesh geometry={sphereGeometry} material={sphereMaterial} castShadow receiveShadow />
       {ringGeometry && (
-        <mesh geometry={ringGeometry} material={ringMaterial} rotation={[Math.PI / 2, 0, 0]} />
+        <mesh
+          geometry={ringGeometry}
+          material={ringMaterial}
+          rotation={[Math.PI / 2, 0, 0]}
+          receiveShadow
+        />
       )}
     </group>
   );
@@ -174,22 +195,22 @@ function SaturnFallback({ planet, level, onClick }: SaturnProps) {
 // Componente Saturn exportado
 // ---------------------------------------------------------------------------
 
-export const Saturn = React.memo(function Saturn({ planet, level, onClick }: SaturnProps) {
+export const Saturn = React.memo(function Saturn({
+  planet,
+  level,
+  onClick,
+  positionsRef,
+}: SaturnProps) {
+  const shared = {
+    planet,
+    level,
+    ...(onClick !== undefined ? { onClick } : {}),
+    ...(positionsRef !== undefined ? { positionsRef } : {}),
+  };
+
   return (
-    <Suspense
-      fallback={
-        onClick ? (
-          <SaturnFallback planet={planet} level={level} onClick={onClick} />
-        ) : (
-          <SaturnFallback planet={planet} level={level} />
-        )
-      }
-    >
-      {onClick ? (
-        <SaturnMeshInner planet={planet} level={level} onClick={onClick} />
-      ) : (
-        <SaturnMeshInner planet={planet} level={level} />
-      )}
+    <Suspense fallback={<SaturnFallback {...shared} />}>
+      <SaturnMeshInner {...shared} />
     </Suspense>
   );
 });

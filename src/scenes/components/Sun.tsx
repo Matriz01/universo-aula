@@ -52,8 +52,9 @@ export interface SunProps {
 // ---------------------------------------------------------------------------
 
 const FLOW_SPEED_NOMINAL = 0.2;
-const COLOR_CORE = new Color(1.0, 0.95, 0.55);
-const COLOR_EDGE = new Color(1.0, 0.45, 0.1);
+// HDR: valores > 1.0 para superar el luminanceThreshold del Bloom (0.85)
+const COLOR_CORE = new Color(2.5, 2.0, 1.0);
+const COLOR_EDGE = new Color(1.2, 0.5, 0.1);
 const GRANULATION_SCALE = 3.0;
 const FLOW_SCALE = 8.0;
 

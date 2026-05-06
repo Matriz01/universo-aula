@@ -12,7 +12,7 @@
 import React, { useRef, useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture, Html } from '@react-three/drei';
-import type { Mesh } from 'three';
+import type { Mesh, Vector3 } from 'three';
 import { SphereGeometry, MeshStandardMaterial, Color } from 'three';
 import type { PlanetData } from '@/scenes/data/types';
 import { visualRadius } from '@/scenes/scale';
@@ -29,6 +29,8 @@ export interface PlanetProps {
   /** 'dwarf' para Plutón — label diferenciado */
   variant?: 'normal' | 'dwarf';
   onClick?: (id: string) => void;
+  /** Ref al mapa de posiciones reales compartido con CameraController */
+  positionsRef?: React.MutableRefObject<Record<string, Vector3>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -40,11 +42,12 @@ interface PlanetMeshProps {
   level: PedagogicalLevel;
   variant: 'normal' | 'dwarf';
   onClick?: (id: string) => void;
+  positionsRef?: React.MutableRefObject<Record<string, Vector3>>;
 }
 
 const LOD_SEGMENTS = [64, 32, 16] as const;
 
-function PlanetMeshInner({ planet, level, variant, onClick }: PlanetMeshProps) {
+function PlanetMeshInner({ planet, level, variant, onClick, positionsRef }: PlanetMeshProps) {
   const meshRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
 
@@ -66,6 +69,10 @@ function PlanetMeshInner({ planet, level, variant, onClick }: PlanetMeshProps) {
     if (meshRef.current) {
       const pos = posRef.current;
       meshRef.current.position.set(pos.x, pos.y, pos.z);
+      // Publicar posición actual para CameraController (follow mode)
+      if (positionsRef) {
+        positionsRef.current[planet.id] = pos.clone();
+      }
     }
   });
 
@@ -78,6 +85,8 @@ function PlanetMeshInner({ planet, level, variant, onClick }: PlanetMeshProps) {
         material={material}
         name={planet.id}
         onClick={() => onClick?.(planet.id)}
+        castShadow
+        receiveShadow
       />
       <Html center distanceFactor={10}>
         <div
@@ -102,7 +111,7 @@ function PlanetMeshInner({ planet, level, variant, onClick }: PlanetMeshProps) {
 // Componente fallback (color sólido cuando textura no carga)
 // ---------------------------------------------------------------------------
 
-function PlanetFallback({ planet, level, onClick }: PlanetMeshProps) {
+function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProps) {
   const meshRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
   const geometry = useMemo(
@@ -117,6 +126,9 @@ function PlanetFallback({ planet, level, onClick }: PlanetMeshProps) {
   useFrame(() => {
     if (meshRef.current) {
       meshRef.current.position.copy(posRef.current);
+      if (positionsRef) {
+        positionsRef.current[planet.id] = posRef.current.clone();
+      }
     }
   });
 
@@ -127,6 +139,8 @@ function PlanetFallback({ planet, level, onClick }: PlanetMeshProps) {
       material={material}
       name={planet.id}
       onClick={() => onClick?.(planet.id)}
+      castShadow
+      receiveShadow
     />
   );
 }
@@ -140,22 +154,19 @@ export const Planet = React.memo(function Planet({
   level,
   variant = 'normal',
   onClick,
+  positionsRef,
 }: PlanetProps) {
+  const shared = {
+    planet,
+    level,
+    variant,
+    ...(onClick !== undefined ? { onClick } : {}),
+    ...(positionsRef !== undefined ? { positionsRef } : {}),
+  };
+
   return (
-    <Suspense
-      fallback={
-        onClick ? (
-          <PlanetFallback planet={planet} level={level} variant={variant} onClick={onClick} />
-        ) : (
-          <PlanetFallback planet={planet} level={level} variant={variant} />
-        )
-      }
-    >
-      {onClick ? (
-        <PlanetMeshInner planet={planet} level={level} variant={variant} onClick={onClick} />
-      ) : (
-        <PlanetMeshInner planet={planet} level={level} variant={variant} />
-      )}
+    <Suspense fallback={<PlanetFallback {...shared} />}>
+      <PlanetMeshInner {...shared} />
     </Suspense>
   );
 });
