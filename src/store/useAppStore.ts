@@ -69,6 +69,12 @@ interface AppState {
   /** Multiplicador de velocidad de simulación. 0 = pausa, 1 = nominal, max 5. */
   simulationSpeed: number;
   setSimulationSpeed: (speed: number) => void;
+
+  // — Tiempo de simulación —
+
+  /** Fecha actual de la simulación. Arranca en fecha real del sistema. */
+  simulationTime: Date;
+  setSimulationTime: (date: Date) => void;
 }
 
 export const useAppStore = create<AppState>()((set) => ({
@@ -120,6 +126,10 @@ export const useAppStore = create<AppState>()((set) => ({
   // Control de velocidad de simulación
   simulationSpeed: 1.0,
   setSimulationSpeed: (simulationSpeed) => set({ simulationSpeed }),
+
+  // Tiempo de simulación
+  simulationTime: new Date(),
+  setSimulationTime: (simulationTime) => set({ simulationTime }),
 }));
 
 // ---------------------------------------------------------------------------
@@ -138,3 +148,4 @@ export const useSunShaderVariant = () => useAppStore((s) => s.sunShaderVariant);
 export const useViewMode = () => useAppStore((s) => s.viewMode);
 export const useShowKnownEvents = () => useAppStore((s) => s.showKnownEvents);
 export const useSimulationSpeed = () => useAppStore((s) => s.simulationSpeed);
+export const useSimulationTime = () => useAppStore((s) => s.simulationTime);
