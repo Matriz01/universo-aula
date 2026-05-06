@@ -21,7 +21,7 @@ vi.mock('@react-three/fiber', () => ({
   ),
   useFrame: vi.fn(),
   useThree: vi.fn(() => ({
-    camera: { position: { set: vi.fn(), toArray: () => [0, 35, 70] } },
+    camera: { position: { set: vi.fn(), toArray: () => [0, 35, 70], add: vi.fn() } },
     gl: { domElement: document.createElement('canvas') },
   })),
   extend: vi.fn(),

@@ -40,7 +40,10 @@ function easeInOutCubic(t: number): number {
 
 // Minimal interface for OrbitControls target usage
 interface OrbitControlsLike {
-  target: { fromArray: (arr: number[]) => void };
+  target: {
+    fromArray: (arr: number[]) => void;
+    add: (v: { x: number; y: number; z: number }) => void;
+  };
   update: () => void;
 }
 
