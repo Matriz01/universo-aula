@@ -153,17 +153,17 @@ describe('<CameraController> — distancias dinámicas por viewMode', () => {
     useAppStoreMock.mockImplementation(
       (
         selector: (s: {
-          selectedPlanet: null;
+          selectedPlanet: string | null;
           prefersReducedMotion: boolean;
           cameraMode: string;
-          viewMode: string;
+          viewMode: 'global' | 'local';
         }) => unknown,
       ) => {
         const state = {
-          selectedPlanet: null,
+          selectedPlanet: null as string | null,
           prefersReducedMotion: false,
           cameraMode: 'overview',
-          viewMode: 'local',
+          viewMode: 'local' as 'global' | 'local',
         };
         return selector ? selector(state) : state;
       },
