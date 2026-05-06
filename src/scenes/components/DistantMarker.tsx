@@ -2,9 +2,12 @@
  * <DistantMarker> — representa un planeta no seleccionado en modo local.
  *
  * Esfera muy pequeña con MeshBasicMaterial (no afectada por luz),
- * con el color propio del planeta. Se posiciona donde el planeta
- * realmente está usando positionsRef (actualizado por sus propios useFrame).
- * Si la posición no existe aún, usa usePlanetPosition como fallback.
+ * con el color propio del planeta. Calcula su propia posición usando
+ * usePlanetPosition (igual que <Planet>), de modo que funciona
+ * correctamente en modo local donde <Planet> no se monta.
+ *
+ * positionsRef se mantiene como prop opcional (compatibilidad hacia atrás)
+ * pero ya no se usa: la posición propia tiene prioridad siempre.
  */
 
 import React, { useRef, useMemo } from 'react';
@@ -13,6 +16,7 @@ import type { Mesh, Vector3 } from 'three';
 import { SphereGeometry, MeshBasicMaterial, Color } from 'three';
 import type { PlanetData } from '@/scenes/data/types';
 import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
+import { useAppStore } from '@/store/useAppStore';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -20,6 +24,7 @@ import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
 
 export interface DistantMarkerProps {
   planet: PlanetData;
+  /** @deprecated ya no se usa; la posición se calcula internamente */
   positionsRef?: React.MutableRefObject<Record<string, Vector3>>;
 }
 
@@ -33,13 +38,13 @@ const MARKER_RADIUS = 0.15;
 // Componente
 // ---------------------------------------------------------------------------
 
-export const DistantMarker = React.memo(function DistantMarker({
-  planet,
-  positionsRef,
-}: DistantMarkerProps) {
+export const DistantMarker = React.memo(function DistantMarker({ planet }: DistantMarkerProps) {
   const meshRef = useRef<Mesh>(null);
-  // Fallback position si el planeta aún no tiene posición en positionsRef
-  const fallbackPosRef = usePlanetPosition(planet, 'aprendiz');
+  const level = useAppStore((s) => s.level);
+
+  // Calcula la posición propia en cada frame, igual que <Planet>.
+  // Esto garantiza movimiento correcto en modo local (donde <Planet> no está montado).
+  const posRef = usePlanetPosition(planet, level);
 
   const geometry = useMemo(() => new SphereGeometry(MARKER_RADIUS, 8, 8), []);
   const material = useMemo(
@@ -49,10 +54,7 @@ export const DistantMarker = React.memo(function DistantMarker({
 
   useFrame(() => {
     if (!meshRef.current) return;
-
-    const livePos = positionsRef?.current?.[planet.id];
-    const pos = livePos ?? fallbackPosRef.current;
-
+    const pos = posRef.current;
     meshRef.current.position.set(pos.x, pos.y, pos.z);
   });
 

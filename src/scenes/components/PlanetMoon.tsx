@@ -3,9 +3,12 @@
  *
  * Características:
  * - Órbita simplificada alrededor de la posición de la Tierra
- * - Radio ~0.8 unidades de escena, periodo 27.3 días simulados
+ * - Radio visual calculado con visualRadius(1737 km)
+ * - Periodo 27.3 días simulados
  * - Textura moon/2k.jpg (lazy con Drei useTexture)
- * - Geometría SphereGeometry(0.27, 16, 16) según design §4.8
+ * - Órbita adaptada al modo de vista:
+ *   · global → 0.8 unidades (escala didáctica compacta)
+ *   · local con Tierra → 6 unidades (~10× radio Tierra, refleja separación real)
  */
 
 import React, { useRef, useMemo, Suspense } from 'react';
@@ -15,19 +18,23 @@ import { useTexture } from '@react-three/drei';
 import type { Mesh } from 'three';
 import { SphereGeometry, MeshStandardMaterial, Vector3 } from 'three';
 import { useAppStore } from '@/store/useAppStore';
+import { visualRadius } from '@/scenes/scale';
 
 // ---------------------------------------------------------------------------
 // Constantes
 // ---------------------------------------------------------------------------
 
-/** Radio de la órbita de la Luna en unidades de escena */
-const MOON_ORBIT_RADIUS = 0.8;
+/** Radio real de la Luna en km */
+const MOON_RADIUS_KM = 1737;
 
 /** Periodo orbital de la Luna en días simulados */
 const MOON_PERIOD_DAYS = 27.3;
 
-/** Radio visual de la Luna */
-const MOON_VISUAL_RADIUS = 0.27;
+/** Órbita en modo global (escala didáctica compacta) */
+const MOON_ORBIT_RADIUS_GLOBAL = 0.8;
+
+/** Órbita en modo local con Tierra (~10× radio Tierra ≈ proporcional real ~60×, pero visible) */
+const MOON_ORBIT_RADIUS_LOCAL = 6;
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -56,11 +63,21 @@ function MoonMeshInner({
   const meshRef = useRef<Mesh>(null);
   const elapsed = useRef(0);
   const speed = useAppStore((s) => s.simulationSpeed);
+  const viewMode = useAppStore((s) => s.viewMode);
+  const selectedPlanet = useAppStore((s) => s.selectedPlanet);
 
   const texture = useTexture('/textures/moon/2k.jpg');
 
-  const geometry = useMemo(() => new SphereGeometry(MOON_VISUAL_RADIUS, 16, 16), []);
+  const moonRadius = useMemo(() => visualRadius(MOON_RADIUS_KM), []);
+  const geometry = useMemo(() => new SphereGeometry(moonRadius, 16, 16), [moonRadius]);
   const material = useMemo(() => new MeshStandardMaterial({ map: texture }), [texture]);
+
+  const orbitRadius = useMemo(() => {
+    if (viewMode === 'local' && selectedPlanet === 'earth') {
+      return MOON_ORBIT_RADIUS_LOCAL;
+    }
+    return MOON_ORBIT_RADIUS_GLOBAL;
+  }, [viewMode, selectedPlanet]);
 
   const fallbackEarthPos = useMemo(
     () => new Vector3(...earthPosition),
@@ -81,9 +98,9 @@ function MoonMeshInner({
 
     if (meshRef.current) {
       meshRef.current.position.set(
-        earthPos.x + MOON_ORBIT_RADIUS * Math.cos(theta),
+        earthPos.x + orbitRadius * Math.cos(theta),
         earthPos.y,
-        earthPos.z + MOON_ORBIT_RADIUS * Math.sin(theta),
+        earthPos.z + orbitRadius * Math.sin(theta),
       );
       // Rotación síncrona (tidal lock): misma velocidad angular que la órbita
       meshRef.current.rotation.y = theta;
@@ -110,9 +127,19 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
   const meshRef = useRef<Mesh>(null);
   const elapsed = useRef(0);
   const speed = useAppStore((s) => s.simulationSpeed);
+  const viewMode = useAppStore((s) => s.viewMode);
+  const selectedPlanet = useAppStore((s) => s.selectedPlanet);
 
-  const geometry = useMemo(() => new SphereGeometry(MOON_VISUAL_RADIUS, 8, 8), []);
+  const moonRadius = useMemo(() => visualRadius(MOON_RADIUS_KM), []);
+  const geometry = useMemo(() => new SphereGeometry(moonRadius, 8, 8), [moonRadius]);
   const material = useMemo(() => new MeshStandardMaterial({ color: '#c8c8c8' }), []);
+
+  const orbitRadius = useMemo(() => {
+    if (viewMode === 'local' && selectedPlanet === 'earth') {
+      return MOON_ORBIT_RADIUS_LOCAL;
+    }
+    return MOON_ORBIT_RADIUS_GLOBAL;
+  }, [viewMode, selectedPlanet]);
 
   const fallbackEarthPos = useMemo(
     () => new Vector3(...earthPosition),
@@ -132,9 +159,9 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
 
     if (meshRef.current) {
       meshRef.current.position.set(
-        earthPos.x + MOON_ORBIT_RADIUS * Math.cos(theta),
+        earthPos.x + orbitRadius * Math.cos(theta),
         earthPos.y,
-        earthPos.z + MOON_ORBIT_RADIUS * Math.sin(theta),
+        earthPos.z + orbitRadius * Math.sin(theta),
       );
       // Rotación síncrona (tidal lock)
       meshRef.current.rotation.y = theta;

@@ -246,7 +246,7 @@ function InvestigadorPanel({ planetId, level }: { planetId: PlanetId; level: Ped
 export const InfoPanel = React.memo(function InfoPanel() {
   const { t } = useTranslation('solar');
   const selectedPlanet = useAppStore((s) => s.selectedPlanet);
-  const setSelectedPlanet = useAppStore((s) => s.setSelectedPlanet);
+  const goToBody = useAppStore((s) => s.goToBody);
   const level = useAppStore((s) => s.level);
 
   if (selectedPlanet === null) return null;
@@ -271,7 +271,7 @@ export const InfoPanel = React.memo(function InfoPanel() {
         <button
           type="button"
           aria-label="Cerrar"
-          onClick={() => setSelectedPlanet(null)}
+          onClick={() => goToBody(null)}
           className="flex h-8 w-8 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
         >
           ✕

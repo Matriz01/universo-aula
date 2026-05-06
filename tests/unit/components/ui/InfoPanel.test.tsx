@@ -17,13 +17,13 @@ import { render, screen, fireEvent } from '@testing-library/react';
 
 let mockSelectedPlanet: string | null = null;
 let mockLevel = 'aprendiz';
-const mockSetSelectedPlanet = vi.fn();
+const mockGoToBody = vi.fn();
 
 vi.mock('@/store/useAppStore', () => ({
   useAppStore: vi.fn((selector: (s: unknown) => unknown) => {
     const state = {
       selectedPlanet: mockSelectedPlanet,
-      setSelectedPlanet: mockSetSelectedPlanet,
+      goToBody: mockGoToBody,
       level: mockLevel,
     };
     return selector ? selector(state) : state;
@@ -148,13 +148,13 @@ describe('<InfoPanel>', () => {
     expect(screen.queryByTestId('pluto-note')).not.toBeInTheDocument();
   });
 
-  it('el botón de cerrar llama setSelectedPlanet(null)', () => {
+  it('el botón de cerrar llama goToBody(null) para volver al modo global', () => {
     mockSelectedPlanet = 'mars';
     mockLevel = 'aprendiz';
     render(<InfoPanel />);
     const closeButton = screen.getByRole('button', { name: /cerrar|close/i });
     fireEvent.click(closeButton);
-    expect(mockSetSelectedPlanet).toHaveBeenCalledWith(null);
+    expect(mockGoToBody).toHaveBeenCalledWith(null);
   });
 
   it('nivel investigador renderiza sin errores', () => {
