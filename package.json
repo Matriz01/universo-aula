@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.32.1",
   "description": "App web educativa interactiva 3D del universo para aulas (SMART Board, tablets, navegadores).",
   "license": "AGPL-3.0-or-later",
   "homepage": "https://github.com/Matriz01/universo-aula",
