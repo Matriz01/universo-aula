@@ -152,3 +152,94 @@ describe('selectores exportados', () => {
     expect(typeof module.useTourActive).toBe('function');
   });
 });
+
+describe('useAppStore — viewMode', () => {
+  beforeEach(() => {
+    useAppStore.setState({ viewMode: 'global' });
+  });
+
+  it('valor inicial es global', () => {
+    expect(useAppStore.getState().viewMode).toBe('global');
+  });
+
+  it('setViewMode cambia a local', () => {
+    useAppStore.getState().setViewMode('local');
+    expect(useAppStore.getState().viewMode).toBe('local');
+  });
+
+  it('setViewMode cambia de local a global', () => {
+    useAppStore.getState().setViewMode('local');
+    useAppStore.getState().setViewMode('global');
+    expect(useAppStore.getState().viewMode).toBe('global');
+  });
+});
+
+describe('useAppStore — showKnownEvents', () => {
+  beforeEach(() => {
+    useAppStore.setState({ showKnownEvents: false });
+  });
+
+  it('valor inicial es false', () => {
+    expect(useAppStore.getState().showKnownEvents).toBe(false);
+  });
+
+  it('setShowKnownEvents activa los eventos', () => {
+    useAppStore.getState().setShowKnownEvents(true);
+    expect(useAppStore.getState().showKnownEvents).toBe(true);
+  });
+
+  it('setShowKnownEvents desactiva los eventos', () => {
+    useAppStore.getState().setShowKnownEvents(true);
+    useAppStore.getState().setShowKnownEvents(false);
+    expect(useAppStore.getState().showKnownEvents).toBe(false);
+  });
+});
+
+describe('useAppStore — goToBody', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      selectedPlanet: null,
+      viewMode: 'global',
+      cameraMode: 'overview',
+    });
+  });
+
+  it('goToBody(null) establece modo global y limpia selección', () => {
+    // Primero ir a modo local
+    useAppStore.getState().goToBody('mars');
+    // Luego volver a global
+    useAppStore.getState().goToBody(null);
+    const state = useAppStore.getState();
+    expect(state.selectedPlanet).toBeNull();
+    expect(state.viewMode).toBe('global');
+    expect(state.cameraMode).toBe('overview');
+  });
+
+  it('goToBody(PlanetId) establece modo local con el planeta correcto', () => {
+    useAppStore.getState().goToBody('jupiter');
+    const state = useAppStore.getState();
+    expect(state.selectedPlanet).toBe('jupiter');
+    expect(state.viewMode).toBe('local');
+    expect(state.cameraMode).toBe('focus');
+  });
+
+  it('goToBody con earth activa modo local con Tierra', () => {
+    useAppStore.getState().goToBody('earth');
+    const state = useAppStore.getState();
+    expect(state.selectedPlanet).toBe('earth');
+    expect(state.viewMode).toBe('local');
+  });
+
+  it('goToBody(null) desde global mantiene cameraMode overview', () => {
+    useAppStore.getState().goToBody(null);
+    expect(useAppStore.getState().cameraMode).toBe('overview');
+  });
+});
+
+describe('selectores de modo local', () => {
+  it('useViewMode y useShowKnownEvents existen como exports', async () => {
+    const module = await import('@/store/useAppStore');
+    expect(typeof module.useViewMode).toBe('function');
+    expect(typeof module.useShowKnownEvents).toBe('function');
+  });
+});

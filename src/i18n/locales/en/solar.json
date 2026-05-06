@@ -111,6 +111,17 @@
     },
     "curiosity": "Neptune was discovered with mathematics before it was seen with a telescope."
   },
+  "view_mode": {
+    "global": "Global view",
+    "local": "Local view: {{name}}",
+    "exit": "Exit",
+    "known_events_toggle": "Show known events"
+  },
+  "events": {
+    "halley": {
+      "name": "Halley's Comet"
+    }
+  },
   "pluto": {
     "name": "Pluto",
     "explorador": { "description": "It used to be a planet. Now it is called a dwarf planet." },

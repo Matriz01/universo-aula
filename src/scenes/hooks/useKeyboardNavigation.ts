@@ -5,8 +5,9 @@
  * - Tab           → siguiente cuerpo en orden Sol→...→Plutón
  * - Shift+Tab     → cuerpo anterior
  * - Enter / Space → aplicar focus al cuerpo navegado (setSelectedPlanet)
- * - Escape        → suelta focus (setSelectedPlanet(null))
+ * - Escape        → si viewMode='local', vuelve a global (goToBody(null)); si global, libera foco
  * - T / t         → alterna tourActive
+ * - K / k         → cuando modo local, alterna showKnownEvents
  */
 
 import { useEffect } from 'react';
@@ -18,6 +19,10 @@ export function useKeyboardNavigation(): void {
   const setSelectedPlanet = useAppStore((s) => s.setSelectedPlanet);
   const tourActive = useAppStore((s) => s.tourActive);
   const setTourActive = useAppStore((s) => s.setTourActive);
+  const viewMode = useAppStore((s) => s.viewMode);
+  const goToBody = useAppStore((s) => s.goToBody);
+  const showKnownEvents = useAppStore((s) => s.showKnownEvents);
+  const setShowKnownEvents = useAppStore((s) => s.setShowKnownEvents);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -41,12 +46,23 @@ export function useKeyboardNavigation(): void {
       }
 
       if (key === 'Escape') {
-        setSelectedPlanet(null);
+        if (viewMode === 'local') {
+          // En modo local: volver a vista global
+          goToBody(null);
+        } else {
+          // En modo global: comportamiento previo (libera foco)
+          setSelectedPlanet(null);
+        }
         return;
       }
 
       if (key === 't' || key === 'T') {
         setTourActive(!tourActive);
+        return;
+      }
+
+      if ((key === 'k' || key === 'K') && viewMode === 'local') {
+        setShowKnownEvents(!showKnownEvents);
         return;
       }
     }
@@ -55,5 +71,14 @@ export function useKeyboardNavigation(): void {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [selectedPlanet, setSelectedPlanet, tourActive, setTourActive]);
+  }, [
+    selectedPlanet,
+    setSelectedPlanet,
+    tourActive,
+    setTourActive,
+    viewMode,
+    goToBody,
+    showKnownEvents,
+    setShowKnownEvents,
+  ]);
 }

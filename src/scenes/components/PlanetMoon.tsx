@@ -37,13 +37,21 @@ export interface PlanetMoonProps {
   earthPosition?: [number, number, number];
   /** Ref a las posiciones runtime de los planetas; si está, prioriza sobre earthPosition */
   positionsRef?: MutableRefObject<Record<string, Vector3>>;
+  /** Activar sombras — solo en modo local con Tierra seleccionada (eclipses) */
+  castShadow?: boolean;
+  receiveShadow?: boolean;
 }
 
 // ---------------------------------------------------------------------------
 // Subcomponente con textura (dentro de Suspense)
 // ---------------------------------------------------------------------------
 
-function MoonMeshInner({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonProps) {
+function MoonMeshInner({
+  earthPosition = [0, 0, 0],
+  positionsRef,
+  castShadow: cs,
+  receiveShadow: rs,
+}: PlanetMoonProps) {
   const meshRef = useRef<Mesh>(null);
   const elapsed = useRef(0);
 
@@ -79,7 +87,16 @@ function MoonMeshInner({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPr
     }
   });
 
-  return <mesh ref={meshRef} geometry={geometry} material={material} name="moon" />;
+  return (
+    <mesh
+      ref={meshRef}
+      geometry={geometry}
+      material={material}
+      name="moon"
+      {...(cs ? { castShadow: true } : {})}
+      {...(rs ? { receiveShadow: true } : {})}
+    />
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -126,10 +143,21 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
 // Componente exportado
 // ---------------------------------------------------------------------------
 
-export const PlanetMoon = React.memo(function PlanetMoon(props: PlanetMoonProps) {
+export const PlanetMoon = React.memo(function PlanetMoon({
+  earthPosition,
+  positionsRef,
+  castShadow,
+  receiveShadow,
+}: PlanetMoonProps) {
+  const shared = {
+    ...(earthPosition !== undefined ? { earthPosition } : {}),
+    ...(positionsRef !== undefined ? { positionsRef } : {}),
+    ...(castShadow !== undefined ? { castShadow } : {}),
+    ...(receiveShadow !== undefined ? { receiveShadow } : {}),
+  };
   return (
-    <Suspense fallback={<MoonFallback {...props} />}>
-      <MoonMeshInner {...props} />
+    <Suspense fallback={<MoonFallback {...shared} />}>
+      <MoonMeshInner {...shared} />
     </Suspense>
   );
 });

@@ -32,6 +32,9 @@ export interface PlanetProps {
   onClick?: (id: string) => void;
   /** Ref al mapa de posiciones reales compartido con CameraController */
   positionsRef?: React.MutableRefObject<Record<string, Vector3>>;
+  /** Solo activo en modo local con Tierra seleccionada (sombras eclipses) */
+  castShadow?: boolean;
+  receiveShadow?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -44,11 +47,21 @@ interface PlanetMeshProps {
   variant: 'normal' | 'dwarf';
   onClick?: (id: string) => void;
   positionsRef?: React.MutableRefObject<Record<string, Vector3>>;
+  castShadow?: boolean;
+  receiveShadow?: boolean;
 }
 
 const LOD_SEGMENTS = [64, 32, 16] as const;
 
-function PlanetMeshInner({ planet, level, variant, onClick, positionsRef }: PlanetMeshProps) {
+function PlanetMeshInner({
+  planet,
+  level,
+  variant,
+  onClick,
+  positionsRef,
+  castShadow: cs,
+  receiveShadow: rs,
+}: PlanetMeshProps) {
   const groupRef = useRef<Group>(null);
   const meshRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
@@ -106,6 +119,8 @@ function PlanetMeshInner({ planet, level, variant, onClick, positionsRef }: Plan
           geometry={geometries[0]}
           material={material}
           name={`${planet.id}-sphere`}
+          {...(cs ? { castShadow: true } : {})}
+          {...(rs ? { receiveShadow: true } : {})}
         />
       </group>
       <Html center distanceFactor={10}>
@@ -188,6 +203,8 @@ export const Planet = React.memo(function Planet({
   variant = 'normal',
   onClick,
   positionsRef,
+  castShadow,
+  receiveShadow,
 }: PlanetProps) {
   const shared = {
     planet,
@@ -195,6 +212,8 @@ export const Planet = React.memo(function Planet({
     variant,
     ...(onClick !== undefined ? { onClick } : {}),
     ...(positionsRef !== undefined ? { positionsRef } : {}),
+    ...(castShadow !== undefined ? { castShadow } : {}),
+    ...(receiveShadow !== undefined ? { receiveShadow } : {}),
   };
 
   return (

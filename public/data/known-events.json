@@ -1,0 +1,21 @@
+{
+  "version": "1",
+  "events": [
+    {
+      "id": "halley",
+      "name_key": "events.halley.name",
+      "type": "comet",
+      "orbital_params": {
+        "semi_major_axis_AU": 17.834,
+        "eccentricity": 0.967,
+        "inclination_deg": 162.26,
+        "longitude_ascending_node_deg": 58.42,
+        "argument_perihelion_deg": 111.33,
+        "mean_anomaly_J2000_deg": 38.38,
+        "orbital_period_days": 27520
+      },
+      "color_hex": "#cdeaff",
+      "next_perihelion": "2061-07-28"
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import type { PlanetId } from '@/scenes/data/types';
 export type CameraMode = 'overview' | 'focus' | 'tour';
 export type TextureQuality = '1k' | '2k' | '4k';
 export type SunShaderVariant = 'full' | 'lite' | 'texture';
+export type ViewMode = 'global' | 'local';
 
 interface AppState {
   // — Campos originales —
@@ -45,6 +46,23 @@ interface AppState {
 
   /** Flag de emergencia: si true, renderiza EmptyScene en lugar de SolarSystemScene. */
   legacyFlag: boolean;
+
+  // — Modo local —
+
+  /** Modo de visualización: global (sistema completo) o local (planeta enfocado). */
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
+
+  /** Mostrar eventos conocidos (cometas, etc.) en modo local. */
+  showKnownEvents: boolean;
+  setShowKnownEvents: (show: boolean) => void;
+
+  /**
+   * Acción unificada de navegación.
+   * null  → vuelve a modo global (selectedPlanet=null, viewMode='global', cameraMode='overview')
+   * PlanetId → entra en modo local (selectedPlanet=id, viewMode='local', cameraMode='focus')
+   */
+  goToBody: (id: PlanetId | null) => void;
 }
 
 export const useAppStore = create<AppState>()((set) => ({
@@ -77,6 +95,21 @@ export const useAppStore = create<AppState>()((set) => ({
   setSunShaderVariant: (sunShaderVariant) => set({ sunShaderVariant }),
 
   legacyFlag: false,
+
+  // Modo local
+  viewMode: 'global',
+  setViewMode: (viewMode) => set({ viewMode }),
+
+  showKnownEvents: false,
+  setShowKnownEvents: (showKnownEvents) => set({ showKnownEvents }),
+
+  goToBody: (id) => {
+    if (id === null) {
+      set({ selectedPlanet: null, viewMode: 'global', cameraMode: 'overview' });
+    } else {
+      set({ selectedPlanet: id, viewMode: 'local', cameraMode: 'focus' });
+    }
+  },
 }));
 
 // ---------------------------------------------------------------------------
@@ -92,3 +125,5 @@ export const useTourActive = () => useAppStore((s) => s.tourActive);
 export const useTourCurrentPlanet = () => useAppStore((s) => s.tourCurrentPlanet);
 export const usePrefersReducedMotion = () => useAppStore((s) => s.prefersReducedMotion);
 export const useSunShaderVariant = () => useAppStore((s) => s.sunShaderVariant);
+export const useViewMode = () => useAppStore((s) => s.viewMode);
+export const useShowKnownEvents = () => useAppStore((s) => s.showKnownEvents);

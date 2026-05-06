@@ -111,6 +111,17 @@
     },
     "curiosity": "Neptuno fue descubierto con matemáticas antes que con un telescopio."
   },
+  "view_mode": {
+    "global": "Vista global",
+    "local": "Vista local: {{name}}",
+    "exit": "Salir",
+    "known_events_toggle": "Mostrar eventos conocidos"
+  },
+  "events": {
+    "halley": {
+      "name": "Cometa Halley"
+    }
+  },
   "pluto": {
     "name": "Plutón",
     "explorador": { "description": "Antes era un planeta. Ahora se llama planeta enano." },
