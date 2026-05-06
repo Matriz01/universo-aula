@@ -271,8 +271,19 @@ export function SolarSystemScene() {
     <Canvas
       data-testid="solar-canvas"
       dpr={1}
-      gl={{ powerPreference: 'high-performance', antialias: true, stencil: false }}
-      camera={{ position: [0, 35, 70], fov: 60, near: 0.1, far: 500 }}
+      gl={{
+        powerPreference: 'high-performance',
+        antialias: true,
+        stencil: false,
+        // logarithmicDepthBuffer necesario en modo local: la escena abarca desde
+        // ~6 unidades (radio Tierra) hasta ~5,900,000 unidades (Plutón).
+        // Sin él, el Z-fighting entre objetos a distintas distancias es grave.
+        logarithmicDepthBuffer: true,
+      }}
+      // far: 1_000_000 — cubre hasta Júpiter (778,500 u) en escala real con margen.
+      // Para ver Plutón en local se necesitarían ~6M unidades, pero en modo local
+      // el planeta enfocado siempre está próximo a la cámara.
+      camera={{ position: [0, 35, 70], fov: 60, near: 0.1, far: 1_000_000 }}
       shadows={shadowsEnabled}
     >
       <Suspense fallback={null}>

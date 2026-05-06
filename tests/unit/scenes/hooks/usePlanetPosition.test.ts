@@ -14,11 +14,12 @@ import { renderHook } from '@testing-library/react';
 import type { PlanetData } from '@/scenes/data/types';
 
 // ---------------------------------------------------------------------------
-// Hoisted: estado de speed controlable por los tests
+// Hoisted: estado de speed y viewMode controlable por los tests
 // ---------------------------------------------------------------------------
 
 const { mockState } = vi.hoisted(() => {
-  return { mockState: { speed: 1.0 } };
+  const state: { speed: number; viewMode: 'global' | 'local' } = { speed: 1.0, viewMode: 'global' };
+  return { mockState: state };
 });
 
 // ---------------------------------------------------------------------------
@@ -39,8 +40,9 @@ vi.mock('@react-three/fiber', () => ({
 // ---------------------------------------------------------------------------
 
 vi.mock('@/store/useAppStore', () => ({
-  useAppStore: (selector: (s: { simulationSpeed: number }) => unknown) =>
-    selector({ simulationSpeed: mockState.speed }),
+  useAppStore: (
+    selector: (s: { simulationSpeed: number; viewMode: 'global' | 'local' }) => unknown,
+  ) => selector({ simulationSpeed: mockState.speed, viewMode: mockState.viewMode }),
 }));
 
 // ---------------------------------------------------------------------------
@@ -93,6 +95,7 @@ function tickFrames(count: number, dt = 0.016) {
 beforeEach(() => {
   capturedFrameCallbacks = [];
   mockState.speed = 1.0;
+  mockState.viewMode = 'global';
   vi.clearAllMocks();
 });
 

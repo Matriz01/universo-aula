@@ -15,7 +15,7 @@ import { useTexture, Html } from '@react-three/drei';
 import type { Mesh, Group, Vector3 } from 'three';
 import { SphereGeometry, MeshStandardMaterial, Color } from 'three';
 import type { PlanetData } from '@/scenes/data/types';
-import { visualRadius } from '@/scenes/scale';
+import { useScaledRadius } from '@/scenes/hooks/useScaledRadius';
 import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
 import { degToRad } from '@/scenes/orbital';
@@ -73,10 +73,13 @@ function PlanetMeshInner({
   const textureUrl = `${planet.texture_base}2k.jpg`;
   const texture = useTexture(textureUrl);
 
+  // Radio visual según modo activo (real en local, didáctico en global)
+  const planetRadius = useScaledRadius(planet.radius_km);
+
   // Geometrías para los tres niveles LOD
   const geometries = useMemo(
-    () => LOD_SEGMENTS.map((seg) => new SphereGeometry(visualRadius(planet.radius_km), seg, seg)),
-    [planet.radius_km],
+    () => LOD_SEGMENTS.map((seg) => new SphereGeometry(planetRadius, seg, seg)),
+    [planetRadius],
   );
 
   // Material con textura
@@ -156,10 +159,8 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
   const elapsedDays = useRef(0);
   const speed = useAppStore((s) => s.simulationSpeed);
 
-  const geometry = useMemo(
-    () => new SphereGeometry(visualRadius(planet.radius_km), 16, 16),
-    [planet.radius_km],
-  );
+  const planetRadius = useScaledRadius(planet.radius_km);
+  const geometry = useMemo(() => new SphereGeometry(planetRadius, 16, 16), [planetRadius]);
   const material = useMemo(
     () => new MeshStandardMaterial({ color: new Color(planet.color_hex) }),
     [planet.color_hex],

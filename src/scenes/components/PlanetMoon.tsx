@@ -18,7 +18,7 @@ import { useTexture } from '@react-three/drei';
 import type { Mesh } from 'three';
 import { SphereGeometry, MeshStandardMaterial, Vector3 } from 'three';
 import { useAppStore } from '@/store/useAppStore';
-import { visualRadius } from '@/scenes/scale';
+import { visualRadius, localVisualRadius, localVisualDistanceFromKm } from '@/scenes/scale';
 
 // ---------------------------------------------------------------------------
 // Constantes
@@ -33,8 +33,14 @@ const MOON_PERIOD_DAYS = 27.3;
 /** Órbita en modo global (escala didáctica compacta) */
 const MOON_ORBIT_RADIUS_GLOBAL = 0.8;
 
-/** Órbita en modo local con Tierra (~10× radio Tierra ≈ proporcional real ~60×, pero visible) */
-const MOON_ORBIT_RADIUS_LOCAL = 6;
+/** Distancia real Tierra-Luna en km */
+const MOON_ORBIT_REAL_KM = 384_400;
+
+/**
+ * Órbita en modo local: distancia real Tierra-Luna en escala 1:1 (1 unidad = 1000 km).
+ * = 384.4 unidades ≈ 60× radio Tierra real (6.37 unidades) — correcto.
+ */
+const MOON_ORBIT_RADIUS_LOCAL = localVisualDistanceFromKm(MOON_ORBIT_REAL_KM);
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -68,7 +74,11 @@ function MoonMeshInner({
 
   const texture = useTexture('/textures/moon/2k.jpg');
 
-  const moonRadius = useMemo(() => visualRadius(MOON_RADIUS_KM), []);
+  // Radio real en modo local, didáctico en global
+  const moonRadius = useMemo(
+    () => (viewMode === 'local' ? localVisualRadius(MOON_RADIUS_KM) : visualRadius(MOON_RADIUS_KM)),
+    [viewMode],
+  );
   const geometry = useMemo(() => new SphereGeometry(moonRadius, 16, 16), [moonRadius]);
   const material = useMemo(() => new MeshStandardMaterial({ map: texture }), [texture]);
 
@@ -130,7 +140,11 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
   const viewMode = useAppStore((s) => s.viewMode);
   const selectedPlanet = useAppStore((s) => s.selectedPlanet);
 
-  const moonRadius = useMemo(() => visualRadius(MOON_RADIUS_KM), []);
+  // Radio real en modo local, didáctico en global
+  const moonRadius = useMemo(
+    () => (viewMode === 'local' ? localVisualRadius(MOON_RADIUS_KM) : visualRadius(MOON_RADIUS_KM)),
+    [viewMode],
+  );
   const geometry = useMemo(() => new SphereGeometry(moonRadius, 8, 8), [moonRadius]);
   const material = useMemo(() => new MeshStandardMaterial({ color: '#c8c8c8' }), []);
 

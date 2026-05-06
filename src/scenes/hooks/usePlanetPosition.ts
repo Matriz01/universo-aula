@@ -6,6 +6,10 @@
  *   - Aprendiz:   elipse simplificada (centrada en el origen)
  *   - Investigador: Kepler completo con applyOrbitalRotation 3D
  *
+ * Escala según viewMode:
+ *   - global → visualDistance (curva didáctica sublogarítmica)
+ *   - local  → localVisualDistanceFromAU (escala real: 1 unidad = 1000 km)
+ *
  * Retorna un React.MutableRefObject<Vector3> cuyo .current se actualiza
  * en cada frame de useFrame — no provoca re-renders.
  */
@@ -22,7 +26,7 @@ import {
   SPEEDUP_APRENDIZ,
   SPEEDUP_INVESTIGADOR,
 } from '@/scenes/orbital';
-import { visualDistance } from '@/scenes/scale';
+import { visualDistance, localVisualDistanceFromAU } from '@/scenes/scale';
 import { useAppStore } from '@/store/useAppStore';
 
 export type PedagogicalLevel = 'explorador' | 'aprendiz' | 'investigador';
@@ -41,20 +45,25 @@ export function usePlanetPosition(
   const posRef = useRef<Vector3>(new Vector3());
   const elapsed = useRef<number>(0);
   const speed = useAppStore((s) => s.simulationSpeed);
+  const viewMode = useAppStore((s) => s.viewMode);
 
   // Memoizamos derivados que no cambian con t
-  const { a, b, n, M0, omega, Omega, inc } = useMemo(
-    () => ({
-      a: visualDistance(planet.semi_major_axis_AU),
-      b: visualDistance(planet.semi_major_axis_AU) * Math.sqrt(1 - planet.eccentricity ** 2),
+  // La distancia semieje mayor se escala según el modo: real en local, didáctica en global
+  const { a, b, n, M0, omega, Omega, inc } = useMemo(() => {
+    const scaledDist =
+      viewMode === 'local'
+        ? localVisualDistanceFromAU(planet.semi_major_axis_AU)
+        : visualDistance(planet.semi_major_axis_AU);
+    return {
+      a: scaledDist,
+      b: scaledDist * Math.sqrt(1 - planet.eccentricity ** 2),
       n: (2 * Math.PI) / planet.orbital_period_days, // mean motion rad/día
       M0: degToRad(planet.mean_anomaly_J2000_deg),
       omega: degToRad(planet.argument_perihelion_deg),
       Omega: degToRad(planet.longitude_ascending_node_deg),
       inc: degToRad(planet.inclination_deg),
-    }),
-    [planet],
-  );
+    };
+  }, [planet, viewMode]);
 
   useFrame((_, dt) => {
     const speedup =

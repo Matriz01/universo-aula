@@ -14,6 +14,7 @@ import { Line } from '@react-three/drei';
 import type { PlanetData } from '@/scenes/data/types';
 import { computeOrbitPoints } from '@/scenes/hooks/useOrbitPath';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
+import { useAppStore } from '@/store/useAppStore';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -44,11 +45,13 @@ export const OrbitPath = React.memo(function OrbitPath({
   opacity = 0.3,
   visible = true,
 }: OrbitPathProps) {
+  const viewMode = useAppStore((s) => s.viewMode);
+
   if (!visible) return null;
 
   // Calculamos los puntos — useMemo interno en computeOrbitPoints es puro,
   // React.memo de OrbitPath evita recalcular si props no cambian.
-  const points = computeOrbitPoints(planet, level, segments);
+  const points = computeOrbitPoints(planet, level, segments, viewMode);
 
   const lineColor = color ?? planet.color_hex;
 

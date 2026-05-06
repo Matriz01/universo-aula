@@ -17,6 +17,7 @@ import { SphereGeometry, MeshBasicMaterial, Color } from 'three';
 import type { PlanetData } from '@/scenes/data/types';
 import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
 import { useAppStore } from '@/store/useAppStore';
+import { localVisualRadius } from '@/scenes/scale';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -32,7 +33,16 @@ export interface DistantMarkerProps {
 // Constantes
 // ---------------------------------------------------------------------------
 
-const MARKER_RADIUS = 0.15;
+/** Radio del marker en modo global (escala didáctica) */
+const MARKER_RADIUS_GLOBAL = 0.15;
+
+/**
+ * Factor de sobredimensionado en modo local para que el punto sea perceptible.
+ * Sin esto, el planeta real en escala a distancias de millones de unidades
+ * sería invisible (sub-píxel). ×50 mantiene la apariencia de "punto de referencia".
+ * Nota: no es físicamente exacto, es un truco de visibilidad.
+ */
+const MARKER_LOCAL_OVERSIZE_FACTOR = 50;
 
 // ---------------------------------------------------------------------------
 // Componente
@@ -41,12 +51,23 @@ const MARKER_RADIUS = 0.15;
 export const DistantMarker = React.memo(function DistantMarker({ planet }: DistantMarkerProps) {
   const meshRef = useRef<Mesh>(null);
   const level = useAppStore((s) => s.level);
+  const viewMode = useAppStore((s) => s.viewMode);
 
   // Calcula la posición propia en cada frame, igual que <Planet>.
   // Esto garantiza movimiento correcto en modo local (donde <Planet> no está montado).
   const posRef = usePlanetPosition(planet, level);
 
-  const geometry = useMemo(() => new SphereGeometry(MARKER_RADIUS, 8, 8), []);
+  // En modo local: radio real ×50 para visibilidad como punto de referencia.
+  // En modo global: radio fijo didáctico.
+  const markerRadius = useMemo(
+    () =>
+      viewMode === 'local'
+        ? localVisualRadius(planet.radius_km) * MARKER_LOCAL_OVERSIZE_FACTOR
+        : MARKER_RADIUS_GLOBAL,
+    [viewMode, planet.radius_km],
+  );
+
+  const geometry = useMemo(() => new SphereGeometry(markerRadius, 8, 8), [markerRadius]);
   const material = useMemo(
     () => new MeshBasicMaterial({ color: new Color(planet.color_hex) }),
     [planet.color_hex],

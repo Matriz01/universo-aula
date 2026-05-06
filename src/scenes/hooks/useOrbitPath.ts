@@ -14,7 +14,7 @@ import { useMemo } from 'react';
 import { Vector3 } from 'three';
 import type { PlanetData } from '@/scenes/data/types';
 import { applyOrbitalRotation, degToRad } from '@/scenes/orbital';
-import { visualDistance } from '@/scenes/scale';
+import { visualDistance, localVisualDistanceFromAU } from '@/scenes/scale';
 
 export type PedagogicalLevel = 'explorador' | 'aprendiz' | 'investigador';
 
@@ -25,14 +25,19 @@ export type PedagogicalLevel = 'explorador' | 'aprendiz' | 'investigador';
  * @param planet   - Datos del planeta
  * @param level    - Nivel pedagógico
  * @param segments - Número de puntos (default 128)
+ * @param scaleMode - Escala a aplicar: 'global' (didáctica) o 'local' (real 1:1)
  * @returns Array de Vector3 con los puntos de la trayectoria (primer = último para cierre)
  */
 export function computeOrbitPoints(
   planet: PlanetData,
   level: PedagogicalLevel,
   segments = 128,
+  scaleMode: 'global' | 'local' = 'global',
 ): Vector3[] {
-  const a = visualDistance(planet.semi_major_axis_AU);
+  const a =
+    scaleMode === 'local'
+      ? localVisualDistanceFromAU(planet.semi_major_axis_AU)
+      : visualDistance(planet.semi_major_axis_AU);
   const b = a * Math.sqrt(1 - planet.eccentricity ** 2);
   const omega = degToRad(planet.argument_perihelion_deg);
   const Omega = degToRad(planet.longitude_ascending_node_deg);
@@ -80,16 +85,21 @@ export function computeOrbitPoints(
 
 /**
  * Hook React que memoiza los puntos de la trayectoria orbital.
- * Los puntos sólo se recalculan si cambian planet o level.
+ * Los puntos sólo se recalculan si cambian planet, level o scaleMode.
  *
- * @param planet   - Datos del planeta
- * @param level    - Nivel pedagógico
- * @param segments - Número de puntos (default 128)
+ * @param planet     - Datos del planeta
+ * @param level      - Nivel pedagógico
+ * @param segments   - Número de puntos (default 128)
+ * @param scaleMode  - Escala a aplicar: 'global' (didáctica) o 'local' (real 1:1)
  */
 export function useOrbitPath(
   planet: PlanetData,
   level: PedagogicalLevel,
   segments = 128,
+  scaleMode: 'global' | 'local' = 'global',
 ): Vector3[] {
-  return useMemo(() => computeOrbitPoints(planet, level, segments), [planet, level, segments]);
+  return useMemo(
+    () => computeOrbitPoints(planet, level, segments, scaleMode),
+    [planet, level, segments, scaleMode],
+  );
 }

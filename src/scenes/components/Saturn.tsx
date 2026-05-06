@@ -24,7 +24,7 @@ import {
   DoubleSide,
 } from 'three';
 import type { PlanetData } from '@/scenes/data/types';
-import { visualRadius } from '@/scenes/scale';
+import { useScaledRadius } from '@/scenes/hooks/useScaledRadius';
 import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
 import { degToRad } from '@/scenes/orbital';
@@ -68,7 +68,8 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
     return ((2 * Math.PI) / periodDays) * 0.4;
   }, [planet.rotation_period_h]);
 
-  const planetRadius = visualRadius(planet.radius_km);
+  // Radio visual según modo activo (real en local, didáctico en global)
+  const planetRadius = useScaledRadius(planet.radius_km);
 
   // Texturas lazy
   const planetTexture = useTexture(`${planet.texture_base}2k.jpg`);
@@ -158,7 +159,8 @@ function SaturnFallback({ planet, level, onClick, positionsRef }: SaturnProps) {
   const groupRef = useRef<Group>(null);
   const posRef = usePlanetPosition(planet, level);
 
-  const planetRadius = visualRadius(planet.radius_km);
+  // Radio visual según modo activo (real en local, didáctico en global)
+  const planetRadius = useScaledRadius(planet.radius_km);
 
   const sphereGeometry = useMemo(() => new SphereGeometry(planetRadius, 16, 16), [planetRadius]);
   const sphereMaterial = useMemo(
