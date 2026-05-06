@@ -18,9 +18,11 @@ test.describe('Atribución — Solar System Scope', () => {
   test('el texto "Solar System Scope" está presente en el DOM', async ({ page }) => {
     await page.goto('/');
 
-    // El texto debe estar en el footer
-    const solarSystemScopeText = page.getByText('Solar System Scope', { exact: false });
-    await expect(solarSystemScopeText).toBeVisible({ timeout: 10_000 });
+    // Scope dentro del footer para evitar strict mode violation
+    // (el modal de créditos también contiene "Solar System Scope" cuando está abierto)
+    const footer = page.locator('[data-testid="attribution-footer"]');
+    await expect(footer).toBeVisible({ timeout: 10_000 });
+    await expect(footer).toContainText('Solar System Scope');
   });
 
   test('el link a solarsystemscope.com está presente', async ({ page }) => {
