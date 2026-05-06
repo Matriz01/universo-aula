@@ -53,12 +53,12 @@
 > Objetivo: shaders GLSL completos, componente `<Sun>` con tres variantes, tests con mock R3F.
 > Estrategia de test R3F: `@testing-library/react` + `react-three/test-utils` o mock manual de `useThree`/`useFrame`.
 
-- [ ] 3.1 Crear `src/scenes/shaders/sun.vert` con el vertex shader passthrough del design §5.1 (expone `vNormal`, `vWorldPos`, `vUv`). Sin modificación de geometría.
-- [ ] 3.2 Crear `src/scenes/shaders/sun.frag` con el fragment shader completo del design §5.2 — incluye simplex noise Ashima Arts (MIT), gradiente radial, granulación, flujo radial, sunspots condicionales.
-- [ ] 3.3 Crear `src/scenes/shaders/sun.lite.frag` con la versión lite del design §5.3 — sólo capa 1 de granulación, sin sunspots.
-- [ ] 3.4 (TEST) `tests/unit/scenes/Sun.test.tsx` — montar `<Sun capability="mid" reducedMotion={false} />` con mock de `useThree`/`useFrame`; assertar que el mesh tiene `ShaderMaterial`; montar con `capability="low"` y assertar `MeshStandardMaterial`. Assertar que `uFlowSpeed` es ≤20% del nominal cuando `reducedMotion={true}`. _Esperar: fallan porque `Sun.tsx` no existe._
-- [ ] 3.5 (IMPL) `src/scenes/components/Sun.tsx` — importa los shaders con `?raw` (Vite), monta esfera (`SphereGeometry(SUN_VISUAL_RADIUS, 64, 64)`), `ShaderMaterial` en GPU mid/high con los uniforms del design §5.1, `MeshStandardMaterial` + textura en GPU low; `useFrame` actualiza `uTime`; respeta `reducedMotion` reduciendo `uFlowSpeed` un 80%.
-- [ ] 3.6 (REFACTOR) Extraer uniforms a constante tipada `SunUniforms`; asegurar que el component no produce re-renders innecesarios con `React.memo`.
+- [x] 3.1 Crear `src/scenes/shaders/sun.vert` con el vertex shader passthrough del design §5.1 (expone `vNormal`, `vWorldPos`, `vUv`). Sin modificación de geometría.
+- [x] 3.2 Crear `src/scenes/shaders/sun.frag` con el fragment shader completo del design §5.2 — incluye simplex noise Ashima Arts (MIT), gradiente radial, granulación, flujo radial, sunspots condicionales.
+- [x] 3.3 Crear `src/scenes/shaders/sun.lite.frag` con la versión lite del design §5.3 — sólo capa 1 de granulación, sin sunspots.
+- [x] 3.4 (TEST) `tests/unit/scenes/Sun.test.tsx` — montar `<Sun capability="mid" reducedMotion={false} />` con mock de `useThree`/`useFrame`; assertar que el mesh tiene `ShaderMaterial`; montar con `capability="low"` y assertar `MeshStandardMaterial`. Assertar que `uFlowSpeed` es ≤20% del nominal cuando `reducedMotion={true}`. _Esperar: fallan porque `Sun.tsx` no existe._
+- [x] 3.5 (IMPL) `src/scenes/components/Sun.tsx` — importa los shaders con `?raw` (Vite), monta esfera (`SphereGeometry(SUN_VISUAL_RADIUS, 64, 64)`), `ShaderMaterial` en GPU mid/high con los uniforms del design §5.1, `MeshStandardMaterial` + textura en GPU low; `useFrame` actualiza `uTime`; respeta `reducedMotion` reduciendo `uFlowSpeed` un 80%.
+- [x] 3.6 (REFACTOR) Extraer uniforms a constante tipada `SunUniforms`; asegurar que el component no produce re-renders innecesarios con `React.memo`.
 
 ---
 
@@ -66,7 +66,7 @@
 
 > Objetivo: componentes de cuerpos celestes. Estrategia de test: mock-render básico con `@react-three/test-renderer` o equivalente, assertions sobre props de mesh.
 
-- [ ] 4.1 (TEST) `tests/unit/scenes/usePlanetPosition.test.ts` — crear helper `computeAt(planet, level, tDays)` que simula `elapsed` sin React. Assertions: Earth nivel Explorador t=0 tiene Y=0 y módulo (x,z) ≈ visualDistance(1.0); Mars nivel Explorador t=orbital_period completa la vuelta; Mercury nivel Aprendiz en t=period/4 satisface ecuación de elipse; Mercury nivel Investigador con inclinación produce Y≠0; `solveKeplerNewtonRaphson` ya testeada en 1.9. _Esperar: fallan porque hook no existe aún._
+- [ ] 4.1 (TEST) `tests/unit/scenes/usePlanetPosition.test.ts` — crear helper `computeAt(planet, level, tDays)` que simula `elapsed` sin React. Assertions: Earth nivel Explorador t=0 tiene Y=0 y módulo (x,z) ≈ visualDistance(1.0); Mars nivel Explorador t=orbital*period completa la vuelta; Mercury nivel Aprendiz en t=period/4 satisface ecuación de elipse; Mercury nivel Investigador con inclinación produce Y≠0; `solveKeplerNewtonRaphson` ya testeada en 1.9. \_Esperar: fallan porque hook no existe aún.*
 - [ ] 4.2 (IMPL) `src/scenes/hooks/usePlanetPosition.ts` — implementar los tres modelos del design §4.2 usando `useFrame` + `useRef`; memoizar derivados con `useMemo`; importar `solveKeplerNewtonRaphson`, `applyOrbitalRotation`, `visualDistance` de sus módulos.
 - [ ] 4.3 (TEST) `tests/unit/scenes/useOrbitPath.test.ts` — nivel Explorador Earth: 128 puntos, todos con Y=0, todos con módulo ≈ visualDistance(1.0); nivel Aprendiz Mercury: puntos forman elipse (max/min radio difieren); el primer y último punto son iguales. _Esperar: fallan._
 - [ ] 4.4 (IMPL) `src/scenes/hooks/useOrbitPath.ts` — genera array de `THREE.Vector3` para un periodo completo; segmentos configurables (default 128); respeta el modelo del nivel activo.
