@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Matriz01/universo-aula/main/public/header.svg" alt="Universo Aula — explora el cosmos desde el aula" width="100%">
+</p>
+
 # Universo Aula
 
 [![Licencia código](https://img.shields.io/badge/código-AGPL--3.0--or--later-blue)](LICENSE)
