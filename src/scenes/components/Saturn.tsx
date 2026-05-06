@@ -111,13 +111,7 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
     <group ref={groupRef} name={planet.id} onClick={() => onClick?.(planet.id)}>
       {/* Esfera del planeta con inclinación axial */}
       <group rotation={[0, 0, tiltRad]}>
-        <mesh
-          geometry={sphereGeometry}
-          material={sphereMaterial}
-          name={`${planet.id}-sphere`}
-          castShadow
-          receiveShadow
-        />
+        <mesh geometry={sphereGeometry} material={sphereMaterial} name={`${planet.id}-sphere`} />
         {/* Anillos alineados con el ecuador del planeta (ya rotados con el grupo) */}
         {ringGeometry && (
           <mesh
@@ -125,7 +119,6 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
             material={ringMaterial}
             rotation={[Math.PI / 2, 0, 0]}
             name={`${planet.id}-rings`}
-            receiveShadow
           />
         )}
       </group>
@@ -178,14 +171,9 @@ function SaturnFallback({ planet, level, onClick, positionsRef }: SaturnProps) {
 
   return (
     <group ref={groupRef} name={planet.id} onClick={() => onClick?.(planet.id)}>
-      <mesh geometry={sphereGeometry} material={sphereMaterial} castShadow receiveShadow />
+      <mesh geometry={sphereGeometry} material={sphereMaterial} />
       {ringGeometry && (
-        <mesh
-          geometry={ringGeometry}
-          material={ringMaterial}
-          rotation={[Math.PI / 2, 0, 0]}
-          receiveShadow
-        />
+        <mesh geometry={ringGeometry} material={ringMaterial} rotation={[Math.PI / 2, 0, 0]} />
       )}
     </group>
   );

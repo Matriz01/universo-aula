@@ -136,7 +136,7 @@
       "texture_base": "/textures/saturn/",
       "rings": {
         "inner_radius_km": 74500,
-        "outer_radius_km": 140220,
+        "outer_radius_km": 133900,
         "texture": "/textures/saturn-rings/2k.png"
       }
     },
@@ -210,9 +210,9 @@
   "asteroid_belt": {
     "inner_AU": 2.2,
     "outer_AU": 3.2,
-    "count_high": 2000,
-    "count_mid": 1000,
-    "count_low": 500,
+    "count_high": 1000,
+    "count_mid": 500,
+    "count_low": 200,
     "vertical_dispersion": 0.05,
     "size_min": 0.012,
     "size_max": 0.045,

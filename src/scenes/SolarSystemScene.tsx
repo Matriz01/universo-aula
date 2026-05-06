@@ -71,22 +71,14 @@ function SolarSystemContent({
 
   return (
     <>
-      {/* Luz ambiental */}
-      <ambientLight intensity={0.5} />
+      {/* Luz ambiental — baja para conservar contraste claro/oscuro natural */}
+      <ambientLight intensity={0.18} />
 
       {/* Glow cósmico sutil del fondo estelar */}
-      <hemisphereLight color="#dde6ff" groundColor="#1a1142" intensity={0.15} />
+      <hemisphereLight color="#dde6ff" groundColor="#1a1142" intensity={0.1} />
 
-      {/* Luz puntual en el Sol — intensidad 8, decay 0 para alcanzar todos los planetas */}
-      <pointLight
-        position={[0, 0, 0]}
-        intensity={8}
-        distance={0}
-        decay={0}
-        castShadow
-        shadow-mapSize={[1024, 1024]}
-        shadow-bias={-0.0001}
-      />
+      {/* Luz puntual en el Sol — decay 0 alcanza Plutón; sin shadows (irreales + caros) */}
+      <pointLight position={[0, 0, 0]} intensity={6} distance={0} decay={0} />
 
       {/* Fondo de estrellas */}
       <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade />
@@ -130,10 +122,12 @@ function SolarSystemContent({
       {/* Cinturón de asteroides */}
       <AsteroidBelt config={data.asteroid_belt} />
 
-      {/* Post-procesado: Bloom sobre el Sol (luminanceThreshold 0.85 — HDR) */}
-      <EffectComposer enableNormalPass={false}>
-        <Bloom intensity={0.6} luminanceThreshold={0.85} luminanceSmoothing={0.4} mipmapBlur />
-      </EffectComposer>
+      {/* Post-procesado: Bloom sobre el Sol — mipmapBlur eliminado (caro); skip en GPU low */}
+      {gpu !== 'low' && (
+        <EffectComposer enableNormalPass={false}>
+          <Bloom intensity={0.5} luminanceThreshold={0.9} luminanceSmoothing={0.3} />
+        </EffectComposer>
+      )}
     </>
   );
 }
@@ -165,7 +159,6 @@ export function SolarSystemScene() {
       dpr={[1, 2]}
       gl={{ powerPreference: 'high-performance', antialias: true }}
       camera={{ position: [0, 35, 70], fov: 60, near: 0.1, far: 500 }}
-      shadows
     >
       <Suspense fallback={null}>
         <SolarSystemContent

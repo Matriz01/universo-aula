@@ -85,8 +85,6 @@ function PlanetMeshInner({ planet, level, variant, onClick, positionsRef }: Plan
         material={material}
         name={planet.id}
         onClick={() => onClick?.(planet.id)}
-        castShadow
-        receiveShadow
       />
       <Html center distanceFactor={10}>
         <div
@@ -139,8 +137,6 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
       material={material}
       name={planet.id}
       onClick={() => onClick?.(planet.id)}
-      castShadow
-      receiveShadow
     />
   );
 }

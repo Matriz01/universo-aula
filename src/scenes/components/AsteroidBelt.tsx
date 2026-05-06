@@ -142,8 +142,6 @@ export const AsteroidBelt = React.memo(function AsteroidBelt({ config }: Asteroi
       args={[geometry, material, count]}
       name="asteroid-belt"
       frustumCulled={false}
-      castShadow
-      receiveShadow
     />
   );
 });
