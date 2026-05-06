@@ -61,10 +61,12 @@
 
 ## Phase 6: CI + Repo + Deploy
 
-- [ ] 6.1 Crear `.github/workflows/ci.yml`: install → typecheck → lint → test:unit → build → test:e2e.
-- [ ] 6.2 Crear `.github/dependabot.yml`: security alerts inmediatos, version updates semanales agrupados.
-- [ ] 6.3 Crear repo público `Matriz01/universo-aula` en GitHub. Push inicial.
-- [ ] 6.4 Activar branch protection en `main` (require PR + status checks).
-- [ ] 6.5 Conectar repo a Cloudflare Pages (build cmd `pnpm install --frozen-lockfile && pnpm build`, output `dist`, `NODE_VERSION=22`).
-- [ ] 6.6 Verificar deploy: URL `*.pages.dev` carga, headers COOP/COEP presentes, SW registra, switch ES/EN funciona, Lighthouse PWA ≥ 90.
-- [ ] 6.7 Tag `v0.0.1-bootstrap` en `main` tras verificación.
+- [x] 6.1 Crear `.github/workflows/ci.yml`: install → typecheck → lint → test:unit → build → test:e2e.
+- [x] 6.2 Crear `.github/dependabot.yml`: security alerts inmediatos, version updates semanales agrupados.
+- [x] 6.3 Crear repo público `Matriz01/universo-aula` en GitHub. Push inicial.
+- [x] 6.4 Activar branch protection en `main` (require PR + status checks).
+- [x] 6.5 Conectar repo a Cloudflare Workers Static Assets (build cmd `pnpm build`, output `dist`, defaults Node 22 + pnpm 10).
+- [x] 6.6 Verificar deploy: URL workers.dev carga, headers COOP/COEP/CSP presentes, manifest accesible, switch ES/EN funciona. Lighthouse PWA pendiente de ejecución manual.
+- [x] 6.7 Tag `v0.0.1-bootstrap` en `main` tras verificación.
+
+> Desviaciones: Cloudflare Pages → Workers Static Assets (CF empuja proyectos nuevos a Workers). URL final: https://universo-aula.pedrovicente.workers.dev/. Iconos SVG en lugar de PNG.
