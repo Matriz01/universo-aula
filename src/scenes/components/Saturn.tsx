@@ -28,7 +28,7 @@ import { useScaledRadius } from '@/scenes/hooks/useScaledRadius';
 import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
 import { degToRad } from '@/scenes/orbital';
-import { useAppStore } from '@/store/useAppStore';
+import { getJD, J2000_JD } from '@/scenes/simulationClock';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -59,8 +59,6 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
   const groupRef = useRef<Group>(null);
   const sphereRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
-  const elapsedDays = useRef(0);
-  const speed = useAppStore((s) => s.simulationSpeed);
 
   // Velocidad angular de auto-rotación (rad/día simulado), acotada ×0.4 para gigantes
   const omega = useMemo(() => {
@@ -108,10 +106,8 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
   // Inclinación axial de Saturno
   const tiltRad = degToRad(planet.axial_tilt_deg);
 
-  useFrame((_, dt) => {
-    const SPEEDUP = 1; // días simulados por segundo real (base: 1 día/seg a speed=1)
-    const dtScaled = dt * speed;
-    elapsedDays.current += dtScaled * SPEEDUP;
+  useFrame(() => {
+    const jd = getJD();
 
     if (groupRef.current) {
       groupRef.current.position.copy(posRef.current);
@@ -123,7 +119,8 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
 
     // Solo la esfera rota; los anillos son independientes (partículas)
     if (sphereRef.current) {
-      sphereRef.current.rotation.y = elapsedDays.current * omega;
+      // Rotación axial: derivada del JD (días desde J2000) × velocidad angular
+      sphereRef.current.rotation.y = (jd - J2000_JD) * omega;
     }
   });
 
