@@ -5,11 +5,6 @@
  * la mecánica orbital kepleriana del evento.
  *
  * MVP: Cometa Halley únicamente.
- *
- * Post-refactor-C: usa simulationTime del store para el ángulo orbital,
- * manteniendo elapsed.current solo para avance continuo relativo al tiempo
- * de inicio (no hay computeBodyPosition para KnownEvent ya que usa
- * parámetros propios no en planets.json).
  */
 
 import React, { useRef, useMemo } from 'react';
@@ -17,10 +12,14 @@ import { useFrame } from '@react-three/fiber';
 import type { Mesh } from 'three';
 import { SphereGeometry, MeshBasicMaterial, Color, Vector3 } from 'three';
 import type { KnownEvent as KnownEventData } from '@/scenes/data/known-events.types';
-import { solveKeplerNewtonRaphson, applyOrbitalRotation, degToRad } from '@/scenes/orbital';
+import {
+  solveKeplerNewtonRaphson,
+  applyOrbitalRotation,
+  degToRad,
+  SPEEDUP_APRENDIZ,
+} from '@/scenes/orbital';
 import { visualDistance } from '@/scenes/scale';
 import { useAppStore } from '@/store/useAppStore';
-import { daysSinceJ2000 } from '@/scenes/orbital/keplerTime';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -42,9 +41,8 @@ const EVENT_RADIUS = 0.1;
 
 export const KnownEvent = React.memo(function KnownEvent({ event }: KnownEventProps) {
   const meshRef = useRef<Mesh>(null);
+  const elapsed = useRef(0);
   const posRef = useRef(new Vector3());
-
-  const time = useAppStore((s) => s.simulationTime);
   const speed = useAppStore((s) => s.simulationSpeed);
 
   const { op } = useMemo(() => ({ op: event.orbital_params }), [event.orbital_params]);
@@ -67,13 +65,11 @@ export const KnownEvent = React.memo(function KnownEvent({ event }: KnownEventPr
     [event.color_hex],
   );
 
-  useFrame(() => {
-    // Posición basada en simulationTime (time-driven) con velocidad aplicada
-    // Para Halley usamos días desde J2000 * speed para que speed=0 congele
-    const baseDays = daysSinceJ2000(time);
-    // speed multiplica el movimiento visual; usamos baseDays * speed como proxy
-    // (speed=1 = posición real en esa fecha, speed>1 exagera el movimiento)
-    const M = M0 + n * baseDays * speed;
+  useFrame((_, dt) => {
+    const dtScaled = dt * speed;
+    elapsed.current += dtScaled * SPEEDUP_APRENDIZ;
+
+    const M = M0 + n * elapsed.current;
     const ecc = op.eccentricity;
     const E = solveKeplerNewtonRaphson(M, ecc, 1e-6, 8);
     const nu =

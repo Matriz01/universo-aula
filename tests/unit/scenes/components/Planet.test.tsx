@@ -3,7 +3,9 @@
  *
  * Estrategia: mock de @react-three/fiber y @react-three/drei.
  * Verificamos que el componente monta sin errores, llama a useTexture
- * y usa useBodyPosition (post-refactor-C).
+ * y usa usePlanetPosition.
+ *
+ * Tasks 4.5 (TEST) → 4.6 (IMPL)
  */
 
 import { render } from '@testing-library/react';
@@ -11,16 +13,19 @@ import { vi, beforeEach, describe, it, expect } from 'vitest';
 import type { PlanetData } from '@/scenes/data/types';
 
 // ---------------------------------------------------------------------------
-// Hoisted mocks (vi.hoisted se ejecuta antes de imports — no usar clases importadas)
+// Hoisted mocks
 // ---------------------------------------------------------------------------
 
-const { useTextureSpy, useBodyPositionSpy } = vi.hoisted(() => {
-  const mockVec3 = { x: 5, y: 0, z: 0, copy: () => {}, set: () => {}, clone: () => mockVec3 };
+const { useTextureSpy, usePlanetPositionSpy, mockMeshRef } = vi.hoisted(() => {
+  const meshRef = { current: null as unknown };
   const textureSpy = vi.fn().mockReturnValue({});
-  const bodyPosSpy = vi.fn().mockReturnValue(mockVec3);
+  const positionSpy = vi.fn().mockReturnValue({
+    current: { x: 5, y: 0, z: 0, set: vi.fn() },
+  });
   return {
     useTextureSpy: textureSpy,
-    useBodyPositionSpy: bodyPosSpy,
+    usePlanetPositionSpy: positionSpy,
+    mockMeshRef: meshRef,
   };
 });
 
@@ -64,27 +69,11 @@ vi.mock('react-i18next', () => ({
 }));
 
 // ---------------------------------------------------------------------------
-// Mock de useBodyPosition (post-refactor-C)
+// Mock de usePlanetPosition
 // ---------------------------------------------------------------------------
 
-vi.mock('@/scenes/hooks/useBodyPosition', () => ({
-  useBodyPosition: useBodyPositionSpy,
-  computeBodyPosition: vi.fn().mockReturnValue({ x: 5, y: 0, z: 0 }),
-}));
-
-// ---------------------------------------------------------------------------
-// Mock del store — simulationTime y viewMode
-// ---------------------------------------------------------------------------
-
-vi.mock('@/store/useAppStore', () => ({
-  useAppStore: vi.fn((selector: (s: Record<string, unknown>) => unknown) =>
-    selector({
-      simulationTime: new Date('2000-01-01T12:00:00Z'),
-      simulationSpeed: 1,
-      viewMode: 'global',
-      level: 'aprendiz',
-    }),
-  ),
+vi.mock('@/scenes/hooks/usePlanetPosition', () => ({
+  usePlanetPosition: usePlanetPositionSpy,
 }));
 
 // ---------------------------------------------------------------------------
@@ -159,15 +148,7 @@ const plutoData: PlanetData = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useTextureSpy.mockReturnValue({});
-  useBodyPositionSpy.mockReturnValue({
-    x: 5,
-    y: 0,
-    z: 0,
-    copy: () => {},
-    set: () => {},
-    clone: () => ({}),
-  });
+  mockMeshRef.current = null;
 });
 
 describe('<Planet> — render básico', () => {
@@ -192,17 +173,13 @@ describe('<Planet> — render básico', () => {
     expect(callArg).toContain('earth');
   });
 
-  it('llama a useBodyPosition con el planeta correcto', () => {
+  it('llama a usePlanetPosition con el planeta y nivel correctos', () => {
     render(
       <div data-testid="canvas">
         <Planet planet={earthData} level="aprendiz" />
       </div>,
     );
-    expect(useBodyPositionSpy).toHaveBeenCalledWith(
-      earthData,
-      expect.any(Date),
-      expect.any(String),
-    );
+    expect(usePlanetPositionSpy).toHaveBeenCalledWith(earthData, 'aprendiz');
   });
 
   it('monta con plutoData en variant="dwarf" sin errores', () => {

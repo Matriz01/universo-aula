@@ -2,7 +2,9 @@
  * Tests del componente <Saturn> — Planet + RingGeometry.
  *
  * Estrategia: mock de R3F/Drei. Verificamos que Saturn renderiza
- * tanto el planeta como los anillos (post-refactor-C: usa useBodyPosition).
+ * tanto el planeta como los anillos.
+ *
+ * Tasks de Phase 4 (TEST) → 4.9 (IMPL)
  */
 
 import { render, screen } from '@testing-library/react';
@@ -10,20 +12,21 @@ import { vi, beforeEach, describe, it, expect } from 'vitest';
 import type { PlanetData } from '@/scenes/data/types';
 
 // ---------------------------------------------------------------------------
-// Hoisted mocks (vi.hoisted se ejecuta antes de imports — no usar clases importadas)
+// Hoisted mocks
 // ---------------------------------------------------------------------------
 
-const { ringGeometrySpy, useTextureSpy, useBodyPositionSpy } = vi.hoisted(() => {
-  const mockVec3 = { x: 30, y: 0, z: 0, copy: () => {}, set: () => {}, clone: () => mockVec3 };
+const { ringGeometrySpy, useTextureSpy, usePlanetPositionSpy } = vi.hoisted(() => {
   const ringSpy = vi.fn().mockImplementation(function () {
     return {};
   });
   const textureSpy = vi.fn().mockReturnValue({});
-  const bodyPosSpy = vi.fn().mockReturnValue(mockVec3);
+  const positionSpy = vi.fn().mockReturnValue({
+    current: { x: 30, y: 0, z: 0, set: vi.fn() },
+  });
   return {
     ringGeometrySpy: ringSpy,
     useTextureSpy: textureSpy,
-    useBodyPositionSpy: bodyPosSpy,
+    usePlanetPositionSpy: positionSpy,
   };
 });
 
@@ -53,28 +56,8 @@ vi.mock('@react-three/drei', () => ({
   Detailed: ({ children }: { children: React.ReactNode }) => <group>{children}</group>,
 }));
 
-// ---------------------------------------------------------------------------
-// Mock de useBodyPosition (post-refactor-C)
-// ---------------------------------------------------------------------------
-
-vi.mock('@/scenes/hooks/useBodyPosition', () => ({
-  useBodyPosition: useBodyPositionSpy,
-  computeBodyPosition: vi.fn().mockReturnValue({ x: 30, y: 0, z: 0 }),
-}));
-
-// ---------------------------------------------------------------------------
-// Mock del store
-// ---------------------------------------------------------------------------
-
-vi.mock('@/store/useAppStore', () => ({
-  useAppStore: vi.fn((selector: (s: Record<string, unknown>) => unknown) =>
-    selector({
-      simulationTime: new Date('2000-01-01T12:00:00Z'),
-      simulationSpeed: 1,
-      viewMode: 'global',
-      level: 'aprendiz',
-    }),
-  ),
+vi.mock('@/scenes/hooks/usePlanetPosition', () => ({
+  usePlanetPosition: usePlanetPositionSpy,
 }));
 
 // ---------------------------------------------------------------------------
@@ -134,14 +117,6 @@ const saturnData: PlanetData = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useBodyPositionSpy.mockReturnValue({
-    x: 30,
-    y: 0,
-    z: 0,
-    copy: () => {},
-    set: () => {},
-    clone: () => ({}),
-  });
 });
 
 describe('<Saturn> — render básico', () => {
@@ -212,6 +187,7 @@ describe('<Saturn> — label visible', () => {
       </div>,
     );
     // El label debería existir (ya que usamos Html mock con data-testid)
+    // Saturn hereda de Planet que también puede tener label
     const canvas = screen.getByTestId('canvas');
     expect(canvas).toBeTruthy();
   });
