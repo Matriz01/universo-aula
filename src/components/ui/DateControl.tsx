@@ -26,7 +26,7 @@ export function DateControl() {
   const yearsOffset = (time.getTime() - SESSION_NOW.getTime()) / (365.25 * 86_400_000);
 
   return (
-    <div className="absolute bottom-16 left-4 pointer-events-none flex flex-col gap-2 z-20">
+    <div className="absolute top-4 right-4 pointer-events-none flex flex-col gap-2 z-20">
       <div className="pointer-events-auto bg-black/60 backdrop-blur-sm rounded p-3 text-white text-sm">
         <div className="flex items-center gap-2">
           <label htmlFor="sim-date" className="text-xs opacity-70">

@@ -10,7 +10,6 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ViewModeIndicator } from '@/components/ui/ViewModeIndicator';
 import { SpeedControl } from '@/components/ui/SpeedControl';
 import { DateControl } from '@/components/ui/DateControl';
-import { FpsCounter } from '@/components/ui/FpsCounter';
 import { ErrorBoundary } from '@/app/ErrorBoundary';
 
 // Lazy import de SolarSystemScene — Three.js sólo se carga cuando se necesita
@@ -94,9 +93,6 @@ export function App() {
 
       {/* Footer de atribución permanente */}
       <AttributionFooter />
-
-      {/* Contador de FPS — bottom-right, no intrusivo */}
-      <FpsCounter />
     </div>
   );
 }

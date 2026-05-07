@@ -128,23 +128,15 @@ function PlanetMeshInner({
           {...(rs ? { receiveShadow: true } : {})}
         />
       </group>
-      <Html
-        center
-        distanceFactor={viewMode === 'local' ? 500 : 8}
-        position={[0, planetRadius * 1.5, 0]}
-        style={{ pointerEvents: 'none' }}
-      >
+      <Html center distanceFactor={viewMode === 'local' ? 200 : 10}>
         <div
           style={{
             color: 'white',
-            fontSize: variant === 'dwarf' ? '12px' : '14px',
-            fontWeight: 600,
+            fontSize: variant === 'dwarf' ? '10px' : '12px',
             fontStyle: variant === 'dwarf' ? 'italic' : 'normal',
             userSelect: 'none',
             pointerEvents: 'none',
             whiteSpace: 'nowrap',
-            textShadow: '0 0 4px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.9)',
-            letterSpacing: '0.02em',
           }}
         >
           {t(`${planet.id}.name`, { defaultValue: planet.id })}
