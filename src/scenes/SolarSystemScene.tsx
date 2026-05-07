@@ -37,6 +37,8 @@ import { KnownEventsLayer } from '@/scenes/components/KnownEventsLayer';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
 import type { GpuCapabilityExtended } from '@/scenes/components/Sun';
 import type { PlanetId } from '@/scenes/data/types';
+import { SimulationTicker } from '@/scenes/SimulationTicker';
+import { PausedBridge } from '@/scenes/PausedBridge';
 
 // ---------------------------------------------------------------------------
 // Constantes para órbita lunar
@@ -168,6 +170,9 @@ function SolarSystemContent({
 
   return (
     <>
+      {/* Único punto de avance del simulationClock — debe ser el primer hijo */}
+      <SimulationTicker />
+
       {/* Luz ambiental — baja para conservar contraste claro/oscuro natural */}
       <ambientLight intensity={0.18} />
 
@@ -343,37 +348,43 @@ export function SolarSystemScene() {
   const shadowsEnabled = viewMode === 'local' && selectedPlanet === 'earth';
 
   return (
-    <Canvas
-      data-testid="solar-canvas"
-      dpr={1}
-      gl={{
-        powerPreference: 'high-performance',
-        antialias: true,
-        stencil: false,
-        // logarithmicDepthBuffer necesario en modo local: la escena abarca desde
-        // ~6 unidades (radio Tierra) hasta ~5,900,000 unidades (Plutón).
-        // Sin él, el Z-fighting entre objetos a distintas distancias es grave.
-        logarithmicDepthBuffer: true,
-      }}
-      // far: 1_000_000 — cubre hasta Júpiter (778,500 u) en escala real con margen.
-      // Para ver Plutón en local se necesitarían ~6M unidades, pero en modo local
-      // el planeta enfocado siempre está próximo a la cámara.
-      camera={{ position: [0, 35, 70], fov: 60, near: 0.1, far: 1_000_000 }}
-      shadows={shadowsEnabled}
-    >
-      <Suspense fallback={null}>
-        <SolarSystemContent
-          level={level}
-          gpu={resolvedGpu}
-          reducedMotion={prefersReducedMotion}
-          onSelectPlanet={goToBody}
-          planetPositionsRef={planetPositionsRef}
-          viewMode={viewMode}
-          selectedPlanet={selectedPlanet}
-          showKnownEvents={showKnownEvents}
-        />
-      </Suspense>
-    </Canvas>
+    <>
+      {/* PausedBridge: fuera del Canvas (no necesita useFrame/R3F).
+          Sincroniza simulationSpeed === 0 → simulationClock.setPaused(). */}
+      <PausedBridge />
+
+      <Canvas
+        data-testid="solar-canvas"
+        dpr={1}
+        gl={{
+          powerPreference: 'high-performance',
+          antialias: true,
+          stencil: false,
+          // logarithmicDepthBuffer necesario en modo local: la escena abarca desde
+          // ~6 unidades (radio Tierra) hasta ~5,900,000 unidades (Plutón).
+          // Sin él, el Z-fighting entre objetos a distintas distancias es grave.
+          logarithmicDepthBuffer: true,
+        }}
+        // far: 1_000_000 — cubre hasta Júpiter (778,500 u) en escala real con margen.
+        // Para ver Plutón en local se necesitarían ~6M unidades, pero en modo local
+        // el planeta enfocado siempre está próximo a la cámara.
+        camera={{ position: [0, 35, 70], fov: 60, near: 0.1, far: 1_000_000 }}
+        shadows={shadowsEnabled}
+      >
+        <Suspense fallback={null}>
+          <SolarSystemContent
+            level={level}
+            gpu={resolvedGpu}
+            reducedMotion={prefersReducedMotion}
+            onSelectPlanet={goToBody}
+            planetPositionsRef={planetPositionsRef}
+            viewMode={viewMode}
+            selectedPlanet={selectedPlanet}
+            showKnownEvents={showKnownEvents}
+          />
+        </Suspense>
+      </Canvas>
+    </>
   );
 }
 

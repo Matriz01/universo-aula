@@ -81,3 +81,17 @@ describe('noElapsedRefs — Sun.tsx (T3E.1)', () => {
     expect(/elapsedDays/.test(content)).toBe(false);
   });
 });
+
+// ── T4.3 structural: SolarSystemScene contiene PausedBridge ──────────────────
+
+describe('noElapsedRefs — SolarSystemScene.tsx contiene PausedBridge (T4.3)', () => {
+  const content = read('src/scenes/SolarSystemScene.tsx');
+
+  it('importa PausedBridge', () => {
+    expect(/PausedBridge/.test(content)).toBe(true);
+  });
+
+  it('renderiza <PausedBridge />', () => {
+    expect(/<PausedBridge/.test(content)).toBe(true);
+  });
+});
