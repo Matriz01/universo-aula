@@ -14,25 +14,89 @@
  * en cada frame de useFrame — no provoca re-renders.
  */
 
-import { useRef, useMemo } from 'react';
+import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Vector3 } from 'three';
 import type { PlanetData } from '@/scenes/data/types';
-import {
-  solveKeplerNewtonRaphson,
-  applyOrbitalRotation,
-  degToRad,
-  SPEEDUP_EXPLORADOR,
-  SPEEDUP_APRENDIZ,
-  SPEEDUP_INVESTIGADOR,
-} from '@/scenes/orbital';
+import { solveKeplerNewtonRaphson, applyOrbitalRotation, degToRad } from '@/scenes/orbital';
 import { visualDistance, localVisualDistanceFromAU } from '@/scenes/scale';
 import { useAppStore } from '@/store/useAppStore';
+import { J2000_JD, getJD } from '@/scenes/simulationClock';
 
 export type PedagogicalLevel = 'explorador' | 'aprendiz' | 'investigador';
+export type ViewMode = 'global' | 'local';
+
+// ---------------------------------------------------------------------------
+// computePosition — función pura testeable (REQ-ORB-4, T2.2)
+//
+// Calcula la posición de un planeta para un Julian Date dado, de forma
+// determinista y sin side-effects. Sin useFrame, sin React, sin Three.js hooks.
+//
+// Esta función encapsula la lógica orbital de usePlanetPosition para que
+// los tests unitarios puedan verificar el comportamiento sin montar R3F.
+// ---------------------------------------------------------------------------
+
+/**
+ * Calcula la posición tridimensional de un planeta para el JD indicado.
+ *
+ * @param planet   - Datos orbitales del planeta (NASA JPL J2000)
+ * @param level    - Nivel pedagógico (define el modelo orbital empleado)
+ * @param jd       - Julian Date actual (desde simulationClock.getJD())
+ * @param viewMode - 'global' → escala didáctica; 'local' → escala real (1 u = 1000 km)
+ * @returns Posición {x, y, z} en unidades de escena
+ */
+export function computePosition(
+  planet: PlanetData,
+  level: PedagogicalLevel,
+  jd: number,
+  viewMode: ViewMode,
+): { x: number; y: number; z: number } {
+  const scaledDist =
+    viewMode === 'local'
+      ? localVisualDistanceFromAU(planet.semi_major_axis_AU)
+      : visualDistance(planet.semi_major_axis_AU);
+
+  const a = scaledDist;
+  const b = scaledDist * Math.sqrt(1 - planet.eccentricity ** 2);
+  const n = (2 * Math.PI) / planet.orbital_period_days; // mean motion rad/día
+  const M0 = degToRad(planet.mean_anomaly_J2000_deg);
+  const omega = degToRad(planet.argument_perihelion_deg);
+  const Omega = degToRad(planet.longitude_ascending_node_deg);
+  const inc = degToRad(planet.inclination_deg);
+
+  // Días transcurridos desde J2000 — fuente de verdad: JD del reloj
+  const daysSinceJ2000 = jd - J2000_JD;
+
+  const pos = new Vector3();
+
+  if (level === 'explorador') {
+    const theta = n * daysSinceJ2000;
+    pos.set(a * Math.cos(theta), 0, a * Math.sin(theta));
+  } else if (level === 'aprendiz') {
+    const theta = n * daysSinceJ2000;
+    pos.set(a * Math.cos(theta), 0, b * Math.sin(theta));
+  } else {
+    // investigador — Kepler Newton-Raphson + rotaciones 3D
+    const M = M0 + n * daysSinceJ2000;
+    const E = solveKeplerNewtonRaphson(M, planet.eccentricity, 1e-6, 8);
+    const nu =
+      2 *
+      Math.atan2(
+        Math.sqrt(1 + planet.eccentricity) * Math.sin(E / 2),
+        Math.sqrt(1 - planet.eccentricity) * Math.cos(E / 2),
+      );
+    const r = a * (1 - planet.eccentricity * Math.cos(E));
+    applyOrbitalRotation(pos, r, nu, omega, Omega, inc);
+  }
+
+  return { x: pos.x, y: pos.y, z: pos.z };
+}
 
 /**
  * Hook que actualiza la posición del planeta cada frame.
+ *
+ * Lee el Julian Date desde simulationClock.getJD() de forma imperativa
+ * (sin suscripción React) y delega en computePosition() para el cálculo.
  *
  * @param planet - Datos del planeta (NASA JPL J2000)
  * @param level  - Nivel pedagógico activo
@@ -43,59 +107,17 @@ export function usePlanetPosition(
   level: PedagogicalLevel,
 ): React.MutableRefObject<Vector3> {
   const posRef = useRef<Vector3>(new Vector3());
-  const elapsed = useRef<number>(0);
-  const speed = useAppStore((s) => s.simulationSpeed);
   const viewMode = useAppStore((s) => s.viewMode);
 
-  // Memoizamos derivados que no cambian con t
-  // La distancia semieje mayor se escala según el modo: real en local, didáctica en global
-  const { a, b, n, M0, omega, Omega, inc } = useMemo(() => {
-    const scaledDist =
-      viewMode === 'local'
-        ? localVisualDistanceFromAU(planet.semi_major_axis_AU)
-        : visualDistance(planet.semi_major_axis_AU);
-    return {
-      a: scaledDist,
-      b: scaledDist * Math.sqrt(1 - planet.eccentricity ** 2),
-      n: (2 * Math.PI) / planet.orbital_period_days, // mean motion rad/día
-      M0: degToRad(planet.mean_anomaly_J2000_deg),
-      omega: degToRad(planet.argument_perihelion_deg),
-      Omega: degToRad(planet.longitude_ascending_node_deg),
-      inc: degToRad(planet.inclination_deg),
-    };
-  }, [planet, viewMode]);
+  // viewMode se memoiza para estabilizar la referencia en el closure de useFrame.
+  // No necesitamos speed ni elapsed: el JD viene del simulationClock global.
+  const viewModeRef = useRef(viewMode);
+  viewModeRef.current = viewMode;
 
-  useFrame((_, dt) => {
-    const speedup =
-      level === 'explorador'
-        ? SPEEDUP_EXPLORADOR
-        : level === 'aprendiz'
-          ? SPEEDUP_APRENDIZ
-          : SPEEDUP_INVESTIGADOR;
-
-    elapsed.current += dt * speed * speedup; // días simulados (pausa si speed=0)
-
-    if (level === 'explorador') {
-      // Órbita circular — sin excentricidad, sin inclinación
-      const theta = n * elapsed.current;
-      posRef.current.set(a * Math.cos(theta), 0, a * Math.sin(theta));
-    } else if (level === 'aprendiz') {
-      // Elipse centrada en el origen (aproximación didáctica, sin inclinación)
-      const theta = n * elapsed.current;
-      posRef.current.set(a * Math.cos(theta), 0, b * Math.sin(theta));
-    } else {
-      // Investigador — Kepler Newton-Raphson + rotaciones 3D
-      const M = M0 + n * elapsed.current;
-      const E = solveKeplerNewtonRaphson(M, planet.eccentricity, 1e-6, 8);
-      const nu =
-        2 *
-        Math.atan2(
-          Math.sqrt(1 + planet.eccentricity) * Math.sin(E / 2),
-          Math.sqrt(1 - planet.eccentricity) * Math.cos(E / 2),
-        );
-      const r = a * (1 - planet.eccentricity * Math.cos(E));
-      applyOrbitalRotation(posRef.current, r, nu, omega, Omega, inc);
-    }
+  useFrame(() => {
+    const jd = getJD();
+    const pos = computePosition(planet, level, jd, viewModeRef.current);
+    posRef.current.set(pos.x, pos.y, pos.z);
   });
 
   return posRef;
