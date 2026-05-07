@@ -71,6 +71,19 @@ interface AppState {
   setSimulationSpeed: (speed: number) => void;
 }
 
+/**
+ * @invariant FRAME-RATE STATE (60Hz) NEVER belongs here.
+ *
+ * ✅ Correcto — en este store:
+ *   level, viewMode, simulationSpeed (eventos discretos del usuario)
+ *
+ * ❌ Incorrecto — NUNCA añadir:
+ *   simulationTime, elapsed, jd, posiciones de planetas a 60Hz
+ *
+ * Usa `simulationClock` (src/scenes/simulationClock.ts) para tiempo de simulación.
+ * Mover tiempo a 60Hz a Zustand provocó ~17 re-renders/frame (Refactor C regression).
+ * Ver: src/scenes/simulationClock.ts — invariante arquitectónica documentada allí.
+ */
 export const useAppStore = create<AppState>()((set) => ({
   // Campos originales
   level: 'aprendiz',

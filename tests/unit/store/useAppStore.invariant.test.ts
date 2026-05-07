@@ -24,15 +24,30 @@ const storePath = resolve(__dirname, '../../../src/store/useAppStore.ts');
 const content = readFileSync(storePath, 'utf8');
 
 describe('useAppStore — invariante arquitectónica (REQ-DOC-1)', () => {
-  it('no contiene simulationTime en el store', () => {
-    expect(/simulationTime/i.test(content)).toBe(false);
+  it('no contiene simulationTime como campo del store (solo en comentarios)', () => {
+    // Patrones prohibidos: simulationTime?: ..., simulationTime: ..., simulationTime =
+    // El JSDoc usa "simulationTime" para documentar qué NO hacer — eso es correcto.
+    const forbiddenFieldPattern = /^\s+simulationTime\s*[?:]|setSimulationTime\s*[?:]/m;
+    expect(forbiddenFieldPattern.test(content)).toBe(false);
   });
 
-  it('no contiene acumuladores elapsed en el store', () => {
-    expect(/\belapsed\b/i.test(content)).toBe(false);
+  it('no contiene acumuladores elapsed como campo del store (solo en comentarios)', () => {
+    // Busca "elapsed" como campo TypeScript (fuera de comentarios y strings)
+    // Patrones prohibidos: elapsed?: ..., elapsed: ..., elapsed =
+    // El JSDoc usa "elapsed" para documentar qué NO hacer — eso es correcto.
+    const forbiddenFieldPattern = /^\s+elapsed\s*[?:]|elapsed\s*=\s*useRef/m;
+    expect(forbiddenFieldPattern.test(content)).toBe(false);
   });
 
-  // Esta aserción se habilita en T6.1 cuando se añade el JSDoc.
-  // Por ahora existe como documentación del requisito futuro.
-  it.todo('contiene el comentario JSDoc de invariante de frame-rate (habilitado en T6.1)');
+  // T6.1: JSDoc invariant añadido a useAppStore. Aserción habilitada.
+  it('contiene el comentario JSDoc de invariante de frame-rate', () => {
+    // El JSDoc debe contener al menos una de las palabras clave del invariante
+    const hasInvariant =
+      /frame-rate/i.test(content) || /60Hz/i.test(content) || /FRAME-RATE/i.test(content);
+    expect(hasInvariant).toBe(true);
+  });
+
+  it('el JSDoc menciona simulationClock como solución correcta', () => {
+    expect(/simulationClock/i.test(content)).toBe(true);
+  });
 });

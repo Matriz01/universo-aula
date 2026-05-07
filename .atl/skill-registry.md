@@ -53,6 +53,22 @@ sdd-init, sdd-explore, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply, 
 - **Loader visual** durante primera descarga de modelos (~200-300 MB). Service worker cache versionada; re-descarga solo en updates.
 - **Seguridad**: CSP estricta, sin innerHTML con datos no sanitizados, sin eval. Mitigación XSS por diseño.
 
+## Project-specific Compact Rules (replan-2026-05)
+
+### RULE: frame-rate state never in Zustand
+
+60Hz mutations (simulation time, mesh transforms) NEVER go in `useAppStore`.
+`simulationClock` (`src/scenes/simulationClock.ts`) is the ONLY authoritative
+time source. Adding `simulationTime` or `elapsed` to the store triggers ~17
+re-renders/frame (Refactor C regression). This is a hard architectural invariant.
+
+- Tick único en `<SimulationTicker>` (primer hijo de `<SolarSystemContent>`).
+- Todos los consumidores leen `simulationClock.getJD()` dentro de `useFrame`.
+- `<PausedBridge>` sincroniza `simulationSpeed === 0` → `clock.setPaused()`.
+- `DateControl` actualiza la fecha vía `setInterval(1000ms)` — nunca a 60Hz.
+
+**Cross-references**: `src/store/useAppStore.ts` (JSDoc invariant), `src/scenes/simulationClock.ts` (top-of-file comment).
+
 ## Auto-resolved Skill Selection per Context
 
 | Code context / Task                 | Skills to inject |
