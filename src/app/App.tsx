@@ -10,6 +10,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ViewModeIndicator } from '@/components/ui/ViewModeIndicator';
 import { SpeedControl } from '@/components/ui/SpeedControl';
 import { ErrorBoundary } from '@/app/ErrorBoundary';
+import { DateControl } from '@/components/hud/DateControl';
 
 // Lazy import de SolarSystemScene — Three.js sólo se carga cuando se necesita
 const SolarSystemScene = lazy(() =>
@@ -89,6 +90,11 @@ export function App() {
 
       {/* Footer de atribución permanente */}
       <AttributionFooter />
+
+      {/* Fecha de simulación — bottom-left, solo lectura, es-ES (REQ-DATE-4) */}
+      <div className="pointer-events-none absolute bottom-4 left-4 z-10 text-sm text-white/80">
+        <DateControl />
+      </div>
     </div>
   );
 }
