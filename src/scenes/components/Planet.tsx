@@ -138,7 +138,7 @@ function PlanetMeshInner({
       <Html
         position={computeLabelOffset(planetRadius)}
         center
-        distanceFactor={viewMode === 'local' ? 200 : 10}
+        distanceFactor={viewMode === 'local' ? planetRadius * 30 : planetRadius * 15}
       >
         <div
           style={{
