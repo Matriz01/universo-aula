@@ -45,9 +45,9 @@ describe('useAppStore — selectedBody + goToBody con BodyId', () => {
     expect(useAppStore.getState().cameraMode).toBe('focus');
   });
 
-  it("goToBody('moon') deja selectedPlanet en null (la Luna no es un planeta)", () => {
+  it("goToBody('moon') deja selectedBody como 'moon' (no es PlanetId)", () => {
     useAppStore.getState().goToBody('moon');
-    expect(useAppStore.getState().selectedPlanet).toBeNull();
+    expect(useAppStore.getState().selectedBody).toBe('moon');
   });
 });
 

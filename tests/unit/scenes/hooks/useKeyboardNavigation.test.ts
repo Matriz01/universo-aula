@@ -15,16 +15,22 @@ import { renderHook, act } from '@testing-library/react';
 
 const mockSetSelectedPlanet = vi.fn();
 const mockSetTourActive = vi.fn();
-let mockSelectedPlanet: string | null = null;
+const mockGoToBody = vi.fn();
+let mockSelectedBody: string | null = null;
 let mockTourActive = false;
+let mockViewMode = 'global';
 
 vi.mock('@/store/useAppStore', () => ({
   useAppStore: vi.fn((selector: (s: unknown) => unknown) => {
     const state = {
-      selectedPlanet: mockSelectedPlanet,
+      selectedBody: mockSelectedBody,
       setSelectedPlanet: mockSetSelectedPlanet,
       tourActive: mockTourActive,
       setTourActive: mockSetTourActive,
+      viewMode: mockViewMode,
+      goToBody: mockGoToBody,
+      showKnownEvents: false,
+      setShowKnownEvents: vi.fn(),
     };
     return selector ? selector(state) : state;
   }),
@@ -52,8 +58,9 @@ function pressKey(key: string, shiftKey = false) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockSelectedPlanet = null;
+  mockSelectedBody = null;
   mockTourActive = false;
+  mockViewMode = 'global';
 });
 
 describe('useKeyboardNavigation', () => {
@@ -66,35 +73,36 @@ describe('useKeyboardNavigation', () => {
   });
 
   it('Tab navega al siguiente cuerpo (mercury → venus)', () => {
-    mockSelectedPlanet = 'mercury';
+    mockSelectedBody = 'mercury';
     renderHook(() => useKeyboardNavigation());
     pressKey('Tab');
     expect(mockSetSelectedPlanet).toHaveBeenCalledWith('venus');
   });
 
   it('Shift+Tab navega al cuerpo anterior (venus → mercury)', () => {
-    mockSelectedPlanet = 'venus';
+    mockSelectedBody = 'venus';
     renderHook(() => useKeyboardNavigation());
     pressKey('Tab', true);
     expect(mockSetSelectedPlanet).toHaveBeenCalledWith('mercury');
   });
 
   it('Tab desde el último cuerpo (pluto) va al Sol (null)', () => {
-    mockSelectedPlanet = 'pluto';
+    mockSelectedBody = 'pluto';
     renderHook(() => useKeyboardNavigation());
     pressKey('Tab');
     expect(mockSetSelectedPlanet).toHaveBeenCalledWith(null);
   });
 
   it('Shift+Tab desde el Sol (null) va a pluto', () => {
-    mockSelectedPlanet = null;
+    mockSelectedBody = null;
     renderHook(() => useKeyboardNavigation());
     pressKey('Tab', true);
     expect(mockSetSelectedPlanet).toHaveBeenCalledWith('pluto');
   });
 
-  it('Escape llama a setSelectedPlanet(null)', () => {
-    mockSelectedPlanet = 'mars';
+  it('Escape en modo global llama a setSelectedPlanet(null)', () => {
+    mockSelectedBody = 'mars';
+    mockViewMode = 'global';
     renderHook(() => useKeyboardNavigation());
     pressKey('Escape');
     expect(mockSetSelectedPlanet).toHaveBeenCalledWith(null);

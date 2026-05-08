@@ -29,8 +29,10 @@ interface AppState {
 
   /** Cuerpo celeste actualmente seleccionado por el usuario. null = ninguno. */
   selectedBody: BodyId | null;
-  /** @deprecated Usa selectedBody. Alias de compatibilidad temporal. */
-  selectedPlanet: PlanetId | null;
+  /**
+   * Actualiza selectedBody con un PlanetId. Usa goToBody() para navegación completa.
+   * Solo válido para PlanetId — no acepta 'moon'.
+   */
   setSelectedPlanet: (planet: PlanetId | null) => void;
 
   /** Modo de cámara activo. */
@@ -165,8 +167,7 @@ export const useAppStore = create<AppStateInternal>()((set) => ({
 
   // Nuevos campos
   selectedBody: null,
-  selectedPlanet: null, // alias de compatibilidad — refleja selectedBody cuando es PlanetId
-  setSelectedPlanet: (selectedPlanet) => set({ selectedPlanet, selectedBody: selectedPlanet }),
+  setSelectedPlanet: (planet) => set({ selectedBody: planet }),
 
   cameraMode: 'overview',
   setCameraMode: (cameraMode) => set({ cameraMode }),
@@ -197,11 +198,9 @@ export const useAppStore = create<AppStateInternal>()((set) => ({
 
   goToBody: (id) => {
     if (id === null) {
-      set({ selectedBody: null, selectedPlanet: null, viewMode: 'global', cameraMode: 'overview' });
+      set({ selectedBody: null, viewMode: 'global', cameraMode: 'overview' });
     } else {
-      // selectedPlanet sólo se actualiza cuando id es un PlanetId (no 'moon')
-      const planetId = id !== 'moon' ? id : null;
-      set({ selectedBody: id, selectedPlanet: planetId, viewMode: 'local', cameraMode: 'focus' });
+      set({ selectedBody: id, viewMode: 'local', cameraMode: 'focus' });
     }
   },
 
@@ -298,8 +297,14 @@ export const useAppStore = create<AppStateInternal>()((set) => ({
 export const useLevel = () => useAppStore((s) => s.level);
 export const useLocale = () => useAppStore((s) => s.locale);
 export const useSelectedBody = () => useAppStore((s) => s.selectedBody);
-/** @deprecated Usa useSelectedBody. Alias de compatibilidad. */
-export const useSelectedPlanet = () => useAppStore((s) => s.selectedPlanet);
+/**
+ * @deprecated Usa useSelectedBody(). Devuelve selectedBody como PlanetId | null
+ * (null cuando el cuerpo seleccionado es 'moon').
+ */
+export const useSelectedPlanet = (): PlanetId | null => {
+  const body = useAppStore((s) => s.selectedBody);
+  return body !== 'moon' ? body : null;
+};
 export const useCameraMode = () => useAppStore((s) => s.cameraMode);
 export const useTextureQuality = () => useAppStore((s) => s.textureQuality);
 export const useTourActive = () => useAppStore((s) => s.tourActive);

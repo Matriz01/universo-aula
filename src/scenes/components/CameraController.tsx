@@ -128,7 +128,10 @@ export const CameraController = React.memo(function CameraController({
   planetPositionsRef,
   planetRadius,
 }: CameraControllerProps) {
-  const selectedPlanet = useAppStore((s) => s.selectedPlanet);
+  const selectedBody = useAppStore((s) => s.selectedBody);
+  // CameraController solo hace follow de planetas (PlanetId), no de la Luna.
+  // La Luna usa frame-of-reference (origin offset) — no delta-vector follow.
+  const selectedPlanet = selectedBody !== 'moon' ? selectedBody : null;
   const prefersReducedMotion = useAppStore((s) => s.prefersReducedMotion);
   const cameraMode = useAppStore((s) => s.cameraMode);
   const viewMode = useAppStore((s) => s.viewMode);

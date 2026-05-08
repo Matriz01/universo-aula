@@ -43,7 +43,6 @@ beforeEach(() => {
   useAppStore.setState({
     viewMode: 'global',
     selectedBody: null,
-    selectedPlanet: null,
     showKnownEvents: false,
   });
   vi.clearAllMocks();
@@ -59,7 +58,7 @@ describe('<ViewModeIndicator> — modo global', () => {
 
 describe('<ViewModeIndicator> — modo local', () => {
   beforeEach(() => {
-    useAppStore.setState({ viewMode: 'local', selectedBody: 'earth', selectedPlanet: 'earth' });
+    useAppStore.setState({ viewMode: 'local', selectedBody: 'earth' });
   });
 
   it('renderiza el indicador en modo local', () => {

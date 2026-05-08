@@ -131,8 +131,6 @@ interface SolarSystemContentProps {
   planetPositionsRef: React.MutableRefObject<Record<string, Vector3Type>>;
   viewMode: 'global' | 'local';
   selectedBody: BodyId | null;
-  /** @deprecated Alias de selectedBody para compatibilidad con componentes que aún usan PlanetId */
-  selectedPlanet: PlanetId | null;
   showKnownEvents: boolean;
 }
 
@@ -144,9 +142,10 @@ function SolarSystemContent({
   planetPositionsRef,
   viewMode,
   selectedBody,
-  selectedPlanet,
   showKnownEvents,
 }: SolarSystemContentProps) {
+  // selectedPlanet: PlanetId | null — extraído de selectedBody excluyendo 'moon'
+  const selectedPlanet = selectedBody !== 'moon' ? selectedBody : null;
   const { data } = usePlanetsData();
 
   if (!data) return null;
@@ -402,7 +401,6 @@ export function SolarSystemScene() {
   const goToBody = useAppStore((s) => s.goToBody);
   const viewMode = useAppStore((s) => s.viewMode);
   const selectedBody = useAppStore((s) => s.selectedBody);
-  const selectedPlanet = useAppStore((s) => s.selectedPlanet);
   const showKnownEvents = useAppStore((s) => s.showKnownEvents);
 
   const rawGpu = useGpuCapability();
@@ -453,7 +451,6 @@ export function SolarSystemScene() {
             planetPositionsRef={planetPositionsRef}
             viewMode={viewMode}
             selectedBody={selectedBody}
-            selectedPlanet={selectedPlanet}
             showKnownEvents={showKnownEvents}
           />
         </Suspense>
