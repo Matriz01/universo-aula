@@ -39,47 +39,27 @@ import type { GpuCapabilityExtended } from '@/scenes/components/Sun';
 import type { PlanetId } from '@/scenes/data/types';
 import { SimulationTicker } from '@/scenes/SimulationTicker';
 import { PausedBridge } from '@/scenes/PausedBridge';
-import { localVisualRadius } from '@/scenes/scale';
+import { localVisualRadius, localVisualDistanceFromKm } from '@/scenes/scale';
+import { EARTH_FALLBACK_DATA } from '@/scenes/data/earthFallback';
+import { MOON_ORBITAL_ELEMENTS } from '@/scenes/data/moon';
+import { applyOrbitalRotation, degToRad, solveKeplerNewtonRaphson } from '@/scenes/orbital';
 
 // ---------------------------------------------------------------------------
 // Constantes para órbita lunar
 // ---------------------------------------------------------------------------
 
-const MOON_ORBIT_RADIUS_LOCAL = 384_400 / 1000; // 384.4 unidades (1 u = 1000 km)
-const MOON_ORBIT_SEGMENTS = 64;
-
-// Objeto Earth mínimo de fallback para usePlanetPosition (cuando data aún no carga)
-const EARTH_FALLBACK_DATA = {
-  id: 'earth' as const,
-  classification: 'terrestrial' as const,
-  radius_km: 6371,
-  mass_kg: 5.972e24,
-  density_g_cm3: 5.514,
-  gravity_m_s2: 9.807,
-  rotation_period_h: 23.9345,
-  axial_tilt_deg: 23.4393,
-  mean_temperature_k: 288,
-  semi_major_axis_AU: 1.0,
-  eccentricity: 0.01671,
-  inclination_deg: 0.00005,
-  longitude_ascending_node_deg: -11.26064,
-  argument_perihelion_deg: 114.20783,
-  mean_anomaly_J2000_deg: 358.617,
-  orbital_period_days: 365.256,
-  color_hex: '#4a90e2',
-  has_rings: false,
-  moons_count: 1,
-  texture_base: '/textures/earth/',
-};
+const MOON_ORBIT_SEGMENTS = 128; // Aumentado para suavidad (era 64)
 
 // ---------------------------------------------------------------------------
 // MoonOrbitPath — círculo que representa la órbita de la Luna en modo local
 // ---------------------------------------------------------------------------
 
 /**
- * Dibuja la órbita de la Luna centrada en la posición actual de la Tierra.
- * Solo se usa en modo local cuando la Tierra está seleccionada.
- * Calcula la posición de la Tierra internamente con usePlanetPosition.
+ * Dibuja la órbita inclinada de la Luna centrada en la posición actual de la Tierra.
+ *
+ * Genera N puntos usando applyOrbitalRotation con los elementos geocéntricos de
+ * MOON_ORBITAL_ELEMENTS — incluye la inclinación ~5.14° respecto a la eclíptica.
+ * El path se actualiza cada frame para seguir la posición de la Tierra.
  */
 function MoonOrbitPath() {
   const groupRef = useRef<Group>(null);
@@ -88,17 +68,41 @@ function MoonOrbitPath() {
   const earthData = data?.planets.find((p) => p.id === 'earth') ?? EARTH_FALLBACK_DATA;
   const earthPosRef = usePlanetPosition(earthData, level);
 
-  // Pre-computamos los puntos del círculo (radio = 384.4 unidades)
+  // Calcular los puntos de la órbita inclinada usando applyOrbitalRotation
+  // Muestreamos la anomalía media uniformemente en [0, 2π] — geometría estática
   const points = useMemo(() => {
+    const {
+      semi_major_axis_km,
+      eccentricity,
+      inclination_deg,
+      longitude_ascending_node_deg,
+      argument_perihelion_deg,
+      orbital_period_days,
+      mean_anomaly_J2000_deg,
+    } = MOON_ORBITAL_ELEMENTS;
+
+    const a = localVisualDistanceFromKm(semi_major_axis_km);
+    const omega = degToRad(argument_perihelion_deg);
+    const Omega = degToRad(longitude_ascending_node_deg);
+    const inc = degToRad(inclination_deg);
+    const e = eccentricity;
+    const n = (2 * Math.PI) / orbital_period_days;
+    const M0 = degToRad(mean_anomaly_J2000_deg);
+
     const pts: [number, number, number][] = [];
+    const out = new Vector3();
+
     for (let i = 0; i <= MOON_ORBIT_SEGMENTS; i++) {
-      const theta = (i / MOON_ORBIT_SEGMENTS) * Math.PI * 2;
-      pts.push([
-        MOON_ORBIT_RADIUS_LOCAL * Math.cos(theta),
-        0,
-        MOON_ORBIT_RADIUS_LOCAL * Math.sin(theta),
-      ]);
+      // Distribuir uniformemente en anomalía media a lo largo de una órbita
+      const M = M0 + n * (i / MOON_ORBIT_SEGMENTS) * orbital_period_days;
+      const E = solveKeplerNewtonRaphson(M, e, 1e-6, 8);
+      const nu =
+        2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E / 2), Math.sqrt(1 - e) * Math.cos(E / 2));
+      const r = a * (1 - e * Math.cos(E));
+      applyOrbitalRotation(out, r, nu, omega, Omega, inc);
+      pts.push([out.x, out.y, out.z]);
     }
+
     return pts;
   }, []);
 
