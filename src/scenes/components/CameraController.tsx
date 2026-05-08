@@ -208,7 +208,7 @@ export const CameraController = React.memo(function CameraController({
       livePlanetPosRef.current = null;
     }
 
-    if (cameraMode !== 'focus' || !selectedPlanet || viewMode !== 'local') {
+    if (cameraMode !== 'focus' || !selectedPlanet) {
       lastPlanetPos.current = null;
       return;
     }
