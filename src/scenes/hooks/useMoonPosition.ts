@@ -19,6 +19,7 @@ import { MOON_ORBITAL_ELEMENTS } from '@/scenes/data/moon';
 import { solveKeplerNewtonRaphson, applyOrbitalRotation, degToRad } from '@/scenes/orbital';
 import { localVisualDistanceFromKm } from '@/scenes/scale';
 import { J2000_JD, getJD } from '@/scenes/simulationClock';
+import { useOriginOffset } from '@/scenes/contexts/OriginOffsetContext';
 
 // ---------------------------------------------------------------------------
 // computeMoonPosition — función pura testeable
@@ -102,11 +103,15 @@ export function computeMoonPosition(earthWorldPos: Vector3, jd: number): Vector3
  */
 export function useMoonPosition(earthPosRef: MutableRefObject<Vector3>): MutableRefObject<Vector3> {
   const moonPosRef = useRef<Vector3>(new Vector3());
+  const originOffsetRef = useOriginOffset();
 
   useFrame(() => {
     const jd = getJD();
-    const pos = computeMoonPosition(earthPosRef.current, jd);
-    moonPosRef.current.copy(pos);
+    // computeMoonPosition retorna posición ABSOLUTA (earthWorldPos + geocéntrico)
+    const absPos = computeMoonPosition(earthPosRef.current, jd);
+    // Aplicar el offset del origen: la Luna seleccionada aparece en (0,0,0)
+    absPos.sub(originOffsetRef.current);
+    moonPosRef.current.copy(absPos);
   });
 
   return moonPosRef;
