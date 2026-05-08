@@ -36,7 +36,7 @@ import { DistantMarker } from '@/scenes/components/DistantMarker';
 import { KnownEventsLayer } from '@/scenes/components/KnownEventsLayer';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
 import type { GpuCapabilityExtended } from '@/scenes/components/Sun';
-import type { PlanetId } from '@/scenes/data/types';
+import type { BodyId, PlanetId } from '@/scenes/data/types';
 import { SimulationTicker } from '@/scenes/SimulationTicker';
 import { PausedBridge } from '@/scenes/PausedBridge';
 import { localVisualRadius, localVisualDistanceFromKm } from '@/scenes/scale';
@@ -127,9 +127,11 @@ interface SolarSystemContentProps {
   level: PedagogicalLevel;
   gpu: GpuCapabilityExtended;
   reducedMotion: boolean;
-  onSelectPlanet: (id: PlanetId | null) => void;
+  onSelectPlanet: (id: BodyId | null) => void;
   planetPositionsRef: React.MutableRefObject<Record<string, Vector3Type>>;
   viewMode: 'global' | 'local';
+  selectedBody: BodyId | null;
+  /** @deprecated Alias de selectedBody para compatibilidad con componentes que aún usan PlanetId */
   selectedPlanet: PlanetId | null;
   showKnownEvents: boolean;
 }
@@ -141,6 +143,7 @@ function SolarSystemContent({
   onSelectPlanet,
   planetPositionsRef,
   viewMode,
+  selectedBody,
   selectedPlanet,
   showKnownEvents,
 }: SolarSystemContentProps) {
@@ -158,10 +161,12 @@ function SolarSystemContent({
   };
 
   const isLocal = viewMode === 'local';
-  const isEarthSelected = selectedPlanet === 'earth';
+  const isEarthSelected = selectedBody === 'earth';
+  const isMoonSelected = selectedBody === 'moon';
 
   // Radio visual del planeta seleccionado en modo local (escala real: 1 u = 1000 km).
   // Se pasa a CameraController para calcular el offset prudente al entrar en modo local.
+  // Para la Luna usamos su propio radio.
   const selectedPlanetData = selectedPlanet ? planets.find((p) => p.id === selectedPlanet) : null;
   const selectedPlanetRadius =
     isLocal && selectedPlanetData ? localVisualRadius(selectedPlanetData.radius_km) : undefined;
@@ -193,8 +198,8 @@ function SolarSystemContent({
       {/* Luz puntual en el Sol — decay 0 alcanza Plutón; sin shadows (irreales + caros) */}
       <pointLight position={[0, 0, 0]} intensity={6} distance={0} decay={0} />
 
-      {/* Luz direccional para sombras Luna↔Tierra — solo en modo local con Tierra */}
-      {isLocal && isEarthSelected && (
+      {/* Luz direccional para sombras Luna↔Tierra — solo en modo local con Tierra o Luna */}
+      {isLocal && (isEarthSelected || isMoonSelected) && (
         <directionalLight
           position={shadowLightPos.toArray()}
           intensity={2}
@@ -249,64 +254,116 @@ function SolarSystemContent({
 
           {/* Cinturón de asteroides */}
           <AsteroidBelt config={data.asteroid_belt} />
+
+          {/* MoonOrbitPath en modo global */}
+          <MoonOrbitPath />
         </>
       )}
 
       {/* ——————————————————————————————— MODO LOCAL ——————————————————————————————— */}
-      {isLocal && selectedPlanet && (
+      {isLocal && selectedBody && (
         <>
-          {/* Planeta seleccionado (full detail) */}
-          {selectedPlanet === 'saturn' && saturnData ? (
+          {/* ——— Caso: Luna seleccionada ——— */}
+          {isMoonSelected && (
             <>
-              <Saturn
-                planet={saturnData}
-                level={level}
-                onClick={handlePlanetClick}
-                positionsRef={planetPositionsRef}
-              />
-              <OrbitPath planet={saturnData} level={level} />
-            </>
-          ) : (
-            (() => {
-              const selectedData = planets.find((p) => p.id === selectedPlanet);
-              if (!selectedData) return null;
-              return (
-                <>
+              {/* Luna como cuerpo central */}
+              <PlanetMoon positionsRef={planetPositionsRef} castShadow receiveShadow />
+
+              {/* Tierra visible con textura (referencia visual desde la Luna) */}
+              {(() => {
+                const earthData = planets.find((p) => p.id === 'earth');
+                if (!earthData) return null;
+                return (
                   <Planet
-                    planet={selectedData}
+                    planet={earthData}
                     level={level}
-                    variant={selectedData.classification === 'dwarf_planet' ? 'dwarf' : 'normal'}
+                    variant="normal"
                     onClick={handlePlanetClick}
                     positionsRef={planetPositionsRef}
-                    castShadow={isEarthSelected}
-                    receiveShadow={isEarthSelected}
+                    castShadow
+                    receiveShadow
                   />
-                  <OrbitPath planet={selectedData} level={level} />
-                </>
-              );
-            })()
-          )}
+                );
+              })()}
 
-          {/* Luna de la Tierra — solo si Tierra seleccionada */}
-          {isEarthSelected && (
-            <>
-              <PlanetMoon positionsRef={planetPositionsRef} castShadow receiveShadow />
+              {/* Órbita de la Luna (geocéntrica) — visible en modo local Luna */}
               <MoonOrbitPath />
+
+              {/* DistantMarkers para Sol + otros planetas */}
+              {nonSaturnPlanets
+                .filter((p) => p.id !== 'earth')
+                .map((planet) => (
+                  <DistantMarker
+                    key={`dm-${planet.id}`}
+                    planet={planet}
+                    positionsRef={planetPositionsRef}
+                  />
+                ))}
+              {saturnData && (
+                <DistantMarker
+                  key="dm-saturn"
+                  planet={saturnData}
+                  positionsRef={planetPositionsRef}
+                />
+              )}
             </>
           )}
 
-          {/* DistantMarker para cada planeta no seleccionado */}
-          {nonSaturnPlanets
-            .filter((p) => p.id !== selectedPlanet)
-            .map((planet) => (
-              <DistantMarker
-                key={`dm-${planet.id}`}
-                planet={planet}
-                positionsRef={planetPositionsRef}
-              />
-            ))}
-          {saturnData && selectedPlanet !== 'saturn' && (
-            <DistantMarker key="dm-saturn" planet={saturnData} positionsRef={planetPositionsRef} />
+          {/* ——— Caso: Planeta seleccionado (no Luna) ——— */}
+          {!isMoonSelected && selectedPlanet && (
+            <>
+              {/* Planeta seleccionado (full detail) — sin OrbitPath heliocéntrica en modo local */}
+              {selectedPlanet === 'saturn' && saturnData ? (
+                <Saturn
+                  planet={saturnData}
+                  level={level}
+                  onClick={handlePlanetClick}
+                  positionsRef={planetPositionsRef}
+                />
+              ) : (
+                (() => {
+                  const selectedData = planets.find((p) => p.id === selectedPlanet);
+                  if (!selectedData) return null;
+                  return (
+                    <Planet
+                      planet={selectedData}
+                      level={level}
+                      variant={selectedData.classification === 'dwarf_planet' ? 'dwarf' : 'normal'}
+                      onClick={handlePlanetClick}
+                      positionsRef={planetPositionsRef}
+                      castShadow={isEarthSelected}
+                      receiveShadow={isEarthSelected}
+                    />
+                  );
+                })()
+              )}
+
+              {/* Luna de la Tierra — si Tierra seleccionada */}
+              {isEarthSelected && (
+                <>
+                  <PlanetMoon positionsRef={planetPositionsRef} castShadow receiveShadow />
+                  <MoonOrbitPath />
+                </>
+              )}
+
+              {/* DistantMarker para cada planeta no seleccionado */}
+              {nonSaturnPlanets
+                .filter((p) => p.id !== selectedPlanet)
+                .map((planet) => (
+                  <DistantMarker
+                    key={`dm-${planet.id}`}
+                    planet={planet}
+                    positionsRef={planetPositionsRef}
+                  />
+                ))}
+              {saturnData && selectedPlanet !== 'saturn' && (
+                <DistantMarker
+                  key="dm-saturn"
+                  planet={saturnData}
+                  positionsRef={planetPositionsRef}
+                />
+              )}
+            </>
           )}
 
           {/* Eventos conocidos (cometa Halley, etc.) */}
@@ -344,6 +401,7 @@ export function SolarSystemScene() {
   const sunShaderVariant = useAppStore((s) => s.sunShaderVariant);
   const goToBody = useAppStore((s) => s.goToBody);
   const viewMode = useAppStore((s) => s.viewMode);
+  const selectedBody = useAppStore((s) => s.selectedBody);
   const selectedPlanet = useAppStore((s) => s.selectedPlanet);
   const showKnownEvents = useAppStore((s) => s.showKnownEvents);
 
@@ -358,8 +416,9 @@ export function SolarSystemScene() {
   // Ref compartido: posiciones reales de planetas (actualizadas en useFrame por Planet/Saturn)
   const planetPositionsRef = useRef<Record<string, Vector3Type>>({});
 
-  // Shadows solo relevantes en modo local con Tierra seleccionada
-  const shadowsEnabled = viewMode === 'local' && selectedPlanet === 'earth';
+  // Shadows solo relevantes en modo local con Tierra o Luna seleccionada
+  const shadowsEnabled =
+    viewMode === 'local' && (selectedBody === 'earth' || selectedBody === 'moon');
 
   return (
     <>
@@ -393,6 +452,7 @@ export function SolarSystemScene() {
             onSelectPlanet={goToBody}
             planetPositionsRef={planetPositionsRef}
             viewMode={viewMode}
+            selectedBody={selectedBody}
             selectedPlanet={selectedPlanet}
             showKnownEvents={showKnownEvents}
           />

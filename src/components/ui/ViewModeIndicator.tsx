@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore, useViewMode, useShowKnownEvents } from '@/store/useAppStore';
+import { useAppStore, useViewMode, useShowKnownEvents, useSelectedBody } from '@/store/useAppStore';
 
 export const ViewModeIndicator = React.memo(function ViewModeIndicator() {
   const { t } = useTranslation('solar');
@@ -15,15 +15,21 @@ export const ViewModeIndicator = React.memo(function ViewModeIndicator() {
   const showKnownEvents = useShowKnownEvents();
   const goToBody = useAppStore((s) => s.goToBody);
   const setShowKnownEvents = useAppStore((s) => s.setShowKnownEvents);
-  const selectedPlanet = useAppStore((s) => s.selectedPlanet);
+  const selectedBody = useSelectedBody();
 
   if (viewMode !== 'local') return null;
 
-  const planetName = selectedPlanet ? t(`solar:${selectedPlanet}.name`, selectedPlanet) : '';
+  // Para la Luna usamos la clave i18n bodies.moon; para los planetas usamos {planetId}.name
+  const bodyName =
+    selectedBody === 'moon'
+      ? t('solar:bodies.moon', 'Luna')
+      : selectedBody
+        ? t(`solar:${selectedBody}.name`, selectedBody)
+        : '';
 
   const label = t('solar:view_mode.local', {
-    name: planetName,
-    defaultValue: `Vista local: ${planetName}`,
+    name: bodyName,
+    defaultValue: `Vista local: ${bodyName}`,
   });
 
   return (

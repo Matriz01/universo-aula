@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { PedagogicalLevel } from '@/types';
-import type { PlanetId } from '@/scenes/data/types';
+import type { BodyId, PlanetId } from '@/scenes/data/types';
 import { SPEED_STOPS_SECONDS_PER_SECOND } from '@/scenes/simulationClock';
 
 export type CameraMode = 'overview' | 'focus' | 'tour';
@@ -27,7 +27,9 @@ interface AppState {
 
   // — Nuevos campos (solar-system-mvp) —
 
-  /** Planeta actualmente seleccionado por el usuario. null = ninguno. */
+  /** Cuerpo celeste actualmente seleccionado por el usuario. null = ninguno. */
+  selectedBody: BodyId | null;
+  /** @deprecated Usa selectedBody. Alias de compatibilidad temporal. */
   selectedPlanet: PlanetId | null;
   setSelectedPlanet: (planet: PlanetId | null) => void;
 
@@ -70,10 +72,16 @@ interface AppState {
 
   /**
    * Acción unificada de navegación.
-   * null  → vuelve a modo global (selectedPlanet=null, viewMode='global', cameraMode='overview')
-   * PlanetId → entra en modo local (selectedPlanet=id, viewMode='local', cameraMode='focus')
+   * null    → vuelve a modo global (selectedBody=null, viewMode='global', cameraMode='overview')
+   * BodyId  → entra en modo local (selectedBody=id, viewMode='local', cameraMode='focus')
+   *           Acepta cualquier PlanetId o 'moon'.
    */
-  goToBody: (id: PlanetId | null) => void;
+  goToBody: (id: BodyId | null) => void;
+
+  /** Mostrar ejes de rotación axial en los cuerpos celestes. Desactivado por defecto. */
+  showRotationAxes: boolean;
+  /** Alterna la visibilidad de los ejes de rotación axial. */
+  toggleRotationAxes: () => void;
 
   // — Control de velocidad de simulación —
 
@@ -156,8 +164,9 @@ export const useAppStore = create<AppStateInternal>()((set) => ({
   requestCameraHome: () => set((s) => ({ cameraHomeRequested: s.cameraHomeRequested + 1 })),
 
   // Nuevos campos
-  selectedPlanet: null,
-  setSelectedPlanet: (selectedPlanet) => set({ selectedPlanet }),
+  selectedBody: null,
+  selectedPlanet: null, // alias de compatibilidad — refleja selectedBody cuando es PlanetId
+  setSelectedPlanet: (selectedPlanet) => set({ selectedPlanet, selectedBody: selectedPlanet }),
 
   cameraMode: 'overview',
   setCameraMode: (cameraMode) => set({ cameraMode }),
@@ -188,10 +197,18 @@ export const useAppStore = create<AppStateInternal>()((set) => ({
 
   goToBody: (id) => {
     if (id === null) {
-      set({ selectedPlanet: null, viewMode: 'global', cameraMode: 'overview' });
+      set({ selectedBody: null, selectedPlanet: null, viewMode: 'global', cameraMode: 'overview' });
     } else {
-      set({ selectedPlanet: id, viewMode: 'local', cameraMode: 'focus' });
+      // selectedPlanet sólo se actualiza cuando id es un PlanetId (no 'moon')
+      const planetId = id !== 'moon' ? id : null;
+      set({ selectedBody: id, selectedPlanet: planetId, viewMode: 'local', cameraMode: 'focus' });
     }
+  },
+
+  showRotationAxes: false,
+  toggleRotationAxes: () => {
+    const { showRotationAxes } = useAppStore.getState();
+    set({ showRotationAxes: !showRotationAxes });
   },
 
   // Control de velocidad de simulación
@@ -280,6 +297,8 @@ export const useAppStore = create<AppStateInternal>()((set) => ({
 
 export const useLevel = () => useAppStore((s) => s.level);
 export const useLocale = () => useAppStore((s) => s.locale);
+export const useSelectedBody = () => useAppStore((s) => s.selectedBody);
+/** @deprecated Usa useSelectedBody. Alias de compatibilidad. */
 export const useSelectedPlanet = () => useAppStore((s) => s.selectedPlanet);
 export const useCameraMode = () => useAppStore((s) => s.cameraMode);
 export const useTextureQuality = () => useAppStore((s) => s.textureQuality);

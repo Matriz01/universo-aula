@@ -147,6 +147,9 @@
       "name": "Cometa Halley"
     }
   },
+  "bodies": {
+    "moon": "Luna"
+  },
   "pluto": {
     "name": "Plutón",
     "explorador": { "description": "Antes era un planeta. Ahora se llama planeta enano." },

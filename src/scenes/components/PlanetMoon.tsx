@@ -64,6 +64,7 @@ function MoonMeshInner({
   const meshRef = useRef<Mesh>(null);
   const viewMode = useAppStore((s) => s.viewMode);
   const level = useAppStore((s) => s.level);
+  const goToBody = useAppStore((s) => s.goToBody);
 
   // Obtenemos datos de planetas para encontrar la Tierra
   const { data } = usePlanetsData();
@@ -125,6 +126,16 @@ function MoonMeshInner({
       geometry={geometry}
       material={material}
       name="moon"
+      onClick={(e) => {
+        e.stopPropagation();
+        goToBody('moon');
+      }}
+      onPointerOver={() => {
+        document.body.style.cursor = 'pointer';
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = 'auto';
+      }}
       {...(cs ? { castShadow: true } : {})}
       {...(rs ? { receiveShadow: true } : {})}
     />
@@ -139,6 +150,7 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
   const meshRef = useRef<Mesh>(null);
   const viewMode = useAppStore((s) => s.viewMode);
   const level = useAppStore((s) => s.level);
+  const goToBody = useAppStore((s) => s.goToBody);
 
   const { data } = usePlanetsData();
   const earthData = data?.planets.find((p) => p.id === 'earth') ?? EARTH_FALLBACK_DATA;
@@ -183,7 +195,24 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
     }
   });
 
-  return <mesh ref={meshRef} geometry={geometry} material={material} name="moon-fallback" />;
+  return (
+    <mesh
+      ref={meshRef}
+      geometry={geometry}
+      material={material}
+      name="moon-fallback"
+      onClick={(e) => {
+        e.stopPropagation();
+        goToBody('moon');
+      }}
+      onPointerOver={() => {
+        document.body.style.cursor = 'pointer';
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = 'auto';
+      }}
+    />
+  );
 }
 
 // ---------------------------------------------------------------------------

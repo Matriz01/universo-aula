@@ -23,11 +23,13 @@ vi.mock('@/store/useAppStore', () => ({
   useAppStore: vi.fn((selector: (s: unknown) => unknown) => {
     const state = {
       selectedPlanet: mockSelectedPlanet,
+      selectedBody: mockSelectedPlanet, // alias — en los tests existentes selectedPlanet es PlanetId
       goToBody: mockGoToBody,
       level: mockLevel,
     };
     return selector ? selector(state) : state;
   }),
+  useSelectedBody: () => mockSelectedPlanet,
 }));
 
 vi.mock('react-i18next', () => ({

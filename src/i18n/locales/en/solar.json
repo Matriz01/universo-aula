@@ -147,6 +147,9 @@
       "name": "Halley's Comet"
     }
   },
+  "bodies": {
+    "moon": "Moon"
+  },
   "pluto": {
     "name": "Pluto",
     "explorador": { "description": "It used to be a planet. Now it is called a dwarf planet." },

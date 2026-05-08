@@ -14,6 +14,13 @@ export type PlanetId =
   | 'neptune'
   | 'pluto';
 
+/**
+ * BodyId — unión de todos los cuerpos celestes seleccionables.
+ * La Luna no es un planeta; se añade como literal independiente
+ * para preservar la semántica de PlanetId sin cambiarla.
+ */
+export type BodyId = PlanetId | 'moon';
+
 export type Classification = 'terrestrial' | 'gas_giant' | 'ice_giant' | 'dwarf_planet';
 
 export interface RingsData {

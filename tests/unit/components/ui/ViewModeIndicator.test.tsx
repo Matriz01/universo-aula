@@ -42,6 +42,7 @@ import { ViewModeIndicator } from '@/components/ui/ViewModeIndicator';
 beforeEach(() => {
   useAppStore.setState({
     viewMode: 'global',
+    selectedBody: null,
     selectedPlanet: null,
     showKnownEvents: false,
   });
@@ -58,7 +59,7 @@ describe('<ViewModeIndicator> — modo global', () => {
 
 describe('<ViewModeIndicator> — modo local', () => {
   beforeEach(() => {
-    useAppStore.setState({ viewMode: 'local', selectedPlanet: 'earth' });
+    useAppStore.setState({ viewMode: 'local', selectedBody: 'earth', selectedPlanet: 'earth' });
   });
 
   it('renderiza el indicador en modo local', () => {
