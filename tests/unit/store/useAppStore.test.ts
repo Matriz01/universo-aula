@@ -281,6 +281,86 @@ describe('selectores de simulación', () => {
   });
 });
 
+// ── T2.1–T2.4: openDatePicker / closeDatePicker (auto-pause) ─────────────────
+
+describe('useAppStore — openDatePicker()', () => {
+  beforeEach(() => {
+    // Estado inicial conocido: simulando 1 día/s
+    useAppStore.setState({
+      simulationSpeed: 86400,
+      lastNonZeroSpeed: 86400,
+      _speedBeforePickerOpen: null,
+      datePickerOpen: false,
+    } as Parameters<typeof useAppStore.setState>[0]);
+  });
+
+  it('T2.1: openDatePicker pone simulationSpeed a 0', () => {
+    useAppStore.getState().openDatePicker();
+    expect(useAppStore.getState().simulationSpeed).toBe(0);
+  });
+
+  it('T2.1: openDatePicker guarda _speedBeforePickerOpen con el valor previo (86400)', () => {
+    useAppStore.getState().openDatePicker();
+    expect(useAppStore.getState()._speedBeforePickerOpen).toBe(86400);
+  });
+
+  it('T2.1: openDatePicker pone datePickerOpen en true', () => {
+    useAppStore.getState().openDatePicker();
+    expect(useAppStore.getState().datePickerOpen).toBe(true);
+  });
+
+  it('T2.2: openDatePicker es idempotente — no sobrescribe _speedBeforePickerOpen con 0', () => {
+    useAppStore.getState().openDatePicker(); // primera llamada: guarda 86400
+    useAppStore.getState().openDatePicker(); // segunda llamada: no-op
+    expect(useAppStore.getState()._speedBeforePickerOpen).toBe(86400);
+    expect(useAppStore.getState().simulationSpeed).toBe(0);
+  });
+});
+
+describe('useAppStore — closeDatePicker()', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      simulationSpeed: 86400,
+      lastNonZeroSpeed: 86400,
+      _speedBeforePickerOpen: null,
+      datePickerOpen: false,
+    } as Parameters<typeof useAppStore.setState>[0]);
+  });
+
+  it('T2.3: closeDatePicker tras open restaura simulationSpeed al valor previo', () => {
+    useAppStore.getState().openDatePicker();
+    expect(useAppStore.getState().simulationSpeed).toBe(0);
+    useAppStore.getState().closeDatePicker();
+    expect(useAppStore.getState().simulationSpeed).toBe(86400);
+  });
+
+  it('T2.3: closeDatePicker pone _speedBeforePickerOpen en null tras restaurar', () => {
+    useAppStore.getState().openDatePicker();
+    useAppStore.getState().closeDatePicker();
+    expect(useAppStore.getState()._speedBeforePickerOpen).toBeNull();
+  });
+
+  it('T2.3: closeDatePicker pone datePickerOpen en false', () => {
+    useAppStore.getState().openDatePicker();
+    useAppStore.getState().closeDatePicker();
+    expect(useAppStore.getState().datePickerOpen).toBe(false);
+  });
+
+  it('T2.4: closeDatePicker sin open previo usa lastNonZeroSpeed y no lanza error', () => {
+    // _speedBeforePickerOpen es null, lastNonZeroSpeed es 86400
+    useAppStore.setState({
+      simulationSpeed: 0,
+      lastNonZeroSpeed: 86400,
+      _speedBeforePickerOpen: null,
+      datePickerOpen: false,
+    } as Parameters<typeof useAppStore.setState>[0]);
+
+    expect(() => useAppStore.getState().closeDatePicker()).not.toThrow();
+    // Speed no cambia (picker no estaba abierto — idempotente)
+    expect(useAppStore.getState().simulationSpeed).toBe(0);
+  });
+});
+
 // ── Nuevas acciones Batch 4: pausa/play + steps ──────────────────────────────
 
 describe('useAppStore — lastNonZeroSpeed', () => {
