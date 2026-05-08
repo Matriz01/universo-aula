@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/store/useAppStore';
 import { EmptyScene } from '@/scenes/EmptyScene';
 import { InfoPanel } from '@/components/ui/InfoPanel';
@@ -30,7 +31,10 @@ function readLegacyFlag(): boolean {
 }
 
 export function App() {
+  const { t: tSolar } = useTranslation('solar');
   const legacyFlag = useAppStore((s) => s.legacyFlag) || readLegacyFlag();
+  const showRotationAxes = useAppStore((s) => s.showRotationAxes);
+  const toggleRotationAxes = useAppStore((s) => s.toggleRotationAxes);
   const [creditsOpen, setCreditsOpen] = useState(false);
 
   return (
@@ -73,8 +77,21 @@ export function App() {
           <ViewModeIndicator />
         </div>
 
-        {/* Bottom-right: CreditsButton — z-40 */}
-        <div className="pointer-events-auto absolute bottom-4 right-4 z-40">
+        {/* Bottom-right: toggle de ejes axiales + CreditsButton — z-40 */}
+        <div className="pointer-events-auto absolute bottom-4 right-4 z-40 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleRotationAxes}
+            aria-label={showRotationAxes ? tSolar('hud.hideAxes') : tSolar('hud.showAxes')}
+            title={showRotationAxes ? tSolar('hud.hideAxes') : tSolar('hud.showAxes')}
+            className={`rounded border px-2 py-1 text-xs backdrop-blur transition-colors ${
+              showRotationAxes
+                ? 'border-cyan-400 bg-cyan-900/60 text-cyan-300'
+                : 'border-white/20 bg-black/40 text-white hover:border-white/40'
+            }`}
+          >
+            {showRotationAxes ? tSolar('hud.hideAxes') : tSolar('hud.showAxes')}
+          </button>
           <CreditsButton onOpen={() => setCreditsOpen(true)} />
         </div>
       </div>

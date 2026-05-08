@@ -150,6 +150,10 @@
   "bodies": {
     "moon": "Luna"
   },
+  "hud": {
+    "showAxes": "Mostrar ejes",
+    "hideAxes": "Ocultar ejes"
+  },
   "pluto": {
     "name": "Plutón",
     "explorador": { "description": "Antes era un planeta. Ahora se llama planeta enano." },
