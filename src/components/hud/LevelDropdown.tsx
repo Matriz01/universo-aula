@@ -38,7 +38,7 @@ export const LevelDropdown = React.memo(function LevelDropdown() {
       </label>
       <select
         id="level-dropdown"
-        aria-label="Nivel pedagógico"
+        aria-label={t('solar:hud.level', 'Nivel pedagógico')}
         value={level}
         onChange={handleChange}
         className="rounded border border-white/20 bg-black/40 px-2 py-1 text-xs text-white backdrop-blur focus:outline-none focus:ring-1 focus:ring-white/40"

@@ -16,7 +16,7 @@ import { useAppStore } from '@/store/useAppStore';
  * Lee el locale del store; onChange actualiza store + i18n.
  */
 export const LanguageSelector = React.memo(function LanguageSelector() {
-  const { i18n } = useTranslation('solar');
+  const { i18n, t } = useTranslation('solar');
   const locale = useAppStore((s) => s.locale);
   const setLocale = useAppStore((s) => s.setLocale);
 
@@ -30,11 +30,11 @@ export const LanguageSelector = React.memo(function LanguageSelector() {
     <div className="pointer-events-auto">
       {/* Label visualmente oculta para accesibilidad */}
       <label htmlFor="language-selector" className="sr-only">
-        Idioma
+        {t('solar:hud.language', 'Idioma')}
       </label>
       <select
         id="language-selector"
-        aria-label="Idioma"
+        aria-label={t('solar:hud.language', 'Idioma')}
         value={locale}
         onChange={handleChange}
         className="rounded border border-white/20 bg-black/40 px-2 py-1 text-xs text-white backdrop-blur focus:outline-none focus:ring-1 focus:ring-white/40"

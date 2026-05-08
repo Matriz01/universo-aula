@@ -1,5 +1,5 @@
 /**
- * solar-system.spec.ts — carga inicial, atribución, LevelSelector y consola limpia.
+ * solar-system.spec.ts — carga inicial, atribución, LevelDropdown y consola limpia.
  *
  * Playwright E2E — Phase 11 de solar-system-mvp.
  * Requiere `pnpm preview` en ejecución (baseURL configurado en playwright.config.ts).
@@ -21,20 +21,18 @@ test.describe('Solar System — carga inicial', () => {
     await expect(footer).toContainText('Solar System Scope');
   });
 
-  test('LevelSelector — click en Aprendiz adapta layout del InfoPanel', async ({ page }) => {
+  test('LevelDropdown — cambiar a Aprendiz actualiza el nivel', async ({ page }) => {
     await page.goto('/');
 
-    // Espera a que el LevelSelector esté disponible
-    const levelSelector = page.locator('[data-testid="level-selector"]');
-    await expect(levelSelector).toBeVisible({ timeout: 10_000 });
+    // Espera a que el LevelDropdown esté disponible
+    const levelDropdown = page.locator('select[aria-label="Nivel pedagógico"]');
+    await expect(levelDropdown).toBeVisible({ timeout: 10_000 });
 
-    // Click en Aprendiz
-    const aprendizBtn = page.locator('[data-testid="level-button-aprendiz"]');
-    await expect(aprendizBtn).toBeVisible();
-    await aprendizBtn.click();
+    // Seleccionar Aprendiz
+    await levelDropdown.selectOption('aprendiz');
 
-    // El botón debe quedar marcado como activo
-    await expect(aprendizBtn).toHaveAttribute('aria-pressed', 'true');
+    // El select debe tener el valor aprendiz
+    await expect(levelDropdown).toHaveValue('aprendiz');
   });
 
   test.skip('0 errores de consola al cargar', async ({ page }) => {
