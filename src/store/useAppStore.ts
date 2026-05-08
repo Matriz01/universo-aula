@@ -215,7 +215,7 @@ export const useAppStore = create<AppStateInternal>()((set) => ({
   lastNonZeroSpeed: 1,
 
   setSimulationSpeed: (speed) => {
-    if (speed > 0) {
+    if (speed !== 0) {
       set({ simulationSpeed: speed, lastNonZeroSpeed: speed });
     } else {
       set({ simulationSpeed: 0 });
@@ -234,27 +234,32 @@ export const useAppStore = create<AppStateInternal>()((set) => ({
   incrementSpeedStop: () => {
     const { simulationSpeed } = useAppStore.getState();
     const idx = SPEED_STOPS_SECONDS_PER_SECOND.indexOf(simulationSpeed);
-    const nextIdx = idx === -1 ? 1 : Math.min(idx + 1, SPEED_STOPS_SECONDS_PER_SECOND.length - 1);
+    // Fallback: si speed no está en el array, ir al stop de tiempo real (índice 13)
+    const nextIdx = idx === -1 ? 13 : Math.min(idx + 1, SPEED_STOPS_SECONDS_PER_SECOND.length - 1);
     const nextSpeed = SPEED_STOPS_SECONDS_PER_SECOND[nextIdx];
     if (nextSpeed !== simulationSpeed) {
-      if (nextSpeed > 0) {
+      if (nextSpeed !== 0) {
         set({ simulationSpeed: nextSpeed, lastNonZeroSpeed: nextSpeed });
       } else {
-        set({ simulationSpeed: nextSpeed });
+        // Transitando por la pausa: preservar lastNonZeroSpeed
+        const { lastNonZeroSpeed } = useAppStore.getState();
+        set({ simulationSpeed: 0, lastNonZeroSpeed: lastNonZeroSpeed });
       }
     }
   },
 
   decrementSpeedStop: () => {
-    const { simulationSpeed, lastNonZeroSpeed } = useAppStore.getState();
+    const { simulationSpeed } = useAppStore.getState();
     const idx = SPEED_STOPS_SECONDS_PER_SECOND.indexOf(simulationSpeed);
-    const prevIdx = idx === -1 ? 0 : Math.max(idx - 1, 0);
+    // Fallback: si speed no está en el array, ir al stop de tiempo real (índice 13)
+    const prevIdx = idx === -1 ? 13 : Math.max(idx - 1, 0);
     const prevSpeed = SPEED_STOPS_SECONDS_PER_SECOND[prevIdx];
     if (prevSpeed !== simulationSpeed) {
-      if (prevSpeed > 0) {
+      if (prevSpeed !== 0) {
         set({ simulationSpeed: prevSpeed, lastNonZeroSpeed: prevSpeed });
       } else {
-        // Bajando a pausa: preservar lastNonZeroSpeed
+        // Transitando por la pausa: preservar lastNonZeroSpeed
+        const { lastNonZeroSpeed } = useAppStore.getState();
         set({ simulationSpeed: 0, lastNonZeroSpeed: lastNonZeroSpeed });
       }
     }

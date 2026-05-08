@@ -422,49 +422,93 @@ describe('useAppStore — incrementSpeedStop() / decrementSpeedStop()', () => {
     useAppStore.setState({ simulationSpeed: 1, lastNonZeroSpeed: 1 });
   });
 
-  it('incrementSpeedStop sube al siguiente stop', () => {
-    // stop 1 = 1, stop 2 = 3600
+  it('incrementSpeedStop sube al siguiente stop (1 → 3600)', () => {
     useAppStore.setState({ simulationSpeed: 1, lastNonZeroSpeed: 1 });
     useAppStore.getState().incrementSpeedStop();
     expect(useAppStore.getState().simulationSpeed).toBe(3600);
   });
 
-  it('decrementSpeedStop baja al stop anterior', () => {
-    // stop 2 = 3600, stop 1 = 1
+  it('decrementSpeedStop baja al stop anterior (3600 → 1)', () => {
     useAppStore.setState({ simulationSpeed: 3600, lastNonZeroSpeed: 3600 });
     useAppStore.getState().decrementSpeedStop();
     expect(useAppStore.getState().simulationSpeed).toBe(1);
   });
 
-  it('incrementSpeedStop en el último stop no cambia nada', () => {
-    // stop 12 = 31536000
+  it('incrementSpeedStop en el último stop (31536000) no cambia nada', () => {
     useAppStore.setState({ simulationSpeed: 31536000, lastNonZeroSpeed: 31536000 });
     useAppStore.getState().incrementSpeedStop();
     expect(useAppStore.getState().simulationSpeed).toBe(31536000);
   });
 
-  it('decrementSpeedStop en stop 0 no cambia nada', () => {
-    useAppStore.setState({ simulationSpeed: 0, lastNonZeroSpeed: 1 });
+  it('decrementSpeedStop en el primer stop (-31536000) no cambia nada', () => {
+    useAppStore.setState({ simulationSpeed: -31536000, lastNonZeroSpeed: -31536000 });
     useAppStore.getState().decrementSpeedStop();
-    expect(useAppStore.getState().simulationSpeed).toBe(0);
+    expect(useAppStore.getState().simulationSpeed).toBe(-31536000);
   });
 
-  it('decrementSpeedStop en stop 1 (speed=1) baja a stop 0 (pausa)', () => {
+  it('decrementSpeedStop en speed=0 baja a -1 (velocidad negativa más cercana)', () => {
+    useAppStore.setState({ simulationSpeed: 0, lastNonZeroSpeed: 1 });
+    useAppStore.getState().decrementSpeedStop();
+    expect(useAppStore.getState().simulationSpeed).toBe(-1);
+  });
+
+  it('incrementSpeedStop en speed=0 sube a 1 (tiempo real)', () => {
+    useAppStore.setState({ simulationSpeed: 0, lastNonZeroSpeed: 1 });
+    useAppStore.getState().incrementSpeedStop();
+    expect(useAppStore.getState().simulationSpeed).toBe(1);
+  });
+
+  it('decrementSpeedStop en speed=1 baja a speed=0 (pausa)', () => {
     useAppStore.setState({ simulationSpeed: 1, lastNonZeroSpeed: 1 });
     useAppStore.getState().decrementSpeedStop();
     expect(useAppStore.getState().simulationSpeed).toBe(0);
   });
 
-  it('incrementSpeedStop actualiza lastNonZeroSpeed', () => {
+  it('incrementSpeedStop actualiza lastNonZeroSpeed para velocidades positivas', () => {
     useAppStore.setState({ simulationSpeed: 1, lastNonZeroSpeed: 1 });
     useAppStore.getState().incrementSpeedStop();
     expect(useAppStore.getState().lastNonZeroSpeed).toBe(3600);
   });
 
-  it('decrementSpeedStop a speed=0 no actualiza lastNonZeroSpeed', () => {
+  it('decrementSpeedStop a speed=0 preserva lastNonZeroSpeed', () => {
     useAppStore.setState({ simulationSpeed: 1, lastNonZeroSpeed: 1 });
     useAppStore.getState().decrementSpeedStop();
     // speed baja a 0, lastNonZeroSpeed debe preservarse
     expect(useAppStore.getState().lastNonZeroSpeed).toBe(1);
+  });
+
+  it('decrementSpeedStop actualiza lastNonZeroSpeed para velocidades negativas', () => {
+    useAppStore.setState({ simulationSpeed: -1, lastNonZeroSpeed: 1 });
+    useAppStore.getState().decrementSpeedStop();
+    expect(useAppStore.getState().simulationSpeed).toBe(-3600);
+    expect(useAppStore.getState().lastNonZeroSpeed).toBe(-3600);
+  });
+
+  it('incrementSpeedStop desde velocidad negativa (-3600 → -1)', () => {
+    useAppStore.setState({ simulationSpeed: -3600, lastNonZeroSpeed: -3600 });
+    useAppStore.getState().incrementSpeedStop();
+    expect(useAppStore.getState().simulationSpeed).toBe(-1);
+  });
+});
+
+describe('useAppStore — togglePause() con velocidades negativas', () => {
+  it('pausar desde velocidad negativa pone speed a 0 y preserva lastNonZeroSpeed', () => {
+    useAppStore.setState({ simulationSpeed: -3600, lastNonZeroSpeed: -3600 });
+    useAppStore.getState().togglePause();
+    expect(useAppStore.getState().simulationSpeed).toBe(0);
+    expect(useAppStore.getState().lastNonZeroSpeed).toBe(-3600);
+  });
+
+  it('reanudar tras velocidad negativa restaura la velocidad negativa', () => {
+    useAppStore.setState({ simulationSpeed: 0, lastNonZeroSpeed: -3600 });
+    useAppStore.getState().togglePause();
+    expect(useAppStore.getState().simulationSpeed).toBe(-3600);
+  });
+
+  it('ciclo pause→resume preserva velocidad negativa', () => {
+    useAppStore.setState({ simulationSpeed: -86400, lastNonZeroSpeed: -86400 });
+    useAppStore.getState().togglePause();
+    useAppStore.getState().togglePause();
+    expect(useAppStore.getState().simulationSpeed).toBe(-86400);
   });
 });
