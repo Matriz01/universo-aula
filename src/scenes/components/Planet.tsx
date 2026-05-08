@@ -23,6 +23,7 @@ import { degToRad } from '@/scenes/orbital';
 import { useAppStore } from '@/store/useAppStore';
 import { getJD, J2000_JD } from '@/scenes/simulationClock';
 import { computeLabelOffset } from '@/scenes/helpers/labelHelpers';
+import { RotationAxisLine } from '@/scenes/components/RotationAxisLine';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -70,6 +71,7 @@ function PlanetMeshInner({
   const meshRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
   const viewMode = useAppStore((s) => s.viewMode);
+  const showRotationAxes = useAppStore((s) => s.showRotationAxes);
   const { t } = useTranslation('solar');
 
   // Textura lazy — useTexture suspende hasta que carga
@@ -130,6 +132,8 @@ function PlanetMeshInner({
           {...(cs ? { castShadow: true } : {})}
           {...(rs ? { receiveShadow: true } : {})}
         />
+        {/* Eje de rotación axial — visible solo cuando showRotationAxes=true */}
+        <RotationAxisLine radius={planetRadius} tiltDeg={0} visible={showRotationAxes} />
       </group>
       <Html
         position={computeLabelOffset(planetRadius)}
@@ -162,6 +166,7 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
   const groupRef = useRef<Group>(null);
   const meshRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
+  const showRotationAxes = useAppStore((s) => s.showRotationAxes);
 
   const planetRadius = useScaledRadius(planet.radius_km);
   const geometry = useMemo(() => new SphereGeometry(planetRadius, 16, 16), [planetRadius]);
@@ -197,6 +202,7 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
     <group ref={groupRef} name={planet.id} onClick={() => onClick?.(planet.id)}>
       <group rotation={[0, 0, tiltRad]}>
         <mesh ref={meshRef} geometry={geometry} material={material} name={`${planet.id}-sphere`} />
+        <RotationAxisLine radius={planetRadius} tiltDeg={0} visible={showRotationAxes} />
       </group>
     </group>
   );

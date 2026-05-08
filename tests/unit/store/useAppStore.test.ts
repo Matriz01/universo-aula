@@ -27,24 +27,24 @@ describe('useAppStore — campos originales', () => {
   });
 });
 
-describe('useAppStore — selectedPlanet', () => {
+describe('useAppStore — selectedBody (via setSelectedPlanet)', () => {
   beforeEach(() => {
-    useAppStore.setState({ selectedPlanet: null });
+    useAppStore.setState({ selectedBody: null });
   });
 
   it('valor inicial es null', () => {
-    expect(useAppStore.getState().selectedPlanet).toBeNull();
+    expect(useAppStore.getState().selectedBody).toBeNull();
   });
 
-  it('setSelectedPlanet actualiza el planeta seleccionado', () => {
+  it('setSelectedPlanet actualiza selectedBody con el planeta seleccionado', () => {
     useAppStore.getState().setSelectedPlanet('mars');
-    expect(useAppStore.getState().selectedPlanet).toBe('mars');
+    expect(useAppStore.getState().selectedBody).toBe('mars');
   });
 
   it('setSelectedPlanet acepta null', () => {
     useAppStore.getState().setSelectedPlanet('earth');
     useAppStore.getState().setSelectedPlanet(null);
-    expect(useAppStore.getState().selectedPlanet).toBeNull();
+    expect(useAppStore.getState().selectedBody).toBeNull();
   });
 });
 
@@ -198,7 +198,7 @@ describe('useAppStore — showKnownEvents', () => {
 describe('useAppStore — goToBody', () => {
   beforeEach(() => {
     useAppStore.setState({
-      selectedPlanet: null,
+      selectedBody: null,
       viewMode: 'global',
       cameraMode: 'overview',
     });
@@ -210,7 +210,7 @@ describe('useAppStore — goToBody', () => {
     // Luego volver a global
     useAppStore.getState().goToBody(null);
     const state = useAppStore.getState();
-    expect(state.selectedPlanet).toBeNull();
+    expect(state.selectedBody).toBeNull();
     expect(state.viewMode).toBe('global');
     expect(state.cameraMode).toBe('overview');
   });
@@ -218,7 +218,7 @@ describe('useAppStore — goToBody', () => {
   it('goToBody(PlanetId) establece modo local con el planeta correcto', () => {
     useAppStore.getState().goToBody('jupiter');
     const state = useAppStore.getState();
-    expect(state.selectedPlanet).toBe('jupiter');
+    expect(state.selectedBody).toBe('jupiter');
     expect(state.viewMode).toBe('local');
     expect(state.cameraMode).toBe('focus');
   });
@@ -226,7 +226,7 @@ describe('useAppStore — goToBody', () => {
   it('goToBody con earth activa modo local con Tierra', () => {
     useAppStore.getState().goToBody('earth');
     const state = useAppStore.getState();
-    expect(state.selectedPlanet).toBe('earth');
+    expect(state.selectedBody).toBe('earth');
     expect(state.viewMode).toBe('local');
   });
 

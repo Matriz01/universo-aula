@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Providers } from '@/app/providers';
 import { App } from '@/app/App';
+import { useAppStore } from '@/store/useAppStore';
 
 // R3F no puede renderizarse en jsdom — mockeamos Canvas para que pase children
 vi.mock('@react-three/fiber', () => ({
@@ -152,5 +153,89 @@ describe('App', () => {
       // DateControl mostraba data-testid="date-control" o similar; ya no debe estar
       expect(screen.queryByTestId('date-control')).not.toBeInTheDocument();
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// REQ-AXIS-VIS-5 — HUD toggle de ejes de rotación axial (REQ-I18N-3 incluido)
+// ---------------------------------------------------------------------------
+
+describe('App — botón HUD de ejes de rotación axial (REQ-AXIS-VIS-5)', () => {
+  beforeEach(() => {
+    // Resetear el store al estado inicial antes de cada test
+    useAppStore.setState({ showRotationAxes: false });
+  });
+
+  it('el botón "Mostrar ejes" está presente en el HUD (showRotationAxes=false)', () => {
+    render(
+      <Providers>
+        <App />
+      </Providers>,
+    );
+    // El botón tiene aria-label = t('hud.showAxes') cuando los ejes están ocultos.
+    // react-i18next en tests usa la key por defecto, pero Providers incluye i18n real.
+    // Buscamos por el texto renderizado O por aria-label parcial.
+    const button = screen.getByRole('button', { name: /mostrar ejes|show axes/i });
+    expect(button).toBeInTheDocument();
+  });
+
+  it('un click en el botón activa showRotationAxes en el store', () => {
+    render(
+      <Providers>
+        <App />
+      </Providers>,
+    );
+    expect(useAppStore.getState().showRotationAxes).toBe(false);
+
+    const button = screen.getByRole('button', { name: /mostrar ejes|show axes/i });
+    fireEvent.click(button);
+
+    expect(useAppStore.getState().showRotationAxes).toBe(true);
+  });
+
+  it('dos clicks alternan showRotationAxes false → true → false', () => {
+    render(
+      <Providers>
+        <App />
+      </Providers>,
+    );
+    expect(useAppStore.getState().showRotationAxes).toBe(false);
+
+    // Primer click: false → true
+    const button = screen.getByRole('button', { name: /mostrar ejes|show axes/i });
+    fireEvent.click(button);
+    expect(useAppStore.getState().showRotationAxes).toBe(true);
+
+    // Segundo click: true → false.
+    // El botón ahora tiene aria-label "Ocultar ejes" — buscamos de nuevo.
+    const hideButton = screen.getByRole('button', { name: /ocultar ejes|hide axes/i });
+    fireEvent.click(hideButton);
+    expect(useAppStore.getState().showRotationAxes).toBe(false);
+  });
+
+  it('cuando showRotationAxes=false el botón usa t("hud.showAxes") como aria-label', () => {
+    useAppStore.setState({ showRotationAxes: false });
+    render(
+      <Providers>
+        <App />
+      </Providers>,
+    );
+    // El aria-label debe ser la traducción de hud.showAxes, no un literal hardcodeado.
+    // En ES (locale por defecto) = "Mostrar ejes".
+    const button = screen.getByRole('button', { name: /mostrar ejes/i });
+    expect(button).toBeInTheDocument();
+    expect(button.getAttribute('aria-label')).toMatch(/mostrar ejes/i);
+  });
+
+  it('cuando showRotationAxes=true el botón usa t("hud.hideAxes") como aria-label', () => {
+    useAppStore.setState({ showRotationAxes: true });
+    render(
+      <Providers>
+        <App />
+      </Providers>,
+    );
+    const button = screen.getByRole('button', { name: /ocultar ejes/i });
+    expect(button).toBeInTheDocument();
+    expect(button.getAttribute('aria-label')).toMatch(/ocultar ejes/i);
   });
 });

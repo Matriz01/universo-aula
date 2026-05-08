@@ -128,7 +128,10 @@ export const CameraController = React.memo(function CameraController({
   planetPositionsRef,
   planetRadius,
 }: CameraControllerProps) {
-  const selectedPlanet = useAppStore((s) => s.selectedPlanet);
+  const selectedBody = useAppStore((s) => s.selectedBody);
+  // CameraController solo hace follow de planetas (PlanetId), no de la Luna.
+  // La Luna usa frame-of-reference (origin offset) — no delta-vector follow.
+  const selectedPlanet = selectedBody !== 'moon' ? selectedBody : null;
   const prefersReducedMotion = useAppStore((s) => s.prefersReducedMotion);
   const cameraMode = useAppStore((s) => s.cameraMode);
   const viewMode = useAppStore((s) => s.viewMode);
@@ -173,8 +176,26 @@ export const CameraController = React.memo(function CameraController({
     reducedMotion: prefersReducedMotion,
   });
 
-  // Follow mode (delta-vector) — solo en modo local
+  // Follow mode:
+  // - En modo local: frame-of-reference garantiza que el cuerpo seleccionado está en (0,0,0).
+  //   Solo fijamos controls.target = (0,0,0). No hay delta-vector follow → no hay shake.
+  // - En modo global: traslación rígida (delta-vector approach) — el planeta se mueve en el
+  //   espacio y la cámara le sigue manteniendo el offset relativo.
   useFrame(() => {
+    const controls = controlsRef.current;
+
+    if (viewMode === 'local') {
+      // Modo local: cuerpo seleccionado siempre en (0,0,0) por frame-of-reference (C.11)
+      if (controls && cameraMode === 'focus') {
+        controls.target.fromArray([0, 0, 0]);
+      }
+      // Limpiar refs para evitar salto al volver a modo global
+      lastPlanetPos.current = null;
+      livePlanetPosRef.current = null;
+      return;
+    }
+
+    // Modo global: delta-vector follow
     const currentPos = planetPositionsRef?.current?.[selectedPlanet ?? ''];
 
     if (currentPos && selectedPlanet) {
@@ -187,15 +208,12 @@ export const CameraController = React.memo(function CameraController({
       livePlanetPosRef.current = null;
     }
 
-    if (cameraMode !== 'focus' || !selectedPlanet || viewMode !== 'local') {
+    if (cameraMode !== 'focus' || !selectedPlanet) {
       lastPlanetPos.current = null;
       return;
     }
 
-    if (!currentPos) return;
-
-    const controls = controlsRef.current;
-    if (!controls) return;
+    if (!currentPos || !controls) return;
 
     if (lastPlanetPos.current === null) {
       lastPlanetPos.current = currentPos.clone();

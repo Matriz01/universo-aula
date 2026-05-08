@@ -29,6 +29,8 @@ import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
 import { degToRad } from '@/scenes/orbital';
 import { getJD, J2000_JD } from '@/scenes/simulationClock';
+import { useAppStore } from '@/store/useAppStore';
+import { RotationAxisLine } from '@/scenes/components/RotationAxisLine';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -59,6 +61,7 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
   const groupRef = useRef<Group>(null);
   const sphereRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
+  const showRotationAxes = useAppStore((s) => s.showRotationAxes);
 
   // Velocidad angular de auto-rotación (rad/día simulado), acotada ×0.4 para gigantes
   const omega = useMemo(() => {
@@ -143,6 +146,8 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
             name={`${planet.id}-rings`}
           />
         )}
+        {/* Eje de rotación axial — visible solo cuando showRotationAxes=true */}
+        <RotationAxisLine radius={planetRadius} tiltDeg={0} visible={showRotationAxes} />
       </group>
     </group>
   );
@@ -155,6 +160,7 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
 function SaturnFallback({ planet, level, onClick, positionsRef }: SaturnProps) {
   const groupRef = useRef<Group>(null);
   const posRef = usePlanetPosition(planet, level);
+  const showRotationAxes = useAppStore((s) => s.showRotationAxes);
 
   // Radio visual según modo activo (real en local, didáctico en global)
   const planetRadius = useScaledRadius(planet.radius_km);
@@ -192,12 +198,17 @@ function SaturnFallback({ planet, level, onClick, positionsRef }: SaturnProps) {
     }
   });
 
+  const tiltRad = degToRad(planet.axial_tilt_deg);
+
   return (
     <group ref={groupRef} name={planet.id} onClick={() => onClick?.(planet.id)}>
-      <mesh geometry={sphereGeometry} material={sphereMaterial} />
-      {ringGeometry && (
-        <mesh geometry={ringGeometry} material={ringMaterial} rotation={[Math.PI / 2, 0, 0]} />
-      )}
+      <group rotation={[0, 0, tiltRad]}>
+        <mesh geometry={sphereGeometry} material={sphereMaterial} />
+        {ringGeometry && (
+          <mesh geometry={ringGeometry} material={ringMaterial} rotation={[Math.PI / 2, 0, 0]} />
+        )}
+        <RotationAxisLine radius={planetRadius} tiltDeg={0} visible={showRotationAxes} />
+      </group>
     </group>
   );
 }

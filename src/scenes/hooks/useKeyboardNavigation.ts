@@ -15,7 +15,9 @@ import { useAppStore } from '@/store/useAppStore';
 import { CELESTIAL_ORDER } from '@/scenes/data/types';
 
 export function useKeyboardNavigation(): void {
-  const selectedPlanet = useAppStore((s) => s.selectedPlanet);
+  const selectedBody = useAppStore((s) => s.selectedBody);
+  // La navegación Tab solo cicla por PlanetId (CELESTIAL_ORDER no incluye 'moon')
+  const selectedPlanet = selectedBody !== 'moon' ? selectedBody : null;
   const setSelectedPlanet = useAppStore((s) => s.setSelectedPlanet);
   const tourActive = useAppStore((s) => s.tourActive);
   const setTourActive = useAppStore((s) => s.setTourActive);
@@ -72,7 +74,7 @@ export function useKeyboardNavigation(): void {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [
-    selectedPlanet,
+    selectedBody,
     setSelectedPlanet,
     tourActive,
     setTourActive,

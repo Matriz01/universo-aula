@@ -18,10 +18,13 @@ import { useTexture } from '@react-three/drei';
 import type { Mesh } from 'three';
 import { SphereGeometry, MeshStandardMaterial, Vector3 } from 'three';
 import { useAppStore } from '@/store/useAppStore';
-import { visualRadius, localVisualRadius, localVisualDistanceFromKm } from '@/scenes/scale';
+import { visualRadius, localVisualRadius } from '@/scenes/scale';
 import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
+import { useMoonPosition } from '@/scenes/hooks/useMoonPosition';
 import { usePlanetsData } from '@/scenes/hooks/usePlanetsData';
-import { getJD, J2000_JD } from '@/scenes/simulationClock';
+import { EARTH_FALLBACK_DATA } from '@/scenes/data/earthFallback';
+import { MOON_AXIAL_TILT_DEG } from '@/scenes/data/moon';
+import { RotationAxisLine } from '@/scenes/components/RotationAxisLine';
 
 // ---------------------------------------------------------------------------
 // Constantes
@@ -30,20 +33,11 @@ import { getJD, J2000_JD } from '@/scenes/simulationClock';
 /** Radio real de la Luna en km */
 const MOON_RADIUS_KM = 1737;
 
-/** Periodo orbital de la Luna en días simulados */
-const MOON_PERIOD_DAYS = 27.3;
-
-/** Órbita en modo global (escala didáctica compacta) */
-const MOON_ORBIT_RADIUS_GLOBAL = 0.8;
-
-/** Distancia real Tierra-Luna en km */
-const MOON_ORBIT_REAL_KM = 384_400;
-
 /**
- * Órbita en modo local: distancia real Tierra-Luna en escala 1:1 (1 unidad = 1000 km).
- * = 384.4 unidades ≈ 60× radio Tierra real (6.37 unidades) — correcto.
+ * Radio de órbita en modo global (escala didáctica compacta).
+ * En modo local, la posición es calculada por computeMoonPosition con escala real.
  */
-const MOON_ORBIT_RADIUS_LOCAL = localVisualDistanceFromKm(MOON_ORBIT_REAL_KM);
+const MOON_ORBIT_RADIUS_GLOBAL = 0.8;
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -71,41 +65,19 @@ function MoonMeshInner({
 }: PlanetMoonProps) {
   const meshRef = useRef<Mesh>(null);
   const viewMode = useAppStore((s) => s.viewMode);
-  const selectedPlanet = useAppStore((s) => s.selectedPlanet);
   const level = useAppStore((s) => s.level);
+  const goToBody = useAppStore((s) => s.goToBody);
+  const showRotationAxes = useAppStore((s) => s.showRotationAxes);
 
-  // Obtenemos datos de planetas para encontrar la Tierra en modo local
+  // Obtenemos datos de planetas para encontrar la Tierra
   const { data } = usePlanetsData();
-  const earthData = data?.planets.find((p) => p.id === 'earth') ?? null;
+  const earthData = data?.planets.find((p) => p.id === 'earth') ?? EARTH_FALLBACK_DATA;
 
-  // Hook de posición de la Tierra — siempre invocado (reglas de hooks).
-  // Solo se usa en modo local; en global se lee positionsRef como antes.
-  // Si earthData es null, pasamos un objeto mínimo que da posición (0,0,0).
-  const earthPosRef = usePlanetPosition(
-    earthData ?? {
-      id: 'earth',
-      classification: 'terrestrial' as const,
-      radius_km: 6371,
-      mass_kg: 5.972e24,
-      density_g_cm3: 5.514,
-      gravity_m_s2: 9.807,
-      rotation_period_h: 23.9345,
-      axial_tilt_deg: 23.4393,
-      mean_temperature_k: 288,
-      semi_major_axis_AU: 1.0,
-      eccentricity: 0.01671,
-      inclination_deg: 0.00005,
-      longitude_ascending_node_deg: -11.26064,
-      argument_perihelion_deg: 114.20783,
-      mean_anomaly_J2000_deg: 358.617,
-      orbital_period_days: 365.256,
-      color_hex: '#4a90e2',
-      has_rings: false,
-      moons_count: 1,
-      texture_base: '/textures/earth/',
-    },
-    level,
-  );
+  // Posición de la Tierra — siempre invocado (reglas de hooks)
+  const earthPosRef = usePlanetPosition(earthData, level);
+
+  // Posición de la Luna — usa computeMoonPosition con órbita 3D inclinada
+  const moonPosRef = useMoonPosition(earthPosRef);
 
   const texture = useTexture('/textures/moon/2k.jpg');
 
@@ -117,13 +89,6 @@ function MoonMeshInner({
   const geometry = useMemo(() => new SphereGeometry(moonRadius, 16, 16), [moonRadius]);
   const material = useMemo(() => new MeshStandardMaterial({ map: texture }), [texture]);
 
-  const orbitRadius = useMemo(() => {
-    if (viewMode === 'local' && selectedPlanet === 'earth') {
-      return MOON_ORBIT_RADIUS_LOCAL;
-    }
-    return MOON_ORBIT_RADIUS_GLOBAL;
-  }, [viewMode, selectedPlanet]);
-
   const fallbackEarthPos = useMemo(
     () => new Vector3(...earthPosition),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -131,41 +96,60 @@ function MoonMeshInner({
   );
 
   useFrame(() => {
-    // Ángulo orbital derivado del JD global — sin elapsed.current local (REQ-ORB-2)
-    const jd = getJD();
-    const n = (2 * Math.PI) / MOON_PERIOD_DAYS;
-    const theta = n * (jd - J2000_JD);
-
-    // En modo local: usar la posición calculada directamente por usePlanetPosition
-    // En modo global: usar positionsRef (actualizado por <Planet>)
-    let earthPos: Vector3;
+    // En modo local: posición calculada por useMoonPosition (3D inclinada, escala real)
+    // En modo global: posición plana simplificada (didáctica, radio MOON_ORBIT_RADIUS_GLOBAL)
     if (viewMode === 'local') {
-      earthPos = earthPosRef.current;
+      if (meshRef.current) {
+        meshRef.current.position.copy(moonPosRef.current);
+        // Rotación síncrona aproximada (tidal lock)
+        const earthPos = earthPosRef.current;
+        const dx = moonPosRef.current.x - earthPos.x;
+        const dz = moonPosRef.current.z - earthPos.z;
+        meshRef.current.rotation.y = Math.atan2(dx, dz);
+      }
     } else {
+      // Modo global: órbita circular plana simplificada
       const live = positionsRef?.current?.earth;
-      earthPos = live ?? fallbackEarthPos;
-    }
-
-    if (meshRef.current) {
-      meshRef.current.position.set(
-        earthPos.x + orbitRadius * Math.cos(theta),
-        earthPos.y,
-        earthPos.z + orbitRadius * Math.sin(theta),
-      );
-      // Rotación síncrona (tidal lock): misma velocidad angular que la órbita
-      meshRef.current.rotation.y = theta;
+      const earthPos = live ?? fallbackEarthPos;
+      const moonPos = moonPosRef.current;
+      if (meshRef.current) {
+        meshRef.current.position.copy(moonPos.lengthSq() > 0 ? moonPos : earthPos);
+        // En modo global mostramos la Luna cerca de la Tierra (escala compacta)
+        // La posición de moonPosRef en global usa escala local, así que usamos
+        // la dirección y reescalamos al radio global
+        const dir = new Vector3().subVectors(moonPos, earthPosRef.current).normalize();
+        meshRef.current.position.copy(earthPos).addScaledVector(dir, MOON_ORBIT_RADIUS_GLOBAL);
+      }
     }
   });
 
   return (
-    <mesh
-      ref={meshRef}
-      geometry={geometry}
-      material={material}
-      name="moon"
-      {...(cs ? { castShadow: true } : {})}
-      {...(rs ? { receiveShadow: true } : {})}
-    />
+    <>
+      <mesh
+        ref={meshRef}
+        geometry={geometry}
+        material={material}
+        name="moon"
+        onClick={(e) => {
+          e.stopPropagation();
+          goToBody('moon');
+        }}
+        onPointerOver={() => {
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = 'auto';
+        }}
+        {...(cs ? { castShadow: true } : {})}
+        {...(rs ? { receiveShadow: true } : {})}
+      />
+      {/* Eje de rotación axial de la Luna — visible solo cuando showRotationAxes=true */}
+      <RotationAxisLine
+        radius={moonRadius}
+        tiltDeg={MOON_AXIAL_TILT_DEG}
+        visible={showRotationAxes}
+      />
+    </>
   );
 }
 
@@ -176,37 +160,18 @@ function MoonMeshInner({
 function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonProps) {
   const meshRef = useRef<Mesh>(null);
   const viewMode = useAppStore((s) => s.viewMode);
-  const selectedPlanet = useAppStore((s) => s.selectedPlanet);
   const level = useAppStore((s) => s.level);
+  const goToBody = useAppStore((s) => s.goToBody);
+  const showRotationAxes = useAppStore((s) => s.showRotationAxes);
 
   const { data } = usePlanetsData();
-  const earthData = data?.planets.find((p) => p.id === 'earth') ?? null;
+  const earthData = data?.planets.find((p) => p.id === 'earth') ?? EARTH_FALLBACK_DATA;
 
-  const earthPosRef = usePlanetPosition(
-    earthData ?? {
-      id: 'earth',
-      classification: 'terrestrial' as const,
-      radius_km: 6371,
-      mass_kg: 5.972e24,
-      density_g_cm3: 5.514,
-      gravity_m_s2: 9.807,
-      rotation_period_h: 23.9345,
-      axial_tilt_deg: 23.4393,
-      mean_temperature_k: 288,
-      semi_major_axis_AU: 1.0,
-      eccentricity: 0.01671,
-      inclination_deg: 0.00005,
-      longitude_ascending_node_deg: -11.26064,
-      argument_perihelion_deg: 114.20783,
-      mean_anomaly_J2000_deg: 358.617,
-      orbital_period_days: 365.256,
-      color_hex: '#4a90e2',
-      has_rings: false,
-      moons_count: 1,
-      texture_base: '/textures/earth/',
-    },
-    level,
-  );
+  // Posición de la Tierra — siempre invocado (reglas de hooks)
+  const earthPosRef = usePlanetPosition(earthData, level);
+
+  // Posición de la Luna — usa computeMoonPosition con órbita 3D inclinada
+  const moonPosRef = useMoonPosition(earthPosRef);
 
   // Radio real en modo local, didáctico en global
   const moonRadius = useMemo(
@@ -216,13 +181,6 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
   const geometry = useMemo(() => new SphereGeometry(moonRadius, 8, 8), [moonRadius]);
   const material = useMemo(() => new MeshStandardMaterial({ color: '#c8c8c8' }), []);
 
-  const orbitRadius = useMemo(() => {
-    if (viewMode === 'local' && selectedPlanet === 'earth') {
-      return MOON_ORBIT_RADIUS_LOCAL;
-    }
-    return MOON_ORBIT_RADIUS_GLOBAL;
-  }, [viewMode, selectedPlanet]);
-
   const fallbackEarthPos = useMemo(
     () => new Vector3(...earthPosition),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -230,31 +188,51 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
   );
 
   useFrame(() => {
-    // Ángulo orbital derivado del JD global — sin elapsed.current local (REQ-ORB-2)
-    const jd = getJD();
-    const n = (2 * Math.PI) / MOON_PERIOD_DAYS;
-    const theta = n * (jd - J2000_JD);
-
-    let earthPos: Vector3;
     if (viewMode === 'local') {
-      earthPos = earthPosRef.current;
+      if (meshRef.current) {
+        meshRef.current.position.copy(moonPosRef.current);
+        const earthPos = earthPosRef.current;
+        const dx = moonPosRef.current.x - earthPos.x;
+        const dz = moonPosRef.current.z - earthPos.z;
+        meshRef.current.rotation.y = Math.atan2(dx, dz);
+      }
     } else {
       const live = positionsRef?.current?.earth;
-      earthPos = live ?? fallbackEarthPos;
-    }
-
-    if (meshRef.current) {
-      meshRef.current.position.set(
-        earthPos.x + orbitRadius * Math.cos(theta),
-        earthPos.y,
-        earthPos.z + orbitRadius * Math.sin(theta),
-      );
-      // Rotación síncrona (tidal lock)
-      meshRef.current.rotation.y = theta;
+      const earthPos = live ?? fallbackEarthPos;
+      const moonPos = moonPosRef.current;
+      if (meshRef.current) {
+        const dir = new Vector3().subVectors(moonPos, earthPosRef.current).normalize();
+        meshRef.current.position.copy(earthPos).addScaledVector(dir, MOON_ORBIT_RADIUS_GLOBAL);
+      }
     }
   });
 
-  return <mesh ref={meshRef} geometry={geometry} material={material} name="moon-fallback" />;
+  return (
+    <>
+      <mesh
+        ref={meshRef}
+        geometry={geometry}
+        material={material}
+        name="moon-fallback"
+        onClick={(e) => {
+          e.stopPropagation();
+          goToBody('moon');
+        }}
+        onPointerOver={() => {
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = 'auto';
+        }}
+      />
+      {/* Eje de rotación axial de la Luna — visible solo cuando showRotationAxes=true */}
+      <RotationAxisLine
+        radius={moonRadius}
+        tiltDeg={MOON_AXIAL_TILT_DEG}
+        visible={showRotationAxes}
+      />
+    </>
+  );
 }
 
 // ---------------------------------------------------------------------------

@@ -12,7 +12,7 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore, useSelectedBody } from '@/store/useAppStore';
 import { PlutoNote } from '@/components/ui/PlutoNote';
 import type { PlanetId } from '@/scenes/data/types';
 import type { PedagogicalLevel } from '@/types/index';
@@ -245,7 +245,7 @@ function InvestigadorPanel({ planetId, level }: { planetId: PlanetId; level: Ped
 // ---------------------------------------------------------------------------
 export const InfoPanel = React.memo(function InfoPanel() {
   const { t } = useTranslation('solar');
-  const selectedPlanet = useAppStore((s) => s.selectedPlanet);
+  const selectedBody = useSelectedBody();
   const goToBody = useAppStore((s) => s.goToBody);
   const level = useAppStore((s) => s.level);
 
@@ -254,7 +254,17 @@ export const InfoPanel = React.memo(function InfoPanel() {
     ? 'pointer-events-none fixed inset-x-4 top-4 bottom-16 z-30 max-w-lg mx-auto'
     : 'pointer-events-none fixed right-4 top-4 bottom-16 z-30 w-80';
 
-  if (selectedPlanet === null) return <div className={wrapperClass} aria-hidden="true" />;
+  if (selectedBody === null) return <div className={wrapperClass} aria-hidden="true" />;
+
+  // Para la Luna no tenemos descripción por nivel: mostrar nombre y cerrar.
+  // Para planetas, mostramos el panel completo.
+  const isMoon = selectedBody === 'moon';
+  const selectedPlanet: PlanetId | null = isMoon ? null : selectedBody;
+
+  // Nombre del cuerpo según i18n
+  const bodyName: string = isMoon
+    ? t('solar:bodies.moon', 'Luna')
+    : t(`solar:${selectedBody}.name`);
 
   const panelClass = isExplorador
     ? 'pointer-events-auto h-full rounded-2xl bg-black/80 p-6 backdrop-blur-md'
@@ -266,13 +276,11 @@ export const InfoPanel = React.memo(function InfoPanel() {
         data-testid="info-panel"
         className={panelClass}
         role="complementary"
-        aria-label={`Información sobre ${t(`solar:${selectedPlanet}.name`)}`}
+        aria-label={`Información sobre ${bodyName}`}
       >
         {/* Cabecera */}
         <div className="mb-4 flex items-center justify-between">
-          <h2 className={isExplorador ? 'text-3xl font-bold' : 'text-xl font-bold'}>
-            {t(`solar:${selectedPlanet}.name`)}
-          </h2>
+          <h2 className={isExplorador ? 'text-3xl font-bold' : 'text-xl font-bold'}>{bodyName}</h2>
           <button
             type="button"
             aria-label="Cerrar"
@@ -283,13 +291,25 @@ export const InfoPanel = React.memo(function InfoPanel() {
           </button>
         </div>
 
-        {/* Contenido por nivel */}
-        {level === 'explorador' && <ExploradorPanel planetId={selectedPlanet} level={level} />}
-        {level === 'aprendiz' && <AprendizPanel planetId={selectedPlanet} level={level} />}
-        {level === 'investigador' && <InvestigadorPanel planetId={selectedPlanet} level={level} />}
+        {/* Contenido por nivel — solo para planetas (no para Luna aún) */}
+        {!isMoon && selectedPlanet && (
+          <>
+            {level === 'explorador' && <ExploradorPanel planetId={selectedPlanet} level={level} />}
+            {level === 'aprendiz' && <AprendizPanel planetId={selectedPlanet} level={level} />}
+            {level === 'investigador' && (
+              <InvestigadorPanel planetId={selectedPlanet} level={level} />
+            )}
+            {/* Nota IAU para Plutón */}
+            {selectedPlanet === 'pluto' && <PlutoNote level={level} />}
+          </>
+        )}
 
-        {/* Nota IAU para Plutón */}
-        {selectedPlanet === 'pluto' && <PlutoNote level={level} />}
+        {/* Panel mínimo para la Luna */}
+        {isMoon && (
+          <p className="text-base leading-relaxed text-white/80">
+            {t('solar:bodies.moon', 'Luna')}
+          </p>
+        )}
       </div>
     </div>
   );

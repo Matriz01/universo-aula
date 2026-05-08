@@ -28,6 +28,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { getJD, J2000_JD } from '@/scenes/simulationClock';
 import { computeSunIntensityFactor } from '@/scenes/helpers/sunIntensity';
 import { usePlanetsData } from '@/scenes/hooks/usePlanetsData';
+import { RotationAxisLine } from '@/scenes/components/RotationAxisLine';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -89,6 +90,9 @@ function createUniforms(reducedMotion: boolean, sunspotsEnabled: boolean): SunUn
 // Componente Sun
 // ---------------------------------------------------------------------------
 
+/** Inclinación axial del Sol respecto a la eclíptica (grados, fuente: NASA). */
+export const SUN_AXIAL_TILT_DEG = 7.25;
+
 /** Periodo de rotación del Sol en el ecuador (días terrestres) */
 const SUN_ROTATION_PERIOD_DAYS = 25;
 /** Velocidad angular del Sol (rad/día simulado) */
@@ -101,12 +105,16 @@ export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunPro
   const meshRef = useRef<Mesh>(null);
   const speed = useAppStore((s) => s.simulationSpeed);
   const viewMode = useAppStore((s) => s.viewMode);
-  const selectedPlanet = useAppStore((s) => s.selectedPlanet);
+  const selectedBody = useAppStore((s) => s.selectedBody);
+  // Para el cálculo de perspectiva del Sol: si la Luna está seleccionada, usar la
+  // semi-major-axis de la Tierra (la Luna orbita la Tierra a ~1 AU del Sol).
+  const selectedPlanetForPerspective = selectedBody === 'moon' ? 'earth' : selectedBody;
+  const showRotationAxes = useAppStore((s) => s.showRotationAxes);
   const { data } = usePlanetsData();
 
   // Factor de perspectiva actual (lerpeado para evitar pops bruscos)
   const perspectiveFactorRef = useRef<number>(1.0);
-  // Valor objetivo (se actualiza cuando cambia viewMode o selectedPlanet)
+  // Valor objetivo (se actualiza cuando cambia viewMode o selectedBody)
   const targetFactorRef = useRef<number>(1.0);
   // Elapsed del lerp actual
   const lerpElapsedRef = useRef<number>(0);
@@ -147,8 +155,8 @@ export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunPro
 
     // Calcular factor de perspectiva objetivo
     let newTargetFactor = 1.0;
-    if (viewMode === 'local' && selectedPlanet && data) {
-      const planetData = data.planets.find((p) => p.id === selectedPlanet);
+    if (viewMode === 'local' && selectedPlanetForPerspective && data) {
+      const planetData = data.planets.find((p) => p.id === selectedPlanetForPerspective);
       if (planetData) {
         newTargetFactor = computeSunIntensityFactor('local', planetData.semi_major_axis_AU);
       }
@@ -191,7 +199,13 @@ export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunPro
   const radius = useScaledRadius(SUN_RADIUS_KM);
   const geometry = useMemo(() => new SphereGeometry(radius, 64, 64), [radius]);
 
-  return <mesh ref={meshRef} geometry={geometry} material={material} name="sun" />;
+  return (
+    <>
+      <mesh ref={meshRef} geometry={geometry} material={material} name="sun" />
+      {/* Eje de rotación axial del Sol — visible solo cuando showRotationAxes=true */}
+      <RotationAxisLine radius={radius} tiltDeg={SUN_AXIAL_TILT_DEG} visible={showRotationAxes} />
+    </>
+  );
 });
 
 Sun.displayName = 'Sun';

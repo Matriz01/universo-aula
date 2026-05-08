@@ -20,11 +20,18 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { PerformanceMonitor, Line } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Vector3 } from 'three';
-import type { Vector3 as Vector3Type, Group } from 'three';
+import type {
+  Vector3 as Vector3Type,
+  Group,
+  DirectionalLight as DirectionalLightType,
+} from 'three';
 import { useAppStore } from '@/store/useAppStore';
 import { usePlanetsData } from '@/scenes/hooks/usePlanetsData';
-import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
+import { usePlanetPosition, computePosition } from '@/scenes/hooks/usePlanetPosition';
 import { useGpuCapability } from '@/scenes/hooks/useGpuCapability';
+import { OriginOffsetProvider, useOriginOffset } from '@/scenes/contexts/OriginOffsetContext';
+import { computeMoonPosition } from '@/scenes/hooks/useMoonPosition';
+import { getJD } from '@/scenes/simulationClock';
 import { Sun } from '@/scenes/components/Sun';
 import { Planet } from '@/scenes/components/Planet';
 import { Saturn } from '@/scenes/components/Saturn';
@@ -36,50 +43,99 @@ import { DistantMarker } from '@/scenes/components/DistantMarker';
 import { KnownEventsLayer } from '@/scenes/components/KnownEventsLayer';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
 import type { GpuCapabilityExtended } from '@/scenes/components/Sun';
-import type { PlanetId } from '@/scenes/data/types';
+import type { BodyId, PlanetId, PlanetData } from '@/scenes/data/types';
 import { SimulationTicker } from '@/scenes/SimulationTicker';
 import { PausedBridge } from '@/scenes/PausedBridge';
-import { localVisualRadius } from '@/scenes/scale';
+import { localVisualRadius, localVisualDistanceFromKm } from '@/scenes/scale';
+import { EARTH_FALLBACK_DATA } from '@/scenes/data/earthFallback';
+import { MOON_ORBITAL_ELEMENTS } from '@/scenes/data/moon';
+import { applyOrbitalRotation, degToRad, solveKeplerNewtonRaphson } from '@/scenes/orbital';
 
 // ---------------------------------------------------------------------------
 // Constantes para órbita lunar
 // ---------------------------------------------------------------------------
 
-const MOON_ORBIT_RADIUS_LOCAL = 384_400 / 1000; // 384.4 unidades (1 u = 1000 km)
-const MOON_ORBIT_SEGMENTS = 64;
+const MOON_ORBIT_SEGMENTS = 128; // Aumentado para suavidad (era 64)
 
-// Objeto Earth mínimo de fallback para usePlanetPosition (cuando data aún no carga)
-const EARTH_FALLBACK_DATA = {
-  id: 'earth' as const,
-  classification: 'terrestrial' as const,
-  radius_km: 6371,
-  mass_kg: 5.972e24,
-  density_g_cm3: 5.514,
-  gravity_m_s2: 9.807,
-  rotation_period_h: 23.9345,
-  axial_tilt_deg: 23.4393,
-  mean_temperature_k: 288,
-  semi_major_axis_AU: 1.0,
-  eccentricity: 0.01671,
-  inclination_deg: 0.00005,
-  longitude_ascending_node_deg: -11.26064,
-  argument_perihelion_deg: 114.20783,
-  mean_anomaly_J2000_deg: 358.617,
-  orbital_period_days: 365.256,
-  color_hex: '#4a90e2',
-  has_rings: false,
-  moons_count: 1,
-  texture_base: '/textures/earth/',
-};
+/** Distancia de la luz direccional al origen (unidades de escena) */
+const SHADOW_LIGHT_DISTANCE = 50;
+
+// ---------------------------------------------------------------------------
+// OriginTracker — calcula el offset del origen de referencia (Phase C)
+// ---------------------------------------------------------------------------
+
+/**
+ * OriginTracker — componente interno que actualiza el OriginOffsetContext cada frame.
+ *
+ * Se registra en useFrame con priority -1 para ejecutarse ANTES que los renders
+ * de los cuerpos celestes (que usan priority 0 por defecto). Esto garantiza que
+ * todos los consumidores leen el offset correcto del frame actual (no el anterior).
+ *
+ * En modo global: offset = (0,0,0) — sin cambio.
+ * En modo local:  offset = posición absoluta del cuerpo seleccionado.
+ *   Nota: se llama computePosition / computeMoonPosition SIN offset (originOffset = 0)
+ *   para obtener la posición absoluta — esto NO es recursivo.
+ */
+interface OriginTrackerProps {
+  /** Datos de los planetas para poder computar posición absoluta */
+  planets: readonly PlanetData[];
+  level: PedagogicalLevel;
+}
+
+function OriginTracker({ planets, level }: OriginTrackerProps) {
+  const offsetRef = useOriginOffset();
+  const selectedBody = useAppStore((s) => s.selectedBody);
+  const viewMode = useAppStore((s) => s.viewMode);
+
+  useFrame(
+    () => {
+      if (viewMode !== 'local' || !selectedBody) {
+        // Modo global o sin selección: offset = (0,0,0)
+        offsetRef.current.set(0, 0, 0);
+        return;
+      }
+
+      const jd = getJD();
+
+      if (selectedBody === 'moon') {
+        // La Luna: necesita la posición de la Tierra primero
+        const earthData = planets.find((p) => p.id === 'earth');
+        if (!earthData) {
+          offsetRef.current.set(0, 0, 0);
+          return;
+        }
+        const earthAbs = computePosition(earthData, level, jd, 'local');
+        const earthVec = new Vector3(earthAbs.x, earthAbs.y, earthAbs.z);
+        // Posición absoluta de la Luna (sin offset → no recursivo)
+        const moonAbs = computeMoonPosition(earthVec, jd);
+        offsetRef.current.copy(moonAbs);
+      } else {
+        // Planeta estándar: computePosition SIN offset → posición absoluta
+        const planetData = planets.find((p) => p.id === selectedBody);
+        if (!planetData) {
+          offsetRef.current.set(0, 0, 0);
+          return;
+        }
+        const abs = computePosition(planetData, level, jd, 'local');
+        offsetRef.current.set(abs.x, abs.y, abs.z);
+      }
+    },
+    -1, // Priority -1: se ejecuta ANTES que los renders (priority 0)
+  );
+
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // MoonOrbitPath — círculo que representa la órbita de la Luna en modo local
 // ---------------------------------------------------------------------------
 
 /**
- * Dibuja la órbita de la Luna centrada en la posición actual de la Tierra.
- * Solo se usa en modo local cuando la Tierra está seleccionada.
- * Calcula la posición de la Tierra internamente con usePlanetPosition.
+ * Dibuja la órbita inclinada de la Luna centrada en la posición actual de la Tierra.
+ *
+ * Genera N puntos usando applyOrbitalRotation con los elementos geocéntricos de
+ * MOON_ORBITAL_ELEMENTS — incluye la inclinación ~5.14° respecto a la eclíptica.
+ * El path se actualiza cada frame para seguir la posición de la Tierra.
  */
 function MoonOrbitPath() {
   const groupRef = useRef<Group>(null);
@@ -88,22 +144,49 @@ function MoonOrbitPath() {
   const earthData = data?.planets.find((p) => p.id === 'earth') ?? EARTH_FALLBACK_DATA;
   const earthPosRef = usePlanetPosition(earthData, level);
 
-  // Pre-computamos los puntos del círculo (radio = 384.4 unidades)
+  // Calcular los puntos de la órbita inclinada usando applyOrbitalRotation
+  // Muestreamos la anomalía media uniformemente en [0, 2π] — geometría estática
   const points = useMemo(() => {
+    const {
+      semi_major_axis_km,
+      eccentricity,
+      inclination_deg,
+      longitude_ascending_node_deg,
+      argument_perihelion_deg,
+      orbital_period_days,
+      mean_anomaly_J2000_deg,
+    } = MOON_ORBITAL_ELEMENTS;
+
+    const a = localVisualDistanceFromKm(semi_major_axis_km);
+    const omega = degToRad(argument_perihelion_deg);
+    const Omega = degToRad(longitude_ascending_node_deg);
+    const inc = degToRad(inclination_deg);
+    const e = eccentricity;
+    const n = (2 * Math.PI) / orbital_period_days;
+    const M0 = degToRad(mean_anomaly_J2000_deg);
+
     const pts: [number, number, number][] = [];
+    const out = new Vector3();
+
     for (let i = 0; i <= MOON_ORBIT_SEGMENTS; i++) {
-      const theta = (i / MOON_ORBIT_SEGMENTS) * Math.PI * 2;
-      pts.push([
-        MOON_ORBIT_RADIUS_LOCAL * Math.cos(theta),
-        0,
-        MOON_ORBIT_RADIUS_LOCAL * Math.sin(theta),
-      ]);
+      // Distribuir uniformemente en anomalía media a lo largo de una órbita
+      const M = M0 + n * (i / MOON_ORBIT_SEGMENTS) * orbital_period_days;
+      const E = solveKeplerNewtonRaphson(M, e, 1e-6, 8);
+      const nu =
+        2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E / 2), Math.sqrt(1 - e) * Math.cos(E / 2));
+      const r = a * (1 - e * Math.cos(E));
+      applyOrbitalRotation(out, r, nu, omega, Omega, inc);
+      pts.push([out.x, out.y, out.z]);
     }
+
     return pts;
   }, []);
 
   useFrame(() => {
     if (!groupRef.current) return;
+    // earthPosRef.current ya tiene aplicado el originOffset (desde usePlanetPosition via contexto).
+    // En modo local: es la posición de la Tierra relativa al cuerpo seleccionado.
+    // En modo global: es la posición heliocéntrica absoluta.
     const pos = earthPosRef.current;
     groupRef.current.position.set(pos.x, pos.y, pos.z);
   });
@@ -116,6 +199,71 @@ function MoonOrbitPath() {
 }
 
 // ---------------------------------------------------------------------------
+// SunAndLightUpdater — actualiza posición del Sol y de la luz en useFrame
+// ---------------------------------------------------------------------------
+
+interface SunAndLightUpdaterProps {
+  sunGroupRef: React.MutableRefObject<Group | null>;
+  shadowLightRef: React.MutableRefObject<DirectionalLightType | null>;
+  originOffsetRef: React.MutableRefObject<Vector3>;
+  viewMode: 'global' | 'local';
+  showShadowLight: boolean;
+}
+
+/**
+ * SunAndLightUpdater — componente nulo que gestiona actualizaciones imperativas
+ * de la posición del Sol y la luz direccional basándose en el OriginOffset.
+ *
+ * - En modo local: sunGroup.position = -offset (Sol aparece en su posición relativa)
+ * - En modo local con luz activa: directionalLight.position = -offset.normalized() * 50
+ * - En modo global: sunGroup.position = (0,0,0)
+ */
+function SunAndLightUpdater({
+  sunGroupRef,
+  shadowLightRef,
+  originOffsetRef,
+  viewMode,
+  showShadowLight,
+}: SunAndLightUpdaterProps) {
+  useFrame(() => {
+    const offset = originOffsetRef.current;
+    const sunGroup = sunGroupRef.current;
+    const light = shadowLightRef.current;
+
+    if (viewMode === 'local') {
+      // Sol: posicionado en -offset (el Sol está en la dirección opuesta al cuerpo seleccionado)
+      if (sunGroup) {
+        sunGroup.position.set(-offset.x, -offset.y, -offset.z);
+      }
+
+      // Luz direccional: apunta desde la dirección del Sol hacia el origen
+      if (light && showShadowLight) {
+        const len = offset.length();
+        if (len > 1e-6) {
+          // Dirección: desde el Sol (en -offset) hacia el origen (0,0,0)
+          // La luz está en la posición del Sol, iluminando hacia el origen
+          light.position.set(
+            (-offset.x / len) * SHADOW_LIGHT_DISTANCE,
+            (-offset.y / len) * SHADOW_LIGHT_DISTANCE,
+            (-offset.z / len) * SHADOW_LIGHT_DISTANCE,
+          );
+        } else {
+          // Fallback: offset casi cero (no debería ocurrir en modo local)
+          light.position.set(1, 0, 0).multiplyScalar(SHADOW_LIGHT_DISTANCE);
+        }
+      }
+    } else {
+      // Modo global: Sol en el origen
+      if (sunGroup) {
+        sunGroup.position.set(0, 0, 0);
+      }
+    }
+  });
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Subcomponente interno — el árbol R3F (dentro del Canvas)
 // ---------------------------------------------------------------------------
 
@@ -123,10 +271,10 @@ interface SolarSystemContentProps {
   level: PedagogicalLevel;
   gpu: GpuCapabilityExtended;
   reducedMotion: boolean;
-  onSelectPlanet: (id: PlanetId | null) => void;
+  onSelectPlanet: (id: BodyId | null) => void;
   planetPositionsRef: React.MutableRefObject<Record<string, Vector3Type>>;
   viewMode: 'global' | 'local';
-  selectedPlanet: PlanetId | null;
+  selectedBody: BodyId | null;
   showKnownEvents: boolean;
 }
 
@@ -137,10 +285,18 @@ function SolarSystemContent({
   onSelectPlanet,
   planetPositionsRef,
   viewMode,
-  selectedPlanet,
+  selectedBody,
   showKnownEvents,
 }: SolarSystemContentProps) {
+  // selectedPlanet: PlanetId | null — extraído de selectedBody excluyendo 'moon'
+  const selectedPlanet = selectedBody !== 'moon' ? selectedBody : null;
   const { data } = usePlanetsData();
+  // Ref al grupo que envuelve al Sol — su posición es -offset en modo local
+  const sunGroupRef = useRef<Group>(null);
+  // Ref a la luz direccional — se reposiciona en modo local
+  const shadowLightRef = useRef<DirectionalLightType>(null);
+  // Offset del origen: leer del context para actualizar el Sol y la luz
+  const originOffsetRef = useOriginOffset();
 
   if (!data) return null;
 
@@ -154,7 +310,8 @@ function SolarSystemContent({
   };
 
   const isLocal = viewMode === 'local';
-  const isEarthSelected = selectedPlanet === 'earth';
+  const isEarthSelected = selectedBody === 'earth';
+  const isMoonSelected = selectedBody === 'moon';
 
   // Radio visual del planeta seleccionado en modo local (escala real: 1 u = 1000 km).
   // Se pasa a CameraController para calcular el offset prudente al entrar en modo local.
@@ -162,23 +319,22 @@ function SolarSystemContent({
   const selectedPlanetRadius =
     isLocal && selectedPlanetData ? localVisualRadius(selectedPlanetData.radius_km) : undefined;
 
-  // En modo local: posición del Sol (0,0,0) hacia el planeta seleccionado
-  // La luz direccional sigue al planeta seleccionado para simular sombras desde el Sol
-  const shadowLightPos = new Vector3(0, 10, 0); // posición por defecto
-  if (isLocal && selectedPlanet && planetPositionsRef.current[selectedPlanet]) {
-    const pPos = planetPositionsRef.current[selectedPlanet];
-    if (pPos) {
-      // Dirección de la luz: desde el Sol (0,0,0) hacia el planeta, pero invertida
-      // para que la luz LLEGUE al planeta desde el Sol
-      const dir = pPos.clone().normalize();
-      shadowLightPos.copy(dir.multiplyScalar(50));
-    }
-  }
-
   return (
     <>
       {/* Único punto de avance del simulationClock — debe ser el primer hijo */}
       <SimulationTicker />
+
+      {/* OriginTracker — calcula el offset del origen ANTES que los renders (priority -1) */}
+      <OriginTracker planets={planets} level={level} />
+
+      {/* Sun + directionalLight updater — actualiza en useFrame DESPUÉS de OriginTracker */}
+      <SunAndLightUpdater
+        sunGroupRef={sunGroupRef}
+        shadowLightRef={shadowLightRef}
+        originOffsetRef={originOffsetRef}
+        viewMode={viewMode}
+        showShadowLight={isLocal && (isEarthSelected || isMoonSelected)}
+      />
 
       {/* Luz ambiental — baja para conservar contraste claro/oscuro natural */}
       <ambientLight intensity={0.18} />
@@ -189,10 +345,11 @@ function SolarSystemContent({
       {/* Luz puntual en el Sol — decay 0 alcanza Plutón; sin shadows (irreales + caros) */}
       <pointLight position={[0, 0, 0]} intensity={6} distance={0} decay={0} />
 
-      {/* Luz direccional para sombras Luna↔Tierra — solo en modo local con Tierra */}
-      {isLocal && isEarthSelected && (
+      {/* Luz direccional para sombras Luna↔Tierra — solo en modo local con Tierra o Luna */}
+      {isLocal && (isEarthSelected || isMoonSelected) && (
         <directionalLight
-          position={shadowLightPos.toArray()}
+          ref={shadowLightRef}
+          position={[0, SHADOW_LIGHT_DISTANCE, 0]}
           intensity={2}
           castShadow
           shadow-mapSize-width={512}
@@ -201,14 +358,18 @@ function SolarSystemContent({
         />
       )}
 
-      {/* Cámara y controles */}
+      {/* Cámara y controles — en modo local el CameraController no hace follow (target = origin) */}
       <CameraController
         planetPositionsRef={planetPositionsRef}
-        {...(selectedPlanetRadius !== undefined ? { planetRadius: selectedPlanetRadius } : {})}
+        {...(selectedPlanetRadius !== undefined && !isLocal
+          ? { planetRadius: selectedPlanetRadius }
+          : {})}
       />
 
-      {/* El Sol — siempre presente */}
-      <Sun capability={gpu} reducedMotion={reducedMotion} />
+      {/* El Sol — envuelto en grupo cuya posición se actualiza en SunAndLightUpdater */}
+      <group ref={sunGroupRef}>
+        <Sun capability={gpu} reducedMotion={reducedMotion} />
+      </group>
 
       {/* ——————————————————————————————— MODO GLOBAL ——————————————————————————————— */}
       {!isLocal && (
@@ -245,64 +406,116 @@ function SolarSystemContent({
 
           {/* Cinturón de asteroides */}
           <AsteroidBelt config={data.asteroid_belt} />
+
+          {/* MoonOrbitPath en modo global */}
+          <MoonOrbitPath />
         </>
       )}
 
       {/* ——————————————————————————————— MODO LOCAL ——————————————————————————————— */}
-      {isLocal && selectedPlanet && (
+      {isLocal && selectedBody && (
         <>
-          {/* Planeta seleccionado (full detail) */}
-          {selectedPlanet === 'saturn' && saturnData ? (
+          {/* ——— Caso: Luna seleccionada ——— */}
+          {isMoonSelected && (
             <>
-              <Saturn
-                planet={saturnData}
-                level={level}
-                onClick={handlePlanetClick}
-                positionsRef={planetPositionsRef}
-              />
-              <OrbitPath planet={saturnData} level={level} />
-            </>
-          ) : (
-            (() => {
-              const selectedData = planets.find((p) => p.id === selectedPlanet);
-              if (!selectedData) return null;
-              return (
-                <>
+              {/* Luna como cuerpo central */}
+              <PlanetMoon positionsRef={planetPositionsRef} castShadow receiveShadow />
+
+              {/* Tierra visible con textura (referencia visual desde la Luna) */}
+              {(() => {
+                const earthData = planets.find((p) => p.id === 'earth');
+                if (!earthData) return null;
+                return (
                   <Planet
-                    planet={selectedData}
+                    planet={earthData}
                     level={level}
-                    variant={selectedData.classification === 'dwarf_planet' ? 'dwarf' : 'normal'}
+                    variant="normal"
                     onClick={handlePlanetClick}
                     positionsRef={planetPositionsRef}
-                    castShadow={isEarthSelected}
-                    receiveShadow={isEarthSelected}
+                    castShadow
+                    receiveShadow
                   />
-                  <OrbitPath planet={selectedData} level={level} />
-                </>
-              );
-            })()
-          )}
+                );
+              })()}
 
-          {/* Luna de la Tierra — solo si Tierra seleccionada */}
-          {isEarthSelected && (
-            <>
-              <PlanetMoon positionsRef={planetPositionsRef} castShadow receiveShadow />
+              {/* Órbita de la Luna (geocéntrica) — visible en modo local Luna */}
               <MoonOrbitPath />
+
+              {/* DistantMarkers para Sol + otros planetas */}
+              {nonSaturnPlanets
+                .filter((p) => p.id !== 'earth')
+                .map((planet) => (
+                  <DistantMarker
+                    key={`dm-${planet.id}`}
+                    planet={planet}
+                    positionsRef={planetPositionsRef}
+                  />
+                ))}
+              {saturnData && (
+                <DistantMarker
+                  key="dm-saturn"
+                  planet={saturnData}
+                  positionsRef={planetPositionsRef}
+                />
+              )}
             </>
           )}
 
-          {/* DistantMarker para cada planeta no seleccionado */}
-          {nonSaturnPlanets
-            .filter((p) => p.id !== selectedPlanet)
-            .map((planet) => (
-              <DistantMarker
-                key={`dm-${planet.id}`}
-                planet={planet}
-                positionsRef={planetPositionsRef}
-              />
-            ))}
-          {saturnData && selectedPlanet !== 'saturn' && (
-            <DistantMarker key="dm-saturn" planet={saturnData} positionsRef={planetPositionsRef} />
+          {/* ——— Caso: Planeta seleccionado (no Luna) ——— */}
+          {!isMoonSelected && selectedPlanet && (
+            <>
+              {/* Planeta seleccionado (full detail) — sin OrbitPath heliocéntrica en modo local */}
+              {selectedPlanet === 'saturn' && saturnData ? (
+                <Saturn
+                  planet={saturnData}
+                  level={level}
+                  onClick={handlePlanetClick}
+                  positionsRef={planetPositionsRef}
+                />
+              ) : (
+                (() => {
+                  const selectedData = planets.find((p) => p.id === selectedPlanet);
+                  if (!selectedData) return null;
+                  return (
+                    <Planet
+                      planet={selectedData}
+                      level={level}
+                      variant={selectedData.classification === 'dwarf_planet' ? 'dwarf' : 'normal'}
+                      onClick={handlePlanetClick}
+                      positionsRef={planetPositionsRef}
+                      castShadow={isEarthSelected}
+                      receiveShadow={isEarthSelected}
+                    />
+                  );
+                })()
+              )}
+
+              {/* Luna de la Tierra — si Tierra seleccionada */}
+              {isEarthSelected && (
+                <>
+                  <PlanetMoon positionsRef={planetPositionsRef} castShadow receiveShadow />
+                  <MoonOrbitPath />
+                </>
+              )}
+
+              {/* DistantMarker para cada planeta no seleccionado */}
+              {nonSaturnPlanets
+                .filter((p) => p.id !== selectedPlanet)
+                .map((planet) => (
+                  <DistantMarker
+                    key={`dm-${planet.id}`}
+                    planet={planet}
+                    positionsRef={planetPositionsRef}
+                  />
+                ))}
+              {saturnData && selectedPlanet !== 'saturn' && (
+                <DistantMarker
+                  key="dm-saturn"
+                  planet={saturnData}
+                  positionsRef={planetPositionsRef}
+                />
+              )}
+            </>
           )}
 
           {/* Eventos conocidos (cometa Halley, etc.) */}
@@ -340,7 +553,7 @@ export function SolarSystemScene() {
   const sunShaderVariant = useAppStore((s) => s.sunShaderVariant);
   const goToBody = useAppStore((s) => s.goToBody);
   const viewMode = useAppStore((s) => s.viewMode);
-  const selectedPlanet = useAppStore((s) => s.selectedPlanet);
+  const selectedBody = useAppStore((s) => s.selectedBody);
   const showKnownEvents = useAppStore((s) => s.showKnownEvents);
 
   const rawGpu = useGpuCapability();
@@ -354,8 +567,9 @@ export function SolarSystemScene() {
   // Ref compartido: posiciones reales de planetas (actualizadas en useFrame por Planet/Saturn)
   const planetPositionsRef = useRef<Record<string, Vector3Type>>({});
 
-  // Shadows solo relevantes en modo local con Tierra seleccionada
-  const shadowsEnabled = viewMode === 'local' && selectedPlanet === 'earth';
+  // Shadows solo relevantes en modo local con Tierra o Luna seleccionada
+  const shadowsEnabled =
+    viewMode === 'local' && (selectedBody === 'earth' || selectedBody === 'moon');
 
   return (
     <>
@@ -382,16 +596,21 @@ export function SolarSystemScene() {
         shadows={shadowsEnabled}
       >
         <Suspense fallback={null}>
-          <SolarSystemContent
-            level={level}
-            gpu={resolvedGpu}
-            reducedMotion={prefersReducedMotion}
-            onSelectPlanet={goToBody}
-            planetPositionsRef={planetPositionsRef}
-            viewMode={viewMode}
-            selectedPlanet={selectedPlanet}
-            showKnownEvents={showKnownEvents}
-          />
+          {/* OriginOffsetProvider: context que distribuye el offset del origen a todos
+              los consumidores (Planet, Saturn, PlanetMoon, Sun group, directionalLight).
+              Debe estar DENTRO del Canvas para que useFrame funcione en sus hijos. */}
+          <OriginOffsetProvider>
+            <SolarSystemContent
+              level={level}
+              gpu={resolvedGpu}
+              reducedMotion={prefersReducedMotion}
+              onSelectPlanet={goToBody}
+              planetPositionsRef={planetPositionsRef}
+              viewMode={viewMode}
+              selectedBody={selectedBody}
+              showKnownEvents={showKnownEvents}
+            />
+          </OriginOffsetProvider>
         </Suspense>
       </Canvas>
     </>

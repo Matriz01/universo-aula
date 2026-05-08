@@ -22,6 +22,7 @@ import { solveKeplerNewtonRaphson, applyOrbitalRotation, degToRad } from '@/scen
 import { visualDistance, localVisualDistanceFromAU } from '@/scenes/scale';
 import { useAppStore } from '@/store/useAppStore';
 import { J2000_JD, getJD } from '@/scenes/simulationClock';
+import { useOriginOffset } from '@/scenes/contexts/OriginOffsetContext';
 
 export type PedagogicalLevel = 'explorador' | 'aprendiz' | 'investigador';
 export type ViewMode = 'global' | 'local';
@@ -39,10 +40,14 @@ export type ViewMode = 'global' | 'local';
 /**
  * Calcula la posición tridimensional de un planeta para el JD indicado.
  *
- * @param planet   - Datos orbitales del planeta (NASA JPL J2000)
- * @param level    - Nivel pedagógico (define el modelo orbital empleado)
- * @param jd       - Julian Date actual (desde simulationClock.getJD())
- * @param viewMode - 'global' → escala didáctica; 'local' → escala real (1 u = 1000 km)
+ * @param planet       - Datos orbitales del planeta (NASA JPL J2000)
+ * @param level        - Nivel pedagógico (define el modelo orbital empleado)
+ * @param jd           - Julian Date actual (desde simulationClock.getJD())
+ * @param viewMode     - 'global' → escala didáctica; 'local' → escala real (1 u = 1000 km)
+ * @param originOffset - (opcional) Vector3 a restar al resultado. En modo local,
+ *                       pasar la posición absoluta del cuerpo seleccionado para
+ *                       que ese cuerpo sea siempre el origen (REQ-FRAME-1).
+ *                       Default: Vector3(0,0,0) — sin cambio.
  * @returns Posición {x, y, z} en unidades de escena
  */
 export function computePosition(
@@ -50,6 +55,7 @@ export function computePosition(
   level: PedagogicalLevel,
   jd: number,
   viewMode: ViewMode,
+  originOffset?: Vector3,
 ): { x: number; y: number; z: number } {
   const scaledDist =
     viewMode === 'local'
@@ -89,6 +95,11 @@ export function computePosition(
     applyOrbitalRotation(pos, r, nu, omega, Omega, inc);
   }
 
+  // Aplicar el offset del origen si se proporciona (REQ-FRAME-1: modo local frame-of-reference)
+  if (originOffset) {
+    pos.sub(originOffset);
+  }
+
   return { x: pos.x, y: pos.y, z: pos.z };
 }
 
@@ -114,9 +125,15 @@ export function usePlanetPosition(
   const viewModeRef = useRef(viewMode);
   viewModeRef.current = viewMode;
 
+  // Leer el offset del origen desde el context (ADR-1: ref — sin re-renders)
+  // En modo global: offset = (0,0,0) — sin cambio.
+  // En modo local:  offset = posición absoluta del cuerpo seleccionado.
+  const originOffsetRef = useOriginOffset();
+
   useFrame(() => {
     const jd = getJD();
-    const pos = computePosition(planet, level, jd, viewModeRef.current);
+    // Pasar el offset del origen para obtener la posición relativa (REQ-FRAME-1)
+    const pos = computePosition(planet, level, jd, viewModeRef.current, originOffsetRef.current);
     posRef.current.set(pos.x, pos.y, pos.z);
   });
 
