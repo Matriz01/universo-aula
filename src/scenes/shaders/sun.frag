@@ -14,12 +14,13 @@
 precision highp float;
 
 uniform float uTime;
-uniform vec3  uColorCore;        // HDR: vec3(2.5, 2.0, 1.0) — luminancia > 0.85 para bloom
-uniform vec3  uColorEdge;        // ej. vec3(1.0, 0.45, 0.10)
-uniform float uGranulationScale; // 3.0
-uniform float uFlowScale;        // 8.0
-uniform float uFlowSpeed;        // 0.20  (0.04 si prefers-reduced-motion)
+uniform vec3  uColorCore;         // HDR: vec3(2.5, 2.0, 1.0) — luminancia > 0.85 para bloom
+uniform vec3  uColorEdge;         // ej. vec3(1.0, 0.45, 0.10)
+uniform float uGranulationScale;  // 3.0
+uniform float uFlowScale;         // 8.0
+uniform float uFlowSpeed;         // 0.20  (0.04 si prefers-reduced-motion)
 uniform bool  uSunspotsEnabled;
+uniform float uPerspectiveFactor; // 1.0 en global; ley de cuadrado inverso en local
 
 varying vec3 vNormal;
 varying vec3 vWorldPos;
@@ -103,5 +104,7 @@ void main() {
   vec3 col = base * intensity;
   // bloom suave (clamp alto para HDR si está activo)
   col += vec3(0.05) * intensity;
+  // Perspectiva: escalar el brillo según distancia del planeta al Sol (modo local)
+  col *= uPerspectiveFactor;
   gl_FragColor = vec4(col, 1.0);
 }
