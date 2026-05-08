@@ -22,6 +22,7 @@ import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
 import { degToRad } from '@/scenes/orbital';
 import { useAppStore } from '@/store/useAppStore';
 import { getJD, J2000_JD } from '@/scenes/simulationClock';
+import { computeLabelOffset } from '@/scenes/helpers/labelHelpers';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -130,7 +131,11 @@ function PlanetMeshInner({
           {...(rs ? { receiveShadow: true } : {})}
         />
       </group>
-      <Html center distanceFactor={viewMode === 'local' ? 200 : 10}>
+      <Html
+        position={computeLabelOffset(planetRadius)}
+        center
+        distanceFactor={viewMode === 'local' ? 200 : 10}
+      >
         <div
           style={{
             color: 'white',
