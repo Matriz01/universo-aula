@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { PedagogicalLevel } from '@/types';
 import type { PlanetId } from '@/scenes/data/types';
+import { SPEED_STOPS_SECONDS_PER_SECOND } from '@/scenes/simulationClock';
 
 export type CameraMode = 'overview' | 'focus' | 'tour';
 export type TextureQuality = '1k' | '2k' | '4k';
@@ -66,9 +67,30 @@ interface AppState {
 
   // — Control de velocidad de simulación —
 
-  /** Multiplicador de velocidad de simulación. 0 = pausa, 1 = nominal, max 5. */
+  /**
+   * Velocidad de simulación activa, en segundos simulados por segundo real (s_sim/s_real).
+   * Debe ser uno de los valores de SPEED_STOPS_SECONDS_PER_SECOND.
+   * 0 = pausa. Predeterminado: 1 (tiempo real).
+   */
   simulationSpeed: number;
+
+  /**
+   * Última velocidad no-cero. Se preserva al pausar para poder reanudar
+   * exactamente en el stop anterior. Predeterminado: 1.
+   */
+  lastNonZeroSpeed: number;
+
+  /** Establece simulationSpeed directamente. Si value > 0, actualiza también lastNonZeroSpeed. */
   setSimulationSpeed: (speed: number) => void;
+
+  /** Alterna pausa/play: si speed > 0 → pausa (speed=0); si speed === 0 → restaura lastNonZeroSpeed. */
+  togglePause: () => void;
+
+  /** Avanza al siguiente stop de SPEED_STOPS_SECONDS_PER_SECOND. No-op si ya está en el último. */
+  incrementSpeedStop: () => void;
+
+  /** Retrocede al stop anterior de SPEED_STOPS_SECONDS_PER_SECOND. No-op si ya está en el primero. */
+  decrementSpeedStop: () => void;
 }
 
 /**
@@ -131,8 +153,54 @@ export const useAppStore = create<AppState>()((set) => ({
   },
 
   // Control de velocidad de simulación
-  simulationSpeed: 1.0,
-  setSimulationSpeed: (simulationSpeed) => set({ simulationSpeed }),
+  simulationSpeed: 1,
+  lastNonZeroSpeed: 1,
+
+  setSimulationSpeed: (speed) => {
+    if (speed > 0) {
+      set({ simulationSpeed: speed, lastNonZeroSpeed: speed });
+    } else {
+      set({ simulationSpeed: 0 });
+    }
+  },
+
+  togglePause: () => {
+    const { simulationSpeed, lastNonZeroSpeed } = useAppStore.getState();
+    if (simulationSpeed === 0) {
+      set({ simulationSpeed: lastNonZeroSpeed });
+    } else {
+      set({ simulationSpeed: 0 });
+    }
+  },
+
+  incrementSpeedStop: () => {
+    const { simulationSpeed } = useAppStore.getState();
+    const idx = SPEED_STOPS_SECONDS_PER_SECOND.indexOf(simulationSpeed);
+    const nextIdx = idx === -1 ? 1 : Math.min(idx + 1, SPEED_STOPS_SECONDS_PER_SECOND.length - 1);
+    const nextSpeed = SPEED_STOPS_SECONDS_PER_SECOND[nextIdx];
+    if (nextSpeed !== simulationSpeed) {
+      if (nextSpeed > 0) {
+        set({ simulationSpeed: nextSpeed, lastNonZeroSpeed: nextSpeed });
+      } else {
+        set({ simulationSpeed: nextSpeed });
+      }
+    }
+  },
+
+  decrementSpeedStop: () => {
+    const { simulationSpeed, lastNonZeroSpeed } = useAppStore.getState();
+    const idx = SPEED_STOPS_SECONDS_PER_SECOND.indexOf(simulationSpeed);
+    const prevIdx = idx === -1 ? 0 : Math.max(idx - 1, 0);
+    const prevSpeed = SPEED_STOPS_SECONDS_PER_SECOND[prevIdx];
+    if (prevSpeed !== simulationSpeed) {
+      if (prevSpeed > 0) {
+        set({ simulationSpeed: prevSpeed, lastNonZeroSpeed: prevSpeed });
+      } else {
+        // Bajando a pausa: preservar lastNonZeroSpeed
+        set({ simulationSpeed: 0, lastNonZeroSpeed: lastNonZeroSpeed });
+      }
+    }
+  },
 }));
 
 // ---------------------------------------------------------------------------
@@ -151,3 +219,4 @@ export const useSunShaderVariant = () => useAppStore((s) => s.sunShaderVariant);
 export const useViewMode = () => useAppStore((s) => s.viewMode);
 export const useShowKnownEvents = () => useAppStore((s) => s.showKnownEvents);
 export const useSimulationSpeed = () => useAppStore((s) => s.simulationSpeed);
+export const useLastNonZeroSpeed = () => useAppStore((s) => s.lastNonZeroSpeed);
