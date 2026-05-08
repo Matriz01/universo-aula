@@ -199,6 +199,42 @@ function MoonOrbitPath() {
 }
 
 // ---------------------------------------------------------------------------
+// LocalOrbitPaths — órbitas heliocentricas traducidas al frame local
+// ---------------------------------------------------------------------------
+
+interface LocalOrbitPathsProps {
+  planets: readonly PlanetData[];
+  level: PedagogicalLevel;
+}
+
+/**
+ * Renderiza todas las órbitas heliocentricas en modo local, trasladas por -offset
+ * para que coincidan con la posición real del Sol en el frame del cuerpo seleccionado.
+ *
+ * Las órbitas se calculan en espacio heliocéntrico (Sun at origin).
+ * En modo local el Sol está en -offset. Un grupo posicionado en (-offset)
+ * alinea las órbitas correctamente con el Sol visible.
+ */
+function LocalOrbitPaths({ planets, level }: LocalOrbitPathsProps) {
+  const groupRef = useRef<Group>(null);
+  const originOffsetRef = useOriginOffset();
+
+  useFrame(() => {
+    if (!groupRef.current) return;
+    const offset = originOffsetRef.current;
+    groupRef.current.position.set(-offset.x, -offset.y, -offset.z);
+  });
+
+  return (
+    <group ref={groupRef}>
+      {planets.map((planet) => (
+        <OrbitPath key={`local-orbit-${planet.id}`} planet={planet} level={level} opacity={0.2} />
+      ))}
+    </group>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // SunAndLightUpdater — actualiza posición del Sol y de la luz en useFrame
 // ---------------------------------------------------------------------------
 
@@ -342,9 +378,6 @@ function SolarSystemContent({
       {/* Glow cósmico sutil del fondo estelar */}
       <hemisphereLight color="#dde6ff" groundColor="#1a1142" intensity={0.1} />
 
-      {/* Luz puntual en el Sol — decay 0 alcanza Plutón; sin shadows (irreales + caros) */}
-      <pointLight position={[0, 0, 0]} intensity={6} distance={0} decay={0} />
-
       {/* Luz direccional para sombras Luna↔Tierra — solo en modo local con Tierra o Luna */}
       {isLocal && (isEarthSelected || isMoonSelected) && (
         <directionalLight
@@ -366,9 +399,13 @@ function SolarSystemContent({
           : {})}
       />
 
-      {/* El Sol — envuelto en grupo cuya posición se actualiza en SunAndLightUpdater */}
+      {/* El Sol — envuelto en grupo cuya posición se actualiza en SunAndLightUpdater.
+          La pointLight vive DENTRO del grupo para que en modo local (cuando el grupo
+          se desplaza a -offset) la luz acompañe al Sol automáticamente. */}
       <group ref={sunGroupRef}>
         <Sun capability={gpu} reducedMotion={reducedMotion} />
+        {/* decay=0 alcanza Plutón en modo global; en modo local ilumina desde la posición real del Sol */}
+        <pointLight intensity={6} distance={0} decay={0} />
       </group>
 
       {/* ——————————————————————————————— MODO GLOBAL ——————————————————————————————— */}
@@ -407,8 +444,9 @@ function SolarSystemContent({
           {/* Cinturón de asteroides */}
           <AsteroidBelt config={data.asteroid_belt} />
 
-          {/* MoonOrbitPath en modo global */}
-          <MoonOrbitPath />
+          {/* Nota: MoonOrbitPath NO se muestra en global — usa escala real (~384 u),
+              que en escala didáctica global queda más allá de todos los planetas.
+              La órbita lunar es visible en modo local (Tierra o Luna seleccionados). */}
         </>
       )}
 
@@ -517,6 +555,11 @@ function SolarSystemContent({
               )}
             </>
           )}
+
+          {/* Órbitas heliocentricas en modo local — grupo posicionado en -offset
+              para que las líneas se alineen con el Sol (que también está en -offset).
+              Opacidad reducida para no competir visualmente con el cuerpo central. */}
+          <LocalOrbitPaths planets={planets} level={level} />
 
           {/* Eventos conocidos (cometa Halley, etc.) */}
           {showKnownEvents && <KnownEventsLayer />}
