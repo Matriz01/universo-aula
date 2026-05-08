@@ -1,42 +1,23 @@
 /**
- * Tests del componente <SpeedControl> — presets táctiles.
+ * Tests del componente <SpeedControl> — nueva implementación Batch 4.
+ *
+ * Diseño: top-center HUD con flechas ◀/▶, botón pause/play central y leyenda.
+ * Usa store actions: incrementSpeedStop, decrementSpeedStop, togglePause.
  *
  * Verifica:
- * - Renderizado de los 6 botones de preset (Pausa + 5 velocidades)
- * - Click en cada preset actualiza simulationSpeed en el store
- * - aria-pressed correcto para el preset activo
- * - Pausa y Reanudar funcionan correctamente
+ * - Renderizado: 3 botones (◀ play/pause ▶) + leyenda
+ * - Leyenda muestra la etiqueta correcta para el stop actual
+ * - Botón central muestra icono pausa cuando speed > 0, play cuando speed === 0
+ * - Flechas invocan las acciones correctas del store
+ * - Flecha izquierda deshabilitada en stop 0
+ * - Flecha derecha deshabilitada en stop 12 (último)
  */
 
 import { render, screen, fireEvent } from '@testing-library/react';
-import { vi, beforeEach, describe, it, expect } from 'vitest';
+import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 
 // ---------------------------------------------------------------------------
-// Mock de react-i18next
-// ---------------------------------------------------------------------------
-
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => {
-      const map: Record<string, string> = {
-        'simulation.speed_label': 'Velocidad',
-        'simulation.pause': 'Pausar',
-        'simulation.play': 'Reanudar',
-        'simulation.preset.pause': 'Pausa',
-        'simulation.preset.slow': 'Muy lento',
-        'simulation.preset.half': 'Lento',
-        'simulation.preset.normal': 'Normal',
-        'simulation.preset.fast': 'Rápido',
-        'simulation.preset.turbo': 'Turbo',
-      };
-      return map[key] ?? key;
-    },
-    i18n: { language: 'es' },
-  }),
-}));
-
-// ---------------------------------------------------------------------------
-// Import después de mocks
+// Import tras mocks
 // ---------------------------------------------------------------------------
 
 import { useAppStore } from '@/store/useAppStore';
@@ -46,140 +27,149 @@ import { SpeedControl } from '@/components/ui/SpeedControl';
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Devuelve todos los botones del componente */
-function getAllButtons() {
-  return screen.getAllByRole('button');
+function renderSpeedControl() {
+  return render(<SpeedControl />);
 }
+
+// ---------------------------------------------------------------------------
+// Setup
+// ---------------------------------------------------------------------------
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  // Resetear el store a estado conocido: stop 1 (1 s/s)
+  useAppStore.setState({ simulationSpeed: 1, lastNonZeroSpeed: 1 });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-beforeEach(() => {
-  useAppStore.setState({ simulationSpeed: 1.0 });
-  vi.clearAllMocks();
-});
-
-describe('<SpeedControl> — renderizado', () => {
+describe('<SpeedControl> — renderizado básico', () => {
   it('monta sin errores', () => {
-    expect(() => render(<SpeedControl />)).not.toThrow();
+    expect(() => renderSpeedControl()).not.toThrow();
   });
 
-  it('renderiza exactamente 6 botones (Pausa + 5 presets)', () => {
-    render(<SpeedControl />);
-    const buttons = getAllButtons();
-    expect(buttons).toHaveLength(6);
+  it('renderiza exactamente 3 botones (◀, pause/play, ▶)', () => {
+    renderSpeedControl();
+    const buttons = screen.getAllByRole('button');
+    expect(buttons).toHaveLength(3);
   });
 
-  it('NO renderiza input type="range" (slider eliminado)', () => {
-    render(<SpeedControl />);
-    const sliders = screen.queryAllByRole('slider');
-    expect(sliders).toHaveLength(0);
+  it('NO renderiza input type="range"', () => {
+    renderSpeedControl();
+    expect(screen.queryAllByRole('slider')).toHaveLength(0);
+  });
+});
+
+describe('<SpeedControl> — leyenda', () => {
+  it('muestra "1 s/s" cuando simulationSpeed === 1', () => {
+    useAppStore.setState({ simulationSpeed: 1 });
+    renderSpeedControl();
+    expect(screen.getByText('1 s/s')).toBeTruthy();
   });
 
-  it('muestra el botón de pausa con texto "Pausa" cuando speed > 0', () => {
-    useAppStore.setState({ simulationSpeed: 1.0 });
-    render(<SpeedControl />);
-    const pauseBtn = screen.getByText(/Pausa/);
-    expect(pauseBtn).toBeTruthy();
-  });
-
-  it('muestra "▶ Pausa" (reanudar) cuando simulationSpeed === 0', () => {
+  it('muestra "Pausa" cuando simulationSpeed === 0', () => {
     useAppStore.setState({ simulationSpeed: 0 });
-    render(<SpeedControl />);
-    const resumeBtn = screen.getByText(/▶/);
-    expect(resumeBtn).toBeTruthy();
+    renderSpeedControl();
+    expect(screen.getByText('Pausa')).toBeTruthy();
+  });
+
+  it('muestra "1 h/s" cuando simulationSpeed === 3600', () => {
+    useAppStore.setState({ simulationSpeed: 3600 });
+    renderSpeedControl();
+    expect(screen.getByText('1 h/s')).toBeTruthy();
+  });
+
+  it('muestra "1 año/s" cuando simulationSpeed === 31536000', () => {
+    useAppStore.setState({ simulationSpeed: 31536000 });
+    renderSpeedControl();
+    expect(screen.getByText('1 año/s')).toBeTruthy();
   });
 });
 
-describe('<SpeedControl> — presets de velocidad', () => {
-  it('click en 0.1× pone simulationSpeed a 0.1', () => {
-    render(<SpeedControl />);
-    fireEvent.click(screen.getByText('0.1×'));
-    expect(useAppStore.getState().simulationSpeed).toBeCloseTo(0.1);
+describe('<SpeedControl> — botón pause/play', () => {
+  it('muestra aria-label de pausar cuando speed > 0', () => {
+    useAppStore.setState({ simulationSpeed: 1 });
+    renderSpeedControl();
+    const btn = screen.getByRole('button', { name: /pausar/i });
+    expect(btn).toBeTruthy();
   });
 
-  it('click en 0.5× pone simulationSpeed a 0.5', () => {
-    render(<SpeedControl />);
-    fireEvent.click(screen.getByText('0.5×'));
-    expect(useAppStore.getState().simulationSpeed).toBeCloseTo(0.5);
+  it('muestra aria-label de reanudar cuando speed === 0', () => {
+    useAppStore.setState({ simulationSpeed: 0 });
+    renderSpeedControl();
+    const btn = screen.getByRole('button', { name: /reanudar/i });
+    expect(btn).toBeTruthy();
   });
 
-  it('click en 1× pone simulationSpeed a 1', () => {
-    render(<SpeedControl />);
-    fireEvent.click(screen.getByText('1×'));
-    expect(useAppStore.getState().simulationSpeed).toBe(1);
-  });
-
-  it('click en 2× pone simulationSpeed a 2', () => {
-    render(<SpeedControl />);
-    fireEvent.click(screen.getByText('2×'));
-    expect(useAppStore.getState().simulationSpeed).toBe(2);
-  });
-
-  it('click en 5× pone simulationSpeed a 5', () => {
-    render(<SpeedControl />);
-    fireEvent.click(screen.getByText('5×'));
-    expect(useAppStore.getState().simulationSpeed).toBe(5);
-  });
-});
-
-describe('<SpeedControl> — pausa y reanudar', () => {
-  it('el botón pausa pone simulationSpeed a 0', () => {
-    useAppStore.setState({ simulationSpeed: 1.0 });
-    render(<SpeedControl />);
-    // El botón pausa es el que tiene texto "⏸ Pausa"
-    const pauseBtn = screen.getByText(/⏸/);
-    fireEvent.click(pauseBtn);
+  it('clic en botón pausar llama a togglePause del store', () => {
+    useAppStore.setState({ simulationSpeed: 1, lastNonZeroSpeed: 1 });
+    const spyToggle = vi.spyOn(useAppStore.getState(), 'togglePause');
+    renderSpeedControl();
+    const btn = screen.getByRole('button', { name: /pausar/i });
+    fireEvent.click(btn);
+    // Verificar que la velocidad cambió a 0 (togglePause funcionó)
     expect(useAppStore.getState().simulationSpeed).toBe(0);
+    spyToggle.mockRestore();
   });
 
-  it('el botón reanudar pone simulationSpeed a 1', () => {
-    useAppStore.setState({ simulationSpeed: 0 });
-    render(<SpeedControl />);
-    const resumeBtn = screen.getByText(/▶/);
-    fireEvent.click(resumeBtn);
-    expect(useAppStore.getState().simulationSpeed).toBe(1);
+  it('clic en botón reanudar restaura lastNonZeroSpeed', () => {
+    useAppStore.setState({ simulationSpeed: 0, lastNonZeroSpeed: 3600 });
+    renderSpeedControl();
+    const btn = screen.getByRole('button', { name: /reanudar/i });
+    fireEvent.click(btn);
+    // togglePause restaura lastNonZeroSpeed
+    expect(useAppStore.getState().simulationSpeed).toBe(3600);
   });
 });
 
-describe('<SpeedControl> — aria-pressed', () => {
-  it('el preset 1× tiene aria-pressed=true cuando speed === 1', () => {
-    useAppStore.setState({ simulationSpeed: 1 });
-    render(<SpeedControl />);
-    const btn = screen.getByText('1×');
-    expect(btn).toHaveAttribute('aria-pressed', 'true');
+describe('<SpeedControl> — flechas', () => {
+  it('clic en flecha derecha sube al stop siguiente', () => {
+    useAppStore.setState({ simulationSpeed: 1, lastNonZeroSpeed: 1 });
+    renderSpeedControl();
+    const rightBtn = screen.getByRole('button', { name: /aumentar velocidad/i });
+    fireEvent.click(rightBtn);
+    expect(useAppStore.getState().simulationSpeed).toBe(3600);
   });
 
-  it('el preset 0.1× tiene aria-pressed=false cuando speed === 1', () => {
-    useAppStore.setState({ simulationSpeed: 1 });
-    render(<SpeedControl />);
-    const btn = screen.getByText('0.1×');
-    expect(btn).toHaveAttribute('aria-pressed', 'false');
+  it('clic en flecha izquierda baja al stop anterior', () => {
+    useAppStore.setState({ simulationSpeed: 3600, lastNonZeroSpeed: 3600 });
+    renderSpeedControl();
+    const leftBtn = screen.getByRole('button', { name: /reducir velocidad/i });
+    fireEvent.click(leftBtn);
+    expect(useAppStore.getState().simulationSpeed).toBe(1);
   });
 
-  it('el botón pausa tiene aria-pressed=true cuando speed === 0', () => {
+  it('flecha izquierda deshabilitada en stop 0 (speed === 0)', () => {
     useAppStore.setState({ simulationSpeed: 0 });
-    render(<SpeedControl />);
-    // Cuando pausado, el botón es el de reanudar con aria-pressed=true
-    const resumeBtn = screen.getByText(/▶/);
-    expect(resumeBtn).toHaveAttribute('aria-pressed', 'true');
+    renderSpeedControl();
+    const leftBtn = screen.getByRole('button', { name: /reducir velocidad/i });
+    expect(leftBtn).toBeDisabled();
   });
 
-  it('el botón pausa tiene aria-pressed=false cuando speed > 0', () => {
+  it('flecha derecha deshabilitada en el último stop (speed === 31536000)', () => {
+    useAppStore.setState({ simulationSpeed: 31536000 });
+    renderSpeedControl();
+    const rightBtn = screen.getByRole('button', { name: /aumentar velocidad/i });
+    expect(rightBtn).toBeDisabled();
+  });
+
+  it('flecha izquierda habilitada cuando speed > 0', () => {
+    useAppStore.setState({ simulationSpeed: 3600 });
+    renderSpeedControl();
+    const leftBtn = screen.getByRole('button', { name: /reducir velocidad/i });
+    expect(leftBtn).not.toBeDisabled();
+  });
+
+  it('flecha derecha habilitada cuando speed < 31536000', () => {
     useAppStore.setState({ simulationSpeed: 1 });
-    render(<SpeedControl />);
-    const pauseBtn = screen.getByText(/⏸/);
-    expect(pauseBtn).toHaveAttribute('aria-pressed', 'false');
-  });
-
-  it('ningún preset tiene aria-pressed=true cuando speed === 0', () => {
-    useAppStore.setState({ simulationSpeed: 0 });
-    render(<SpeedControl />);
-    // Los 5 presets deben tener aria-pressed=false
-    ['0.1×', '0.5×', '1×', '2×', '5×'].forEach((label) => {
-      const btn = screen.getByText(label);
-      expect(btn).toHaveAttribute('aria-pressed', 'false');
-    });
+    renderSpeedControl();
+    const rightBtn = screen.getByRole('button', { name: /aumentar velocidad/i });
+    expect(rightBtn).not.toBeDisabled();
   });
 });

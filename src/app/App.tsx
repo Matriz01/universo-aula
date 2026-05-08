@@ -10,6 +10,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ViewModeIndicator } from '@/components/ui/ViewModeIndicator';
 import { SpeedControl } from '@/components/ui/SpeedControl';
 import { ErrorBoundary } from '@/app/ErrorBoundary';
+import { DateControl } from '@/components/hud/DateControl';
 
 // Lazy import de SolarSystemScene — Three.js sólo se carga cuando se necesita
 const SolarSystemScene = lazy(() =>
@@ -62,9 +63,6 @@ export function App() {
         {/* Indicador de modo de visualización (solo visible en modo local) */}
         <ViewModeIndicator />
 
-        {/* Control de velocidad de simulación */}
-        <SpeedControl />
-
         {/* Fila inferior: selector de idioma + botón créditos */}
         <div className="pointer-events-auto flex items-center gap-2">
           <label htmlFor="locale-selector" className="sr-only">
@@ -84,11 +82,20 @@ export function App() {
         </div>
       </div>
 
+      {/* Control de velocidad de simulación — top-center, fixed, pointer-events-auto */}
+      <SpeedControl />
+
       {/* Panel de información del planeta seleccionado */}
       <InfoPanel />
 
       {/* Footer de atribución permanente */}
       <AttributionFooter />
+
+      {/* Fecha de simulación — bottom-left, solo lectura, es-ES (REQ-DATE-4) */}
+      {/* z-40 > footer z-20: evita que el footer tape la fecha */}
+      <div className="pointer-events-none absolute bottom-4 left-4 z-40 text-sm text-white/80">
+        <DateControl />
+      </div>
     </div>
   );
 }

@@ -21,6 +21,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { visualRadius, localVisualRadius, localVisualDistanceFromKm } from '@/scenes/scale';
 import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
 import { usePlanetsData } from '@/scenes/hooks/usePlanetsData';
+import { getJD, J2000_JD } from '@/scenes/simulationClock';
 
 // ---------------------------------------------------------------------------
 // Constantes
@@ -69,8 +70,6 @@ function MoonMeshInner({
   receiveShadow: rs,
 }: PlanetMoonProps) {
   const meshRef = useRef<Mesh>(null);
-  const elapsed = useRef(0);
-  const speed = useAppStore((s) => s.simulationSpeed);
   const viewMode = useAppStore((s) => s.viewMode);
   const selectedPlanet = useAppStore((s) => s.selectedPlanet);
   const level = useAppStore((s) => s.level);
@@ -131,13 +130,11 @@ function MoonMeshInner({
     [earthPosition[0], earthPosition[1], earthPosition[2]],
   );
 
-  useFrame((_, dt) => {
-    const SPEEDUP = 1; // días simulados por segundo real (base: 1 día/seg a speed=1)
-    const dtScaled = dt * speed;
-    elapsed.current += dtScaled * SPEEDUP;
-
+  useFrame(() => {
+    // Ángulo orbital derivado del JD global — sin elapsed.current local (REQ-ORB-2)
+    const jd = getJD();
     const n = (2 * Math.PI) / MOON_PERIOD_DAYS;
-    const theta = n * elapsed.current;
+    const theta = n * (jd - J2000_JD);
 
     // En modo local: usar la posición calculada directamente por usePlanetPosition
     // En modo global: usar positionsRef (actualizado por <Planet>)
@@ -178,8 +175,6 @@ function MoonMeshInner({
 
 function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonProps) {
   const meshRef = useRef<Mesh>(null);
-  const elapsed = useRef(0);
-  const speed = useAppStore((s) => s.simulationSpeed);
   const viewMode = useAppStore((s) => s.viewMode);
   const selectedPlanet = useAppStore((s) => s.selectedPlanet);
   const level = useAppStore((s) => s.level);
@@ -234,12 +229,11 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
     [earthPosition[0], earthPosition[1], earthPosition[2]],
   );
 
-  useFrame((_, dt) => {
-    const SPEEDUP = 1; // días simulados por segundo real (base: 1 día/seg a speed=1)
-    const dtScaled = dt * speed;
-    elapsed.current += dtScaled * SPEEDUP;
+  useFrame(() => {
+    // Ángulo orbital derivado del JD global — sin elapsed.current local (REQ-ORB-2)
+    const jd = getJD();
     const n = (2 * Math.PI) / MOON_PERIOD_DAYS;
-    const theta = n * elapsed.current;
+    const theta = n * (jd - J2000_JD);
 
     let earthPos: Vector3;
     if (viewMode === 'local') {

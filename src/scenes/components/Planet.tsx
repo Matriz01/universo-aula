@@ -21,6 +21,7 @@ import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
 import { degToRad } from '@/scenes/orbital';
 import { useAppStore } from '@/store/useAppStore';
+import { getJD, J2000_JD } from '@/scenes/simulationClock';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -67,8 +68,6 @@ function PlanetMeshInner({
   const groupRef = useRef<Group>(null);
   const meshRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
-  const elapsedDays = useRef(0);
-  const speed = useAppStore((s) => s.simulationSpeed);
   const viewMode = useAppStore((s) => s.viewMode);
   const { t } = useTranslation('solar');
 
@@ -99,10 +98,8 @@ function PlanetMeshInner({
   }, [planet.rotation_period_h]);
 
   // Sincronizamos posición y rotación en cada frame
-  useFrame((_, dt) => {
-    const SPEEDUP = 1; // días simulados por segundo real (base: 1 día/seg a speed=1)
-    const dtScaled = dt * speed;
-    elapsedDays.current += dtScaled * SPEEDUP;
+  useFrame(() => {
+    const jd = getJD();
 
     if (groupRef.current) {
       const pos = posRef.current;
@@ -114,7 +111,8 @@ function PlanetMeshInner({
     }
 
     if (meshRef.current) {
-      meshRef.current.rotation.y = elapsedDays.current * omega;
+      // Rotación axial: derivada del JD (días desde J2000) × velocidad angular
+      meshRef.current.rotation.y = (jd - J2000_JD) * omega;
     }
   });
 
@@ -159,8 +157,6 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
   const groupRef = useRef<Group>(null);
   const meshRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
-  const elapsedDays = useRef(0);
-  const speed = useAppStore((s) => s.simulationSpeed);
 
   const planetRadius = useScaledRadius(planet.radius_km);
   const geometry = useMemo(() => new SphereGeometry(planetRadius, 16, 16), [planetRadius]);
@@ -176,10 +172,8 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
     return (2 * Math.PI) / periodDays;
   }, [planet.rotation_period_h]);
 
-  useFrame((_, dt) => {
-    const SPEEDUP = 1; // días simulados por segundo real (base: 1 día/seg a speed=1)
-    const dtScaled = dt * speed;
-    elapsedDays.current += dtScaled * SPEEDUP;
+  useFrame(() => {
+    const jd = getJD();
 
     if (groupRef.current) {
       groupRef.current.position.copy(posRef.current);
@@ -189,7 +183,8 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
     }
 
     if (meshRef.current) {
-      meshRef.current.rotation.y = elapsedDays.current * omega;
+      // Rotación axial: derivada del JD (días desde J2000) × velocidad angular
+      meshRef.current.rotation.y = (jd - J2000_JD) * omega;
     }
   });
 

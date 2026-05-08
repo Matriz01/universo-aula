@@ -1,36 +1,102 @@
 /**
- * <SpeedControl> — control HUD de velocidad de simulación con presets táctiles.
+ * <SpeedControl> — control HUD de velocidad de simulación con escala de 13 stops.
  *
- * Reemplaza el slider HTML5 por 6 botones de preset grandes (touch target ≥ 44px):
- *   [ Pausa ] [ 0.1× ] [ 0.5× ] [ 1× ] [ 2× ] [ 5× ]
+ * Diseño Batch 4:
+ *   Layout: top-center, fijo, sobre el contenido HUD principal.
+ *   Controles: [ ◀ ] [ ⏸/▶ ] [ ▶ ] + leyenda con la etiqueta del stop actual.
  *
- * - Touch target mínimo 44px (Apple HIG / WCAG 2.5.5)
- * - aria-pressed y aria-label correctos en cada botón
- * - El botón "Pausa" pone simulationSpeed=0
- * - Cuando paused, muestra "▶ Reanudar" que pone speed=1
- * - Posicionado en HUD, semitransparente
- * - i18n: solar:simulation.speed_label | solar:simulation.preset.*
+ * - Flechas ◀/▶ invocan decrementSpeedStop / incrementSpeedStop del store.
+ * - Botón central alterna pausa/play via togglePause.
+ * - Leyenda muestra SPEED_STOP_LABELS_ES[stopIndex] (ej: "1 h/s", "Pausa").
+ * - Flecha izquierda deshabilitada en stop 0 (pausa).
+ * - Flecha derecha deshabilitada en el último stop (1 año/s).
+ * - Sin i18n externo — etiquetas hardcoded en es-ES (castellano peninsular).
+ * - Sin nuevas dependencias.
  */
 
-import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/store/useAppStore';
-
-// ---------------------------------------------------------------------------
-// Constantes
-// ---------------------------------------------------------------------------
-
-const PRESETS = [0.1, 0.5, 1, 2, 5] as const;
-
-type PresetKey = 'slow' | 'half' | 'normal' | 'fast' | 'turbo';
-
-const PRESET_KEYS: PresetKey[] = ['slow', 'half', 'normal', 'fast', 'turbo'];
+import { SPEED_STOPS_SECONDS_PER_SECOND, SPEED_STOP_LABELS_ES } from '@/scenes/simulationClock';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatPreset(value: number): string {
-  return `${value}×`;
+function getStopIndex(speed: number): number {
+  const idx = SPEED_STOPS_SECONDS_PER_SECOND.indexOf(speed);
+  return idx === -1 ? 1 : idx; // fallback a stop 1 (tiempo real)
+}
+
+// ---------------------------------------------------------------------------
+// SVG icons (inline, sin dependencias externas)
+// ---------------------------------------------------------------------------
+
+function IconPause() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect x="3" y="2" width="4" height="12" rx="1" />
+      <rect x="9" y="2" width="4" height="12" rx="1" />
+    </svg>
+  );
+}
+
+function IconPlay() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M4 2.5l10 5.5-10 5.5V2.5z" />
+    </svg>
+  );
+}
+
+function IconChevronLeft() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M10 12L6 8l4-4" />
+    </svg>
+  );
+}
+
+function IconChevronRight() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M6 4l4 4-4 4" />
+    </svg>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -38,81 +104,61 @@ function formatPreset(value: number): string {
 // ---------------------------------------------------------------------------
 
 export function SpeedControl() {
-  const { t } = useTranslation('solar');
   const simulationSpeed = useAppStore((s) => s.simulationSpeed);
-  const setSimulationSpeed = useAppStore((s) => s.setSimulationSpeed);
+  const togglePause = useAppStore((s) => s.togglePause);
+  const incrementSpeedStop = useAppStore((s) => s.incrementSpeedStop);
+  const decrementSpeedStop = useAppStore((s) => s.decrementSpeedStop);
 
   const isPaused = simulationSpeed === 0;
+  const stopIdx = getStopIndex(simulationSpeed);
+  const isFirstStop = stopIdx === 0;
+  const isLastStop = stopIdx === SPEED_STOPS_SECONDS_PER_SECOND.length - 1;
+  const label = SPEED_STOP_LABELS_ES[stopIdx] ?? 'Pausa';
 
-  function handlePreset(value: number) {
-    setSimulationSpeed(value);
-  }
-
-  function handlePause() {
-    setSimulationSpeed(0);
-  }
-
-  function handleResume() {
-    setSimulationSpeed(1);
-  }
+  const btnBase =
+    'flex h-8 w-8 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60';
+  const btnEnabled = 'text-white hover:bg-white/20 active:bg-white/30';
+  const btnDisabled = 'text-white/30 cursor-not-allowed';
 
   return (
-    <div className="pointer-events-none">
-      <div
-        className="pointer-events-auto flex flex-wrap items-center gap-1.5 rounded border border-white/20 bg-black/40 px-3 py-2 backdrop-blur"
-        role="group"
-        aria-label={t('simulation.speed_label')}
-      >
-        {/* Label */}
-        <span className="text-xs text-gray-300 select-none whitespace-nowrap mr-1">
-          {t('simulation.speed_label')}
+    <div className="fixed left-1/2 top-4 z-40 -translate-x-1/2">
+      <div className="flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-white shadow-lg backdrop-blur">
+        {/* Flecha izquierda — decrementar stop */}
+        <button
+          type="button"
+          onClick={decrementSpeedStop}
+          disabled={isFirstStop}
+          aria-label="Reducir velocidad"
+          className={`${btnBase} ${isFirstStop ? btnDisabled : btnEnabled}`}
+        >
+          <IconChevronLeft />
+        </button>
+
+        {/* Botón central — pause / play */}
+        <button
+          type="button"
+          onClick={togglePause}
+          aria-label={isPaused ? 'Reanudar simulación' : 'Pausar simulación'}
+          className={`${btnBase} ${isPaused ? 'bg-white/20 hover:bg-white/30 text-white' : btnEnabled}`}
+        >
+          {isPaused ? <IconPlay /> : <IconPause />}
+        </button>
+
+        {/* Flecha derecha — incrementar stop */}
+        <button
+          type="button"
+          onClick={incrementSpeedStop}
+          disabled={isLastStop}
+          aria-label="Aumentar velocidad"
+          className={`${btnBase} ${isLastStop ? btnDisabled : btnEnabled}`}
+        >
+          <IconChevronRight />
+        </button>
+
+        {/* Leyenda — etiqueta del stop actual */}
+        <span className="min-w-[4.5rem] select-none text-center text-xs font-semibold tabular-nums">
+          {label}
         </span>
-
-        {/* Pausa / Reanudar */}
-        {isPaused ? (
-          <button
-            type="button"
-            onClick={handleResume}
-            aria-label={`${t('simulation.preset.pause')} (▶)`}
-            aria-pressed={true}
-            className="min-h-[44px] min-w-[56px] rounded border border-yellow-400/60 bg-yellow-400/20 px-3 py-1 text-sm font-semibold text-yellow-300 hover:bg-yellow-400/30 active:bg-yellow-400/40 transition-colors"
-          >
-            ▶ {t('simulation.preset.pause')}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={handlePause}
-            aria-label={`${t('simulation.preset.pause')} (⏸)`}
-            aria-pressed={false}
-            className="min-h-[44px] min-w-[56px] rounded border border-white/20 bg-white/10 px-3 py-1 text-sm font-semibold text-white hover:bg-white/20 active:bg-white/30 transition-colors"
-          >
-            ⏸ {t('simulation.preset.pause')}
-          </button>
-        )}
-
-        {/* Botones de preset */}
-        {PRESETS.map((value, idx) => {
-          const key = PRESET_KEYS[idx];
-          const isActive = !isPaused && simulationSpeed === value;
-          return (
-            <button
-              key={value}
-              type="button"
-              onClick={() => handlePreset(value)}
-              aria-label={`${t(`simulation.preset.${key}`)} (${formatPreset(value)})`}
-              aria-pressed={isActive}
-              className={[
-                'min-h-[44px] min-w-[56px] rounded border px-3 py-1 text-sm font-semibold transition-colors',
-                isActive
-                  ? 'border-yellow-400/80 bg-yellow-400/25 text-yellow-200'
-                  : 'border-white/20 bg-white/10 text-white hover:bg-white/20 active:bg-white/30',
-              ].join(' ')}
-            >
-              {formatPreset(value)}
-            </button>
-          );
-        })}
       </div>
     </div>
   );

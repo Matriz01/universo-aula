@@ -25,6 +25,7 @@ import sunFragLiteSrc from '@/scenes/shaders/sun.lite.frag?raw';
 import { SUN_RADIUS_KM } from '@/scenes/scale';
 import { useScaledRadius } from '@/scenes/hooks/useScaledRadius';
 import { useAppStore } from '@/store/useAppStore';
+import { getJD, J2000_JD } from '@/scenes/simulationClock';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -88,13 +89,9 @@ function createUniforms(reducedMotion: boolean, sunspotsEnabled: boolean): SunUn
 const SUN_ROTATION_PERIOD_DAYS = 25;
 /** Velocidad angular del Sol (rad/día simulado) */
 const SUN_OMEGA = (2 * Math.PI) / SUN_ROTATION_PERIOD_DAYS;
-/** Días simulados por segundo real (base: 1 día/seg a speed=1) */
-const SUN_SPEEDUP = 1;
-
 export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunProps) {
   const materialRef = useRef<ShaderMaterial | MeshStandardMaterial | null>(null);
   const meshRef = useRef<Mesh>(null);
-  const elapsedDays = useRef(0);
   const speed = useAppStore((s) => s.simulationSpeed);
 
   // Creamos el material según la capacidad GPU
@@ -130,18 +127,21 @@ export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunPro
   // useFrame actualiza uTime en cada frame (sólo para ShaderMaterial) y rota el Sol
   useFrame((_state, dt) => {
     const dtScaled = dt * speed;
-    elapsedDays.current += dtScaled * SUN_SPEEDUP;
 
     if (materialRef.current instanceof ShaderMaterial) {
       const uniforms = materialRef.current.uniforms as unknown as SunUniforms;
       if (uniforms.uTime) {
-        // Usar dtScaled para que en pausa (speed=0) el shader se congele
+        // uTime: animación visual del shader (usa real-dt, NO estado orbital).
+        // Intencional: el shader de granulación solar es flair visual, no física.
         uniforms.uTime.value += dtScaled;
       }
     }
 
     if (meshRef.current) {
-      meshRef.current.rotation.y = elapsedDays.current * SUN_OMEGA;
+      // Rotación axial: derivada del JD (días desde J2000) × velocidad angular.
+      // El reloj global garantiza continuidad en cambios de modo (REQ-ORB-2).
+      const jd = getJD();
+      meshRef.current.rotation.y = (jd - J2000_JD) * SUN_OMEGA;
     }
   });
 
