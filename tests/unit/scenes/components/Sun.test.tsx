@@ -102,6 +102,10 @@ vi.mock('@react-three/drei', () => ({
 // Mock de los shaders (importados con ?raw en el componente)
 // ---------------------------------------------------------------------------
 
+vi.mock('@/scenes/hooks/usePlanetsData', () => ({
+  usePlanetsData: vi.fn(() => ({ data: null })),
+}));
+
 vi.mock('@/scenes/shaders/sun.vert?raw', () => ({
   default: '// vertex shader mock',
 }));
@@ -280,5 +284,15 @@ describe('<Sun> — uniforms correctos', () => {
     );
     const mat = getShaderMat();
     expect(mat.uniforms['uGranulationScale']).toBeDefined();
+  });
+
+  it('uPerspectiveFactor existe con valor inicial 1.0', () => {
+    render(
+      <div data-testid="canvas">
+        <Sun capability="mid" reducedMotion={false} />
+      </div>,
+    );
+    const mat = getShaderMat();
+    expect(mat.uniforms['uPerspectiveFactor']?.value).toBe(1.0);
   });
 });

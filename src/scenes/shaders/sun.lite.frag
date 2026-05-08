@@ -13,6 +13,7 @@ uniform vec3  uColorCore;
 uniform vec3  uColorEdge;
 uniform float uGranulationScale;
 uniform float uFlowSpeed;
+uniform float uPerspectiveFactor; // 1.0 en global; ley de cuadrado inverso en local
 
 varying vec3 vNormal;
 varying vec3 vWorldPos;
@@ -78,5 +79,6 @@ void main() {
   float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 0.6);
   vec3 base = mix(uColorCore, uColorEdge, fresnel);
 
-  gl_FragColor = vec4(base * intensity, 1.0);
+  // Perspectiva: escalar el brillo según distancia del planeta al Sol (modo local)
+  gl_FragColor = vec4(base * intensity * uPerspectiveFactor, 1.0);
 }

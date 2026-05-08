@@ -15,6 +15,16 @@ interface AppState {
   setLevel: (level: PedagogicalLevel) => void;
   setLocale: (locale: string) => void;
 
+  // — Cámara home —
+
+  /**
+   * Contador que se incrementa cada vez que se solicita un reset de cámara a home.
+   * El componente GlobalCameraControls lo observa para ejecutar el tween.
+   * Usar contador (no booleano) garantiza que doble-pulsación rápida sigue funcionando.
+   */
+  cameraHomeRequested: number;
+  requestCameraHome: () => void;
+
   // — Nuevos campos (solar-system-mvp) —
 
   /** Planeta actualmente seleccionado por el usuario. null = ninguno. */
@@ -112,6 +122,10 @@ export const useAppStore = create<AppState>()((set) => ({
   locale: 'es',
   setLevel: (level) => set({ level }),
   setLocale: (locale) => set({ locale }),
+
+  // Cámara home
+  cameraHomeRequested: 0,
+  requestCameraHome: () => set((s) => ({ cameraHomeRequested: s.cameraHomeRequested + 1 })),
 
   // Nuevos campos
   selectedPlanet: null,

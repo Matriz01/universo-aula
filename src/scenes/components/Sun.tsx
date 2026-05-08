@@ -26,6 +26,8 @@ import { SUN_RADIUS_KM } from '@/scenes/scale';
 import { useScaledRadius } from '@/scenes/hooks/useScaledRadius';
 import { useAppStore } from '@/store/useAppStore';
 import { getJD, J2000_JD } from '@/scenes/simulationClock';
+import { computeSunIntensityFactor } from '@/scenes/helpers/sunIntensity';
+import { usePlanetsData } from '@/scenes/hooks/usePlanetsData';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -42,6 +44,7 @@ export interface SunUniforms {
   uFlowScale: { value: number };
   uFlowSpeed: { value: number };
   uSunspotsEnabled: { value: boolean };
+  uPerspectiveFactor: { value: number };
 }
 
 export interface SunProps {
@@ -78,6 +81,7 @@ function createUniforms(reducedMotion: boolean, sunspotsEnabled: boolean): SunUn
     uFlowScale: { value: FLOW_SCALE },
     uFlowSpeed: { value: reducedMotion ? FLOW_SPEED_NOMINAL * 0.2 : FLOW_SPEED_NOMINAL },
     uSunspotsEnabled: { value: sunspotsEnabled },
+    uPerspectiveFactor: { value: 1.0 },
   };
 }
 
@@ -89,10 +93,23 @@ function createUniforms(reducedMotion: boolean, sunspotsEnabled: boolean): SunUn
 const SUN_ROTATION_PERIOD_DAYS = 25;
 /** Velocidad angular del Sol (rad/día simulado) */
 const SUN_OMEGA = (2 * Math.PI) / SUN_ROTATION_PERIOD_DAYS;
+/** Duración del lerp del factor de perspectiva (ms) — suaviza cambios de modo/planeta */
+const PERSPECTIVE_LERP_MS = 500;
+
 export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunProps) {
   const materialRef = useRef<ShaderMaterial | MeshStandardMaterial | null>(null);
   const meshRef = useRef<Mesh>(null);
   const speed = useAppStore((s) => s.simulationSpeed);
+  const viewMode = useAppStore((s) => s.viewMode);
+  const selectedPlanet = useAppStore((s) => s.selectedPlanet);
+  const { data } = usePlanetsData();
+
+  // Factor de perspectiva actual (lerpeado para evitar pops bruscos)
+  const perspectiveFactorRef = useRef<number>(1.0);
+  // Valor objetivo (se actualiza cuando cambia viewMode o selectedPlanet)
+  const targetFactorRef = useRef<number>(1.0);
+  // Elapsed del lerp actual
+  const lerpElapsedRef = useRef<number>(0);
 
   // Creamos el material según la capacidad GPU
   const material = useMemo(() => {
@@ -128,12 +145,38 @@ export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunPro
   useFrame((_state, dt) => {
     const dtScaled = dt * speed;
 
+    // Calcular factor de perspectiva objetivo
+    let newTargetFactor = 1.0;
+    if (viewMode === 'local' && selectedPlanet && data) {
+      const planetData = data.planets.find((p) => p.id === selectedPlanet);
+      if (planetData) {
+        newTargetFactor = computeSunIntensityFactor('local', planetData.semi_major_axis_AU);
+      }
+    }
+
+    // Si el objetivo cambió, reiniciar el lerp
+    if (Math.abs(newTargetFactor - targetFactorRef.current) > 0.001) {
+      targetFactorRef.current = newTargetFactor;
+      lerpElapsedRef.current = 0;
+    }
+
+    // Lerp del factor de perspectiva
+    if (Math.abs(perspectiveFactorRef.current - targetFactorRef.current) > 0.0001) {
+      lerpElapsedRef.current += dt * 1000;
+      const t = Math.min(lerpElapsedRef.current / PERSPECTIVE_LERP_MS, 1);
+      perspectiveFactorRef.current =
+        perspectiveFactorRef.current + (targetFactorRef.current - perspectiveFactorRef.current) * t;
+    }
+
     if (materialRef.current instanceof ShaderMaterial) {
       const uniforms = materialRef.current.uniforms as unknown as SunUniforms;
       if (uniforms.uTime) {
         // uTime: animación visual del shader (usa real-dt, NO estado orbital).
         // Intencional: el shader de granulación solar es flair visual, no física.
         uniforms.uTime.value += dtScaled;
+      }
+      if (uniforms.uPerspectiveFactor) {
+        uniforms.uPerspectiveFactor.value = perspectiveFactorRef.current;
       }
     }
 
