@@ -65,26 +65,17 @@ export function App() {
           <SpeedControl />
         </div>
 
-        {/* Top-right: columna vertical (LanguageSelector → LevelDropdown → DatePicker) — z-40 */}
+        {/* Top-right: columna vertical (LanguageSelector → LevelDropdown → DatePicker → EjesToggle) — z-40 */}
         <div className="pointer-events-none absolute right-4 top-4 z-40 flex flex-col items-end gap-2">
           <LanguageSelector />
           <LevelDropdown />
           <DatePicker />
-        </div>
-
-        {/* Indicador de modo de visualización (solo visible en modo local) */}
-        <div className="pointer-events-auto absolute bottom-20 right-4">
-          <ViewModeIndicator />
-        </div>
-
-        {/* Bottom-right: toggle de ejes axiales + CreditsButton — z-40 */}
-        <div className="pointer-events-auto absolute bottom-4 right-4 z-40 flex items-center gap-2">
           <button
             type="button"
             onClick={toggleRotationAxes}
             aria-label={showRotationAxes ? tSolar('hud.hideAxes') : tSolar('hud.showAxes')}
             title={showRotationAxes ? tSolar('hud.hideAxes') : tSolar('hud.showAxes')}
-            className={`rounded border px-2 py-1 text-xs backdrop-blur transition-colors ${
+            className={`pointer-events-auto rounded border px-2 py-1 text-xs backdrop-blur transition-colors ${
               showRotationAxes
                 ? 'border-cyan-400 bg-cyan-900/60 text-cyan-300'
                 : 'border-white/20 bg-black/40 text-white hover:border-white/40'
@@ -92,6 +83,15 @@ export function App() {
           >
             {showRotationAxes ? tSolar('hud.hideAxes') : tSolar('hud.showAxes')}
           </button>
+        </div>
+
+        {/* Indicador de modo de visualización (solo visible en modo local) */}
+        <div className="pointer-events-auto absolute bottom-20 right-4">
+          <ViewModeIndicator />
+        </div>
+
+        {/* Bottom-right: CreditsButton — z-40 */}
+        <div className="pointer-events-auto absolute bottom-4 right-4 z-40">
           <CreditsButton onOpen={() => setCreditsOpen(true)} />
         </div>
       </div>
