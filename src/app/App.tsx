@@ -11,6 +11,7 @@ import { ViewModeIndicator } from '@/components/ui/ViewModeIndicator';
 import { SpeedControl } from '@/components/ui/SpeedControl';
 import { ErrorBoundary } from '@/app/ErrorBoundary';
 import { DateControl } from '@/components/hud/DateControl';
+import { HomeButton } from '@/components/hud/HomeButton';
 
 // Lazy import de SolarSystemScene — Three.js sólo se carga cuando se necesita
 const SolarSystemScene = lazy(() =>
@@ -62,6 +63,9 @@ export function App() {
 
         {/* Indicador de modo de visualización (solo visible en modo local) */}
         <ViewModeIndicator />
+
+        {/* Botón de reset de cámara a vista global (solo en modo global) */}
+        <HomeButton />
 
         {/* Fila inferior: selector de idioma + botón créditos */}
         <div className="pointer-events-auto flex items-center gap-2">

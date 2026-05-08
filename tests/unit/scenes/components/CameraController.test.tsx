@@ -29,6 +29,7 @@ vi.mock('@react-three/fiber', () => ({
 
 vi.mock('@react-three/drei', () => ({
   OrbitControls: ({ ref: _ref }: { ref?: unknown }) => <div data-testid="orbit-controls" />,
+  CameraControls: ({ ref: _ref }: { ref?: unknown }) => <div data-testid="camera-controls" />,
 }));
 
 vi.mock('@/scenes/hooks/useFocusCamera', () => ({

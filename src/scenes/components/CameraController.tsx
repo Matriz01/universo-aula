@@ -1,27 +1,47 @@
 /**
- * CameraController — integra OrbitControls con navegación por teclado y focus de cámara.
+ * CameraController — integra controles de cámara con navegación por teclado y focus.
  *
- * - Monta <OrbitControls> de Drei con la ref de useFocusCamera
- * - Delega navegación por teclado a useKeyboardNavigation
- * - Lee selectedPlanet y prefersReducedMotion del store
- * - Lee posición REAL del planeta desde planetPositionsRef (actualizado por Planet/Saturn)
- * - En cameraMode === 'focus': aplica delta-vector al par (camera, target) para seguir al planeta
- *   sin interferir con la rotación libre del usuario (approach de traslación rígida)
+ * Modo GLOBAL (viewMode === 'global'):
+ *   Usa <CameraControls> de Drei (wraps camera-controls@3.x, MIT).
+ *   - dollyToCursor = true → zoom hacia cursor (mouse) y hacia midpoint del pinch (touch/stylus)
+ *   - Pan activado: un dedo orbit, dos dedos pan, pinch zoom
+ *   - Teclado H / h → reset a vista home (target=0,0,0 + cámara en posición panorámica)
+ *   - Botón "Centrar en Sol" expuesto vía ref del componente (controlado desde HUD)
  *
- * Fixes:
- * - Bug 1 (race condition alta velocidad): se pasa targetRef live a useFocusCamera
- *   en lugar de snapshot → el lerp re-lee la posición del planeta cada frame.
- * - Bug 2 (zoom suave): useFocusCamera usa lerp eased de 700ms vía useFrame.
- * - Bug 3 (distancia prudente): se pasa planetRadius para que el offset sea ×K del radio.
+ * Modo LOCAL (viewMode === 'local'):
+ *   Usa <OrbitControls> con la lógica de follow de PR#15 intacta:
+ *   - useFocusCamera (lerp suave hacia el planeta)
+ *   - Traslación rígida delta-vector en useFrame (follow mode)
+ *   - enablePan = false (en local, la cámara sigue al planeta)
+ *
+ * Decisión de fork documentada: CameraControls en global (dollyToCursor nativo + multi-touch)
+ * vs extender OrbitControls manualmente (requeriría interceptar wheel/touch, mucho más código
+ * y frágil con damping). CameraControls ya tiene todo lo necesario sin nueva dependencia
+ * (camera-controls ya estaba en node_modules como dep transitiva de @react-three/drei).
+ *
+ * Multi-input (Pointer Events API):
+ * camera-controls usa internamente PointerEvents — compatible con mouse, touch y stylus (SMART board).
  */
 
-import React, { type Ref, useMemo, useRef } from 'react';
-import { OrbitControls } from '@react-three/drei';
+import React, { type Ref, useEffect, useMemo, useRef } from 'react';
+import { OrbitControls, CameraControls, type CameraControlsImpl } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Vector3 } from 'three';
 import { useAppStore } from '@/store/useAppStore';
 import { useFocusCamera } from '@/scenes/hooks/useFocusCamera';
 import { useKeyboardNavigation } from '@/scenes/hooks/useKeyboardNavigation';
+import { HOME_CAMERA_POSITION, HOME_TARGET_POSITION } from '@/scenes/helpers/cameraHelpers';
+
+// ---------------------------------------------------------------------------
+// Constantes
+// ---------------------------------------------------------------------------
+
+/** Duración del tween home (ms) — mismo orden que useFocusCamera (TRANSITION_MS=700ms) */
+const HOME_DURATION_S = 0.6;
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
 
 export interface CameraControllerProps {
   /** Ref al mapa de posiciones reales de planetas (actualizado por Planet/Saturn en useFrame) */
@@ -33,6 +53,76 @@ export interface CameraControllerProps {
    */
   planetRadius?: number;
 }
+
+// ---------------------------------------------------------------------------
+// Subcomponente: controles en modo global (CameraControls con dollyToCursor)
+// ---------------------------------------------------------------------------
+
+function GlobalCameraControls() {
+  const controlsRef = useRef<CameraControlsImpl | null>(null);
+  const cameraHomeRequested = useAppStore((s) => s.cameraHomeRequested);
+
+  /** Ejecuta el tween de reset a vista home */
+  function doHomeReset() {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    controls
+      .setLookAt(
+        HOME_CAMERA_POSITION.x,
+        HOME_CAMERA_POSITION.y,
+        HOME_CAMERA_POSITION.z,
+        HOME_TARGET_POSITION.x,
+        HOME_TARGET_POSITION.y,
+        HOME_TARGET_POSITION.z,
+        true, // con transición suave
+      )
+      .catch(() => {
+        // Silenciar — setLookAt devuelve Promise que puede rechazarse si unmount
+      });
+  }
+
+  // Shortcut H: reset a vista home
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'h' || event.key === 'H') {
+        doHomeReset();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Botón HUD: reset a vista home (vía store counter)
+  useEffect(() => {
+    if (cameraHomeRequested > 0) {
+      doHomeReset();
+    }
+  }, [cameraHomeRequested]);
+
+  return (
+    <CameraControls
+      ref={controlsRef}
+      dollyToCursor
+      // Velocidades calibradas para exploración cómoda del sistema solar
+      dollySpeed={1.0}
+      truckSpeed={2.0}
+      // Límites de distancia en modo global (didáctico)
+      minDistance={2}
+      maxDistance={200}
+      // smoothTime: amortiguación (segundos) — similar a OrbitControls dampingFactor=0.05
+      smoothTime={0.15}
+      draggingSmoothTime={0.05}
+      // Duración del tween home
+      dampingFactor={HOME_DURATION_S}
+      // CameraControls usa PointerEvents internamente (compatible mouse/touch/stylus)
+      makeDefault={false}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Componente principal
+// ---------------------------------------------------------------------------
 
 export const CameraController = React.memo(function CameraController({
   planetPositionsRef,
@@ -47,9 +137,7 @@ export const CameraController = React.memo(function CameraController({
   /** Posición del planeta en el frame anterior — para calcular el delta orbital */
   const lastPlanetPos = useRef<Vector3 | null>(null);
 
-  // Distancias dinámicas según viewMode:
-  // - local: permite zoom muy cercano al planeta + alejarse hasta ver el Sol (~149598 u)
-  // - global: rango didáctico compacto
+  // Distancias dinámicas para OrbitControls en modo local
   const distances = useMemo(() => {
     if (viewMode === 'local') {
       return { min: 5, max: 500_000 };
@@ -57,9 +145,7 @@ export const CameraController = React.memo(function CameraController({
     return { min: 2, max: 200 };
   }, [viewMode]);
 
-  // Velocidades de orbit dinámicas según viewMode:
-  // - local: zoomSpeed agresivo (escala enorme), rotateSpeed suave
-  // - global: valores por defecto
+  // Velocidades de orbit dinámicas en modo local
   const orbitSpeeds = useMemo(() => {
     if (viewMode === 'local') {
       return { zoomSpeed: 2.0, rotateSpeed: 0.5, panSpeed: 1.0 };
@@ -67,21 +153,19 @@ export const CameraController = React.memo(function CameraController({
     return { zoomSpeed: 1.0, rotateSpeed: 1.0, panSpeed: 1.0 };
   }, [viewMode]);
 
-  // Activa navegación por teclado
+  // Activa navegación por teclado (Tab, Escape, T, K) — siempre activa
   useKeyboardNavigation();
 
   // Obtener la posición REAL del planeta seleccionado desde el ref compartido
-  // Si el ref no tiene la posición aún (primera frame), target será null → no tween
   const target =
     selectedPlanet && planetPositionsRef?.current[selectedPlanet]
       ? planetPositionsRef.current[selectedPlanet]
       : null;
 
-  // Ref live al Vector3 del planeta seleccionado — se actualiza cada frame.
-  // Se pasa a useFocusCamera para que el lerp re-lea la posición actual en cada tick
-  // y no use la snapshot del momento del clic (corrige Bug 1: race condition alta velocidad).
+  // Ref live al Vector3 del planeta seleccionado
   const livePlanetPosRef = useRef<Vector3 | null>(null);
 
+  // useFocusCamera: solo activo en modo local (lerp hacia el planeta)
   const controlsRef = useFocusCamera({
     target,
     targetRef: livePlanetPosRef,
@@ -89,19 +173,10 @@ export const CameraController = React.memo(function CameraController({
     reducedMotion: prefersReducedMotion,
   });
 
-  // Follow mode: traslación rígida (delta-vector approach)
-  // En lugar de reasignar controls.target = planetPos (lo que causa lucha con el damping de
-  // OrbitControls y bloquea la rotación del usuario), aplicamos el DELTA de movimiento orbital
-  // del planeta al par (camera.position, controls.target) como traslación rígida.
-  // OrbitControls ve el target estable (planeta siempre "arriba") → la rotación del usuario persiste.
-  //
-  // También mantiene livePlanetPosRef actualizado: useFocusCamera lo lee durante el lerp inicial
-  // para re-calcular el destino con la posición actual del planeta (corrige Bug 1).
+  // Follow mode (delta-vector) — solo en modo local
   useFrame(() => {
     const currentPos = planetPositionsRef?.current?.[selectedPlanet ?? ''];
 
-    // Actualizar la ref live SIEMPRE que haya posición — useFocusCamera necesita esto
-    // durante el lerp de transición incluso si aún no estamos en follow mode
     if (currentPos && selectedPlanet) {
       if (!livePlanetPosRef.current) {
         livePlanetPosRef.current = currentPos.clone();
@@ -112,8 +187,7 @@ export const CameraController = React.memo(function CameraController({
       livePlanetPosRef.current = null;
     }
 
-    if (cameraMode !== 'focus' || !selectedPlanet) {
-      // Reset al salir de follow mode para que la próxima entrada inicialice sin salto
+    if (cameraMode !== 'focus' || !selectedPlanet || viewMode !== 'local') {
       lastPlanetPos.current = null;
       return;
     }
@@ -124,24 +198,24 @@ export const CameraController = React.memo(function CameraController({
     if (!controls) return;
 
     if (lastPlanetPos.current === null) {
-      // Primera frame de follow: inicializar sin mover la cámara
       lastPlanetPos.current = currentPos.clone();
       return;
     }
 
-    // Delta del movimiento orbital del planeta este frame
     const delta = new Vector3().subVectors(currentPos, lastPlanetPos.current);
 
-    // Traslación rígida: cámara y target se mueven JUNTOS con el planeta
-    // El offset relativo (camera.position - controls.target) queda intacto → rotación preservada
     camera.position.add(delta);
     controls.target.add(delta);
 
     lastPlanetPos.current.copy(currentPos);
-
-    // NO llamar controls.update() — Drei OrbitControls lo hace internamente cada frame
   });
 
+  // En modo global: CameraControls con dollyToCursor
+  if (viewMode === 'global') {
+    return <GlobalCameraControls />;
+  }
+
+  // En modo local: OrbitControls + useFocusCamera (comportamiento PR#15 intacto)
   return (
     <OrbitControls
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
