@@ -2,11 +2,15 @@
  * Tests de SimulationTicker — verifica que el componente llama a
  * simulationClock.tick() exactamente una vez por frame (T4.1 TDD).
  *
+ * Batch 4: SimulationTicker ya no usa speedupForLevel — la velocidad
+ * viene directamente de simulationSpeed (seconds/real-second).
+ * tick(delta, simulationSpeed) sin multiplicación por nivel.
+ *
  * Estrategia:
  * - Mock de @react-three/fiber → useFrame invoca el callback inmediatamente
  *   con un delta conocido.
  * - Mock de simulationClock con vi.hoisted + vi.mock → intercepta tick()
- * - Mock de useAppStore.getState() → devuelve level y simulationSpeed conocidos.
+ * - Mock de useAppStore.getState() → devuelve simulationSpeed conocido.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -17,27 +21,37 @@ import { render } from '@testing-library/react';
 // ---------------------------------------------------------------------------
 
 const FAKE_DELTA = 0.016; // ~60fps
-const FAKE_LEVEL = 'aprendiz' as const;
-const FAKE_SPEED = 2.0;
-// speedupForLevel('aprendiz') === 1, por tanto tick esperará (0.016, 2.0)
-const EXPECTED_SPEEDUP = 1;
+const FAKE_SPEED = 86400; // 1 día/s en la nueva escala
 
 // ---------------------------------------------------------------------------
 // Mocks con vi.hoisted (seguro para referencias en vi.mock factories)
 // ---------------------------------------------------------------------------
 
-const { mockTick, mockSpeedupForLevel } = vi.hoisted(() => ({
+const { mockTick } = vi.hoisted(() => ({
   mockTick: vi.fn(),
-  mockSpeedupForLevel: vi.fn((_level: string) => 1),
 }));
 
 vi.mock('../../../src/scenes/simulationClock', () => ({
   tick: mockTick,
-  speedupForLevel: mockSpeedupForLevel,
   J2000_JD: 2451545.0,
-  SPEEDUP_EXPLORADOR: 3,
-  SPEEDUP_APRENDIZ: 1,
-  SPEEDUP_INVESTIGADOR: 0.3,
+  SPEED_STOPS_SECONDS_PER_SECOND: [
+    0, 1, 3600, 10800, 21600, 43200, 86400, 259200, 604800, 2592000, 7776000, 15552000, 31536000,
+  ],
+  SPEED_STOP_LABELS_ES: [
+    'Pausa',
+    '1 s/s',
+    '1 h/s',
+    '3 h/s',
+    '6 h/s',
+    '12 h/s',
+    '24 h/s',
+    '3 d/s',
+    '1 sem/s',
+    '1 mes/s',
+    '3 mes/s',
+    '6 mes/s',
+    '1 año/s',
+  ],
 }));
 
 vi.mock('@react-three/fiber', () => ({
@@ -48,7 +62,6 @@ vi.mock('@react-three/fiber', () => ({
 
 const { mockGetState } = vi.hoisted(() => ({
   mockGetState: vi.fn(() => ({
-    level: FAKE_LEVEL,
     simulationSpeed: FAKE_SPEED,
   })),
 }));
@@ -69,11 +82,10 @@ import { SimulationTicker } from '../../../src/scenes/SimulationTicker';
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('SimulationTicker (T4.1)', () => {
+describe('SimulationTicker (Batch 4)', () => {
   beforeEach(() => {
     mockTick.mockClear();
-    mockSpeedupForLevel.mockClear().mockImplementation(() => EXPECTED_SPEEDUP);
-    mockGetState.mockClear().mockReturnValue({ level: FAKE_LEVEL, simulationSpeed: FAKE_SPEED });
+    mockGetState.mockClear().mockReturnValue({ simulationSpeed: FAKE_SPEED });
   });
 
   afterEach(() => {
@@ -85,16 +97,17 @@ describe('SimulationTicker (T4.1)', () => {
     expect(mockTick).toHaveBeenCalledTimes(1);
   });
 
-  it('llama a clock.tick con (delta, simulationSpeed * speedupForLevel(level))', () => {
+  it('llama a clock.tick con (delta, simulationSpeed) — sin multiplicación por nivel', () => {
     render(<SimulationTicker />);
-
-    const expectedSecondArg = FAKE_SPEED * EXPECTED_SPEEDUP;
-    expect(mockTick).toHaveBeenCalledWith(FAKE_DELTA, expectedSecondArg);
+    expect(mockTick).toHaveBeenCalledWith(FAKE_DELTA, FAKE_SPEED);
   });
 
-  it('pasa el level correcto a speedupForLevel', () => {
+  it('NO pasa level a ninguna función de speedup', () => {
+    // El ticker en Batch 4 NO debe leer `level` del store ni usar speedupForLevel
+    // Si el mock fuera correcto, getState devolvería solo { simulationSpeed }
     render(<SimulationTicker />);
-    expect(mockSpeedupForLevel).toHaveBeenCalledWith(FAKE_LEVEL);
+    // Verificamos que tick recibe exactamente (delta, simulationSpeed) sin transformar
+    expect(mockTick).toHaveBeenCalledWith(FAKE_DELTA, FAKE_SPEED);
   });
 
   it('retorna null (no renderiza nada en el DOM)', () => {
