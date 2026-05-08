@@ -23,6 +23,8 @@ import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
 import { useMoonPosition } from '@/scenes/hooks/useMoonPosition';
 import { usePlanetsData } from '@/scenes/hooks/usePlanetsData';
 import { EARTH_FALLBACK_DATA } from '@/scenes/data/earthFallback';
+import { MOON_AXIAL_TILT_DEG } from '@/scenes/data/moon';
+import { RotationAxisLine } from '@/scenes/components/RotationAxisLine';
 
 // ---------------------------------------------------------------------------
 // Constantes
@@ -65,6 +67,7 @@ function MoonMeshInner({
   const viewMode = useAppStore((s) => s.viewMode);
   const level = useAppStore((s) => s.level);
   const goToBody = useAppStore((s) => s.goToBody);
+  const showRotationAxes = useAppStore((s) => s.showRotationAxes);
 
   // Obtenemos datos de planetas para encontrar la Tierra
   const { data } = usePlanetsData();
@@ -121,24 +124,32 @@ function MoonMeshInner({
   });
 
   return (
-    <mesh
-      ref={meshRef}
-      geometry={geometry}
-      material={material}
-      name="moon"
-      onClick={(e) => {
-        e.stopPropagation();
-        goToBody('moon');
-      }}
-      onPointerOver={() => {
-        document.body.style.cursor = 'pointer';
-      }}
-      onPointerOut={() => {
-        document.body.style.cursor = 'auto';
-      }}
-      {...(cs ? { castShadow: true } : {})}
-      {...(rs ? { receiveShadow: true } : {})}
-    />
+    <>
+      <mesh
+        ref={meshRef}
+        geometry={geometry}
+        material={material}
+        name="moon"
+        onClick={(e) => {
+          e.stopPropagation();
+          goToBody('moon');
+        }}
+        onPointerOver={() => {
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = 'auto';
+        }}
+        {...(cs ? { castShadow: true } : {})}
+        {...(rs ? { receiveShadow: true } : {})}
+      />
+      {/* Eje de rotación axial de la Luna — visible solo cuando showRotationAxes=true */}
+      <RotationAxisLine
+        radius={moonRadius}
+        tiltDeg={MOON_AXIAL_TILT_DEG}
+        visible={showRotationAxes}
+      />
+    </>
   );
 }
 
@@ -151,6 +162,7 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
   const viewMode = useAppStore((s) => s.viewMode);
   const level = useAppStore((s) => s.level);
   const goToBody = useAppStore((s) => s.goToBody);
+  const showRotationAxes = useAppStore((s) => s.showRotationAxes);
 
   const { data } = usePlanetsData();
   const earthData = data?.planets.find((p) => p.id === 'earth') ?? EARTH_FALLBACK_DATA;
@@ -196,22 +208,30 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
   });
 
   return (
-    <mesh
-      ref={meshRef}
-      geometry={geometry}
-      material={material}
-      name="moon-fallback"
-      onClick={(e) => {
-        e.stopPropagation();
-        goToBody('moon');
-      }}
-      onPointerOver={() => {
-        document.body.style.cursor = 'pointer';
-      }}
-      onPointerOut={() => {
-        document.body.style.cursor = 'auto';
-      }}
-    />
+    <>
+      <mesh
+        ref={meshRef}
+        geometry={geometry}
+        material={material}
+        name="moon-fallback"
+        onClick={(e) => {
+          e.stopPropagation();
+          goToBody('moon');
+        }}
+        onPointerOver={() => {
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = 'auto';
+        }}
+      />
+      {/* Eje de rotación axial de la Luna — visible solo cuando showRotationAxes=true */}
+      <RotationAxisLine
+        radius={moonRadius}
+        tiltDeg={MOON_AXIAL_TILT_DEG}
+        visible={showRotationAxes}
+      />
+    </>
   );
 }
 
