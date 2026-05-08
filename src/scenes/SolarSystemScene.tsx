@@ -39,6 +39,7 @@ import type { GpuCapabilityExtended } from '@/scenes/components/Sun';
 import type { PlanetId } from '@/scenes/data/types';
 import { SimulationTicker } from '@/scenes/SimulationTicker';
 import { PausedBridge } from '@/scenes/PausedBridge';
+import { localVisualRadius } from '@/scenes/scale';
 
 // ---------------------------------------------------------------------------
 // Constantes para órbita lunar
@@ -155,6 +156,12 @@ function SolarSystemContent({
   const isLocal = viewMode === 'local';
   const isEarthSelected = selectedPlanet === 'earth';
 
+  // Radio visual del planeta seleccionado en modo local (escala real: 1 u = 1000 km).
+  // Se pasa a CameraController para calcular el offset prudente al entrar en modo local.
+  const selectedPlanetData = selectedPlanet ? planets.find((p) => p.id === selectedPlanet) : null;
+  const selectedPlanetRadius =
+    isLocal && selectedPlanetData ? localVisualRadius(selectedPlanetData.radius_km) : undefined;
+
   // En modo local: posición del Sol (0,0,0) hacia el planeta seleccionado
   // La luz direccional sigue al planeta seleccionado para simular sombras desde el Sol
   const shadowLightPos = new Vector3(0, 10, 0); // posición por defecto
@@ -195,7 +202,10 @@ function SolarSystemContent({
       )}
 
       {/* Cámara y controles */}
-      <CameraController planetPositionsRef={planetPositionsRef} />
+      <CameraController
+        planetPositionsRef={planetPositionsRef}
+        {...(selectedPlanetRadius !== undefined ? { planetRadius: selectedPlanetRadius } : {})}
+      />
 
       {/* El Sol — siempre presente */}
       <Sun capability={gpu} reducedMotion={reducedMotion} />

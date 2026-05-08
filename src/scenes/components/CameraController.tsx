@@ -7,6 +7,12 @@
  * - Lee posición REAL del planeta desde planetPositionsRef (actualizado por Planet/Saturn)
  * - En cameraMode === 'focus': aplica delta-vector al par (camera, target) para seguir al planeta
  *   sin interferir con la rotación libre del usuario (approach de traslación rígida)
+ *
+ * Fixes:
+ * - Bug 1 (race condition alta velocidad): se pasa targetRef live a useFocusCamera
+ *   en lugar de snapshot → el lerp re-lee la posición del planeta cada frame.
+ * - Bug 2 (zoom suave): useFocusCamera usa lerp eased de 700ms vía useFrame.
+ * - Bug 3 (distancia prudente): se pasa planetRadius para que el offset sea ×K del radio.
  */
 
 import React, { type Ref, useMemo, useRef } from 'react';
@@ -20,10 +26,17 @@ import { useKeyboardNavigation } from '@/scenes/hooks/useKeyboardNavigation';
 export interface CameraControllerProps {
   /** Ref al mapa de posiciones reales de planetas (actualizado por Planet/Saturn en useFrame) */
   planetPositionsRef?: React.MutableRefObject<Record<string, Vector3>>;
+  /**
+   * Radio visual del planeta seleccionado en unidades de escena (modo local).
+   * Se usa para calcular el offset prudente al entrar en modo local (Bug 3).
+   * Si no se provee, se usa el offset legacy (0, 2, 6).
+   */
+  planetRadius?: number;
 }
 
 export const CameraController = React.memo(function CameraController({
   planetPositionsRef,
+  planetRadius,
 }: CameraControllerProps) {
   const selectedPlanet = useAppStore((s) => s.selectedPlanet);
   const prefersReducedMotion = useAppStore((s) => s.prefersReducedMotion);
@@ -64,8 +77,15 @@ export const CameraController = React.memo(function CameraController({
       ? planetPositionsRef.current[selectedPlanet]
       : null;
 
+  // Ref live al Vector3 del planeta seleccionado — se actualiza cada frame.
+  // Se pasa a useFocusCamera para que el lerp re-lea la posición actual en cada tick
+  // y no use la snapshot del momento del clic (corrige Bug 1: race condition alta velocidad).
+  const livePlanetPosRef = useRef<Vector3 | null>(null);
+
   const controlsRef = useFocusCamera({
     target,
+    targetRef: livePlanetPosRef,
+    ...(viewMode === 'local' && planetRadius !== undefined ? { planetRadius } : {}),
     reducedMotion: prefersReducedMotion,
   });
 
@@ -74,14 +94,30 @@ export const CameraController = React.memo(function CameraController({
   // OrbitControls y bloquea la rotación del usuario), aplicamos el DELTA de movimiento orbital
   // del planeta al par (camera.position, controls.target) como traslación rígida.
   // OrbitControls ve el target estable (planeta siempre "arriba") → la rotación del usuario persiste.
+  //
+  // También mantiene livePlanetPosRef actualizado: useFocusCamera lo lee durante el lerp inicial
+  // para re-calcular el destino con la posición actual del planeta (corrige Bug 1).
   useFrame(() => {
+    const currentPos = planetPositionsRef?.current?.[selectedPlanet ?? ''];
+
+    // Actualizar la ref live SIEMPRE que haya posición — useFocusCamera necesita esto
+    // durante el lerp de transición incluso si aún no estamos en follow mode
+    if (currentPos && selectedPlanet) {
+      if (!livePlanetPosRef.current) {
+        livePlanetPosRef.current = currentPos.clone();
+      } else {
+        livePlanetPosRef.current.copy(currentPos);
+      }
+    } else {
+      livePlanetPosRef.current = null;
+    }
+
     if (cameraMode !== 'focus' || !selectedPlanet) {
       // Reset al salir de follow mode para que la próxima entrada inicialice sin salto
       lastPlanetPos.current = null;
       return;
     }
 
-    const currentPos = planetPositionsRef?.current?.[selectedPlanet];
     if (!currentPos) return;
 
     const controls = controlsRef.current;
