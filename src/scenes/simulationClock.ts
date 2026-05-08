@@ -11,6 +11,12 @@
  *   ✅ Leer getJD() dentro de useFrame (imperativo, sin suscripción)
  *   ✅ Tick único en <SimulationTicker>, primer hijo de <SolarSystemContent>
  *   ❌ NUNCA añadir simulationTime, elapsed o jd a useAppStore / Zustand
+ *
+ * Unidades de speedup en tick():
+ *   `speedup` es "segundos simulados por segundo real" (s_sim / s_real).
+ *   La fórmula jd += (deltaSeconds * speedup) / 86400 convierte correctamente:
+ *     deltaSeconds [s_real] × speedup [s_sim/s_real] / 86400 [s_sim/día] = días JD
+ *   Usar SPEED_STOPS_SECONDS_PER_SECOND como valores válidos de speedup.
  */
 
 // ---------------------------------------------------------------------------
@@ -20,20 +26,52 @@
 /** Época J2000.0 en Julian Date (2000-01-01T12:00:00 TT) */
 export const J2000_JD = 2451545.0 as const;
 
-/** Nivel Explorador: 3 días simulados por segundo real (speedup base × 1) */
-export const SPEEDUP_EXPLORADOR = 3 as const;
+/**
+ * Escala discreta de 13 velocidades de simulación, en segundos simulados
+ * por segundo real (s_sim / s_real).
+ *
+ * Stop 0 = pausa (0 s/s)
+ * Stop 1 = tiempo real (1 s/s)
+ * Stop 12 = 1 año simulado por segundo real (31 536 000 s/s)
+ *
+ * Correspondencia:
+ *  0  → 0          (Pausa)
+ *  1  → 1          (1 s/s — tiempo real)
+ *  2  → 3 600      (1 h/s)
+ *  3  → 10 800     (3 h/s)
+ *  4  → 21 600     (6 h/s)
+ *  5  → 43 200     (12 h/s)
+ *  6  → 86 400     (24 h/s = 1 día/s)
+ *  7  → 259 200    (3 d/s)
+ *  8  → 604 800    (1 semana/s)
+ *  9  → 2 592 000  (1 mes/s ≈ 30 días)
+ * 10  → 7 776 000  (3 meses/s)
+ * 11  → 15 552 000 (6 meses/s)
+ * 12  → 31 536 000 (1 año/s = 365 días)
+ */
+export const SPEED_STOPS_SECONDS_PER_SECOND: readonly number[] = [
+  0, 1, 3600, 10800, 21600, 43200, 86400, 259200, 604800, 2592000, 7776000, 15552000, 31536000,
+] as const;
 
-/** Nivel Aprendiz: 1 día simulado por segundo real */
-export const SPEEDUP_APRENDIZ = 1 as const;
-
-/** Nivel Investigador: 0.3 días simulados por segundo real (Kepler completo) */
-export const SPEEDUP_INVESTIGADOR = 0.3 as const;
-
-// ---------------------------------------------------------------------------
-// Tipos públicos
-// ---------------------------------------------------------------------------
-
-export type PedagogicalLevel = 'explorador' | 'aprendiz' | 'investigador';
+/**
+ * Etiquetas en español (castellano peninsular) para cada stop de SPEED_STOPS_SECONDS_PER_SECOND.
+ * Índice sincronizado con SPEED_STOPS_SECONDS_PER_SECOND.
+ */
+export const SPEED_STOP_LABELS_ES: readonly string[] = [
+  'Pausa',
+  '1 s/s',
+  '1 h/s',
+  '3 h/s',
+  '6 h/s',
+  '12 h/s',
+  '24 h/s',
+  '3 d/s',
+  '1 sem/s',
+  '1 mes/s',
+  '3 mes/s',
+  '6 mes/s',
+  '1 año/s',
+] as const;
 
 // ---------------------------------------------------------------------------
 // Estado interno (módulo-level, no exportado)
@@ -66,10 +104,12 @@ export function setPaused(paused: boolean): void {
 
 /**
  * Avanza el JD cuando no está pausado.
- * Fórmula: jd += deltaSeconds * speedup / 86400
+ * Fórmula: jd += (deltaSeconds * speedup) / 86400
  *
- * @param deltaSeconds - Tiempo real transcurrido (segundos, típicamente el `dt` de R3F useFrame)
- * @param speedup      - Factor de aceleración (simulationSpeed × speedupForLevel)
+ * @param deltaSeconds - Tiempo real transcurrido (segundos, típicamente el `delta` de R3F useFrame)
+ * @param speedup      - Segundos simulados por segundo real (s_sim/s_real).
+ *                       Usar valores de SPEED_STOPS_SECONDS_PER_SECOND.
+ *                       Ejemplo: 86400 → 1 día simulado por segundo real.
  */
 export function tick(deltaSeconds: number, speedup: number): void {
   if (state.paused) return;
@@ -90,20 +130,6 @@ export function reset(jd: number): void {
  */
 export function getGregorianDate(): { year: number; month: number; day: number } {
   return jdToGregorian(state.jd);
-}
-
-/**
- * Mapea un nivel pedagógico al speedup de días-simulados/seg correspondiente.
- */
-export function speedupForLevel(level: PedagogicalLevel): number {
-  switch (level) {
-    case 'explorador':
-      return SPEEDUP_EXPLORADOR;
-    case 'aprendiz':
-      return SPEEDUP_APRENDIZ;
-    case 'investigador':
-      return SPEEDUP_INVESTIGADOR;
-  }
 }
 
 // ---------------------------------------------------------------------------

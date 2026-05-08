@@ -1,13 +1,13 @@
 /**
- * Tests unitarios para simulationClock.ts (replan-2026-05)
+ * Tests unitarios para simulationClock.ts (replan-2026-05 — Batch 4)
  *
  * Cubre:
  *  - REQ-CLK-1: API pública de la instancia singleton
- *  - REQ-CLK-2: Constantes de speedup
+ *  - REQ-CLK-2: Constantes de escala de velocidad (SPEED_STOPS_SECONDS_PER_SECOND)
  *  - REQ-CLK-3: Conversión JD ↔ Gregoriano
+ *  - REQ-CLK-4: Test de precisión a framerate real que habría capturado el bug de unidades
  *
- * TDD: este archivo se escribe ANTES de que exista simulationClock.ts.
- * La primera ejecución DEBE fallar con "Cannot find module …".
+ * TDD: este archivo se actualiza ANTES de modificar simulationClock.ts (Batch 4).
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -91,37 +91,112 @@ describe('simulationClock — getPaused() / setPaused()', () => {
   });
 });
 
-// ── REQ-CLK-2: Constantes de speedup ─────────────────────────────────────────
+// ── REQ-CLK-2: Escala de velocidad SPEED_STOPS_SECONDS_PER_SECOND ───────────
 
-describe('simulationClock — constantes SPEEDUP_*', () => {
-  it('SPEEDUP_EXPLORADOR === 3', () => {
-    expect(clock.SPEEDUP_EXPLORADOR).toBe(3);
+describe('simulationClock — SPEED_STOPS_SECONDS_PER_SECOND', () => {
+  it('exporta SPEED_STOPS_SECONDS_PER_SECOND como array de 13 elementos', () => {
+    expect(clock.SPEED_STOPS_SECONDS_PER_SECOND).toHaveLength(13);
   });
 
-  it('SPEEDUP_APRENDIZ === 1', () => {
-    expect(clock.SPEEDUP_APRENDIZ).toBe(1);
+  it('el primer stop es 0 (pausa)', () => {
+    expect(clock.SPEED_STOPS_SECONDS_PER_SECOND[0]).toBe(0);
   });
 
-  it('SPEEDUP_INVESTIGADOR === 0.3', () => {
-    expect(clock.SPEEDUP_INVESTIGADOR).toBe(0.3);
+  it('el segundo stop es 1 (tiempo real)', () => {
+    expect(clock.SPEED_STOPS_SECONDS_PER_SECOND[1]).toBe(1);
   });
 
-  it('J2000_JD === 2451545.0', () => {
+  it('el último stop es 31536000 (1 año/s)', () => {
+    expect(clock.SPEED_STOPS_SECONDS_PER_SECOND[12]).toBe(31536000);
+  });
+
+  it('los stops son estrictamente crecientes (excepto el primero que es 0)', () => {
+    const stops = clock.SPEED_STOPS_SECONDS_PER_SECOND;
+    for (let i = 2; i < stops.length; i++) {
+      expect(stops[i]).toBeGreaterThan(stops[i - 1]);
+    }
+  });
+
+  it('J2000_JD sigue exportado y es 2451545.0', () => {
     expect(clock.J2000_JD).toBe(2451545.0);
   });
 });
 
-describe('simulationClock — speedupForLevel()', () => {
-  it('explorador → 3', () => {
-    expect(clock.speedupForLevel('explorador')).toBe(3);
+describe('simulationClock — SPEED_STOP_LABELS_ES', () => {
+  it('exporta SPEED_STOP_LABELS_ES como array de 13 etiquetas', () => {
+    expect(clock.SPEED_STOP_LABELS_ES).toHaveLength(13);
   });
 
-  it('aprendiz → 1', () => {
-    expect(clock.speedupForLevel('aprendiz')).toBe(1);
+  it('la etiqueta del stop 0 es "Pausa"', () => {
+    expect(clock.SPEED_STOP_LABELS_ES[0]).toBe('Pausa');
   });
 
-  it('investigador → 0.3', () => {
-    expect(clock.speedupForLevel('investigador')).toBe(0.3);
+  it('la etiqueta del stop 1 es "1 s/s"', () => {
+    expect(clock.SPEED_STOP_LABELS_ES[1]).toBe('1 s/s');
+  });
+
+  it('la etiqueta del último stop es "1 año/s"', () => {
+    expect(clock.SPEED_STOP_LABELS_ES[12]).toBe('1 año/s');
+  });
+});
+
+// ── REQ-CLK-4: Test de precisión a framerate real ───────────────────────────
+//
+// Este test simula 1 segundo real a 60 fps con speedup=86400 (1 día/s).
+// Con la fórmula correcta: jd += (1/60 * 86400) / 86400 = 1/60 días/frame
+// 60 frames × 1/60 días/frame = 1.0 día exacto.
+//
+// Si alguien restaura el antiguo bug (speedup como "días/s" pero
+// multiplicado por nivel pedagógico × 86400 inside the formula),
+// este test fallará porque el JD avanzaría 86400 días en lugar de 1.
+//
+// Este test HABRÍA capturado el bug original donde speedup = 3 (días/s)
+// pero se usaba tick(delta, simulationSpeed * speedupForLevel(level))
+// y speedupForLevel devolvía días/s — el avance era ~3.47e-5 días/frame,
+// necesitando 122 días reales para que la Tierra completara una órbita.
+
+describe('simulationClock — precisión a framerate real (REQ-CLK-4)', () => {
+  it('1 segundo real a 60 fps con speedup=86400 avanza exactamente 1 día', () => {
+    const FRAMES = 60;
+    const DELTA_PER_FRAME = 1 / 60; // segundos reales por frame
+    const SPEEDUP = 86400; // 1 día de simulación por segundo real
+
+    for (let i = 0; i < FRAMES; i++) {
+      clock.tick(DELTA_PER_FRAME, SPEEDUP);
+    }
+
+    // Debe haber avanzado ~1 día (con tolerancia a acumulación float64 sobre 60 frames)
+    // toBeCloseTo(x, 6) → precisión ±5e-7, suficiente para verificar la fórmula
+    // y capturar el bug original (que avanzaría ~3.47e-5 días en lugar de 1.0)
+    expect(clock.getJD()).toBeCloseTo(J2000 + 1.0, 6);
+  });
+
+  it('con speedup=1 (tiempo real), 1 segundo real avanza 1/86400 días', () => {
+    const FRAMES = 60;
+    const DELTA_PER_FRAME = 1 / 60;
+    const SPEEDUP = 1; // tiempo real
+
+    for (let i = 0; i < FRAMES; i++) {
+      clock.tick(DELTA_PER_FRAME, SPEEDUP);
+    }
+
+    // 60 frames × (1/60 * 1 / 86400) = 1/86400 días ≈ 1.157e-5
+    const expectedDelta = 1.0 / 86400;
+    expect(clock.getJD()).toBeCloseTo(J2000 + expectedDelta, 6);
+  });
+
+  it('con speedup=31536000 (1 año/s), 1 segundo real avanza 365.25 días', () => {
+    const FRAMES = 60;
+    const DELTA_PER_FRAME = 1 / 60;
+    const SPEEDUP = 31536000; // 1 año/s = 365.25 días/s
+
+    for (let i = 0; i < FRAMES; i++) {
+      clock.tick(DELTA_PER_FRAME, SPEEDUP);
+    }
+
+    // 60 × (1/60 × 31536000 / 86400) = 31536000 / 86400 = 365.0 días
+    const expectedDelta = 31536000 / 86400;
+    expect(clock.getJD()).toBeCloseTo(J2000 + expectedDelta, 6);
   });
 });
 
