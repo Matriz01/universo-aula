@@ -48,10 +48,10 @@ test.describe('PlutoNote — nota IAU por nivel', () => {
       // de Tab en headless Chromium no coincide con el orden canónico esperado.
       await page.goto('/');
 
-      // Cambia al nivel deseado antes de seleccionar Plutón
-      const levelBtn = page.locator(`[data-testid="level-button-${level}"]`);
-      await expect(levelBtn).toBeVisible({ timeout: 10_000 });
-      await levelBtn.click();
+      // Cambia al nivel deseado antes de seleccionar Plutón (dropdown nativo)
+      const levelDropdown = page.locator('select[aria-label="Nivel pedagógico"]');
+      await expect(levelDropdown).toBeVisible({ timeout: 10_000 });
+      await levelDropdown.selectOption(level);
 
       await selectPluto(page);
 
@@ -90,8 +90,8 @@ test.describe('PlutoNote — nota IAU por nivel', () => {
 
     const textExplorador = await plutoNote.textContent();
 
-    // Cambia a Investigador
-    await page.locator('[data-testid="level-button-investigador"]').click();
+    // Cambia a Investigador (dropdown nativo)
+    await page.locator('select[aria-label="Nivel pedagógico"]').selectOption('investigador');
     await page.waitForTimeout(200);
 
     const textInvestigador = await plutoNote.textContent();

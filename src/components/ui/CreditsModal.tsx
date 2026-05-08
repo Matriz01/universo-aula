@@ -1,7 +1,10 @@
 /**
  * CreditsModal — modal accesible con información de créditos y licencias.
  *
- * Abierto desde un botón "i" en el HUD.
+ * Modos de uso:
+ * 1. Sin props: renderiza su propio botón trigger (modo autónomo — legado).
+ * 2. Con `isOpen` + `onClose`: modo controlado (el padre gestiona el estado).
+ *
  * role="dialog", aria-modal="true", aria-labelledby.
  * Cerrable con: Escape, click fuera, botón cerrar.
  */
@@ -9,13 +12,36 @@
 import React, { useState, useEffect, useId, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
-export const CreditsModal = React.memo(function CreditsModal() {
+interface CreditsModalProps {
+  /** Modo controlado: estado abierto desde el padre */
+  isOpen?: boolean;
+  /** Modo controlado: callback para cerrar desde el padre */
+  onClose?: () => void;
+}
+
+export const CreditsModal = React.memo(function CreditsModal({
+  isOpen: controlledOpen,
+  onClose: controlledClose,
+}: CreditsModalProps = {}) {
   const { t } = useTranslation('solar');
-  const [isOpen, setIsOpen] = useState(false);
+  // Modo autónomo: estado interno
+  const [internalOpen, setInternalOpen] = useState(false);
   const titleId = useId();
 
-  const close = useCallback(() => setIsOpen(false), []);
-  const open = useCallback(() => setIsOpen(true), []);
+  const isControlled = controlledOpen !== undefined;
+  const isOpen = isControlled ? controlledOpen : internalOpen;
+
+  const close = useCallback(() => {
+    if (isControlled) {
+      controlledClose?.();
+    } else {
+      setInternalOpen(false);
+    }
+  }, [isControlled, controlledClose]);
+
+  const open = useCallback(() => {
+    if (!isControlled) setInternalOpen(true);
+  }, [isControlled]);
 
   // Cerrar con Escape
   useEffect(() => {
@@ -29,16 +55,18 @@ export const CreditsModal = React.memo(function CreditsModal() {
 
   return (
     <>
-      {/* Botón trigger — siempre visible */}
-      <button
-        type="button"
-        onClick={open}
-        aria-label={t('solar:ui.credits_button', 'Créditos e información')}
-        className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/40 text-xs text-white/70 backdrop-blur hover:bg-white/10 hover:text-white"
-        title={t('solar:ui.credits_button', 'Créditos e información')}
-      >
-        i
-      </button>
+      {/* Botón trigger — solo en modo autónomo (sin props) */}
+      {!isControlled && (
+        <button
+          type="button"
+          onClick={open}
+          aria-label={t('solar:ui.credits_button', 'Créditos e información')}
+          className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/40 text-xs text-white/70 backdrop-blur hover:bg-white/10 hover:text-white"
+          title={t('solar:ui.credits_button', 'Créditos e información')}
+        >
+          i
+        </button>
+      )}
 
       {/* Modal */}
       {isOpen && (
@@ -55,7 +83,7 @@ export const CreditsModal = React.memo(function CreditsModal() {
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            className="fixed left-1/2 top-1/2 z-50 max-h-[80vh] w-full max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-[#0d0d1a] p-6 text-white shadow-2xl ring-1 ring-white/10"
+            className="fixed left-1/2 top-1/2 z-[60] max-h-[80vh] w-full max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-[#0d0d1a] p-6 text-white shadow-2xl ring-1 ring-white/10"
           >
             {/* Cabecera */}
             <div className="mb-5 flex items-center justify-between">

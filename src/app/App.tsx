@@ -1,8 +1,6 @@
-import React, { lazy, Suspense } from 'react';
-import { useTranslation } from 'react-i18next';
+import { lazy, Suspense, useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { EmptyScene } from '@/scenes/EmptyScene';
-import { LevelSelector } from '@/components/ui/LevelSelector';
 import { InfoPanel } from '@/components/ui/InfoPanel';
 import { AttributionFooter } from '@/components/ui/AttributionFooter';
 import { CreditsModal } from '@/components/ui/CreditsModal';
@@ -10,8 +8,12 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ViewModeIndicator } from '@/components/ui/ViewModeIndicator';
 import { SpeedControl } from '@/components/ui/SpeedControl';
 import { ErrorBoundary } from '@/app/ErrorBoundary';
-import { DateControl } from '@/components/hud/DateControl';
 import { HomeButton } from '@/components/hud/HomeButton';
+import { Logo } from '@/components/hud/Logo';
+import { LanguageSelector } from '@/components/hud/LanguageSelector';
+import { LevelDropdown } from '@/components/hud/LevelDropdown';
+import { DatePicker } from '@/components/hud/DatePicker';
+import { CreditsButton } from '@/components/hud/CreditsButton';
 
 // Lazy import de SolarSystemScene — Three.js sólo se carga cuando se necesita
 const SolarSystemScene = lazy(() =>
@@ -28,20 +30,13 @@ function readLegacyFlag(): boolean {
 }
 
 export function App() {
-  const { t, i18n } = useTranslation('common');
-  const setLocale = useAppStore((s) => s.setLocale);
   const legacyFlag = useAppStore((s) => s.legacyFlag) || readLegacyFlag();
-
-  function handleLocaleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const lang = e.target.value;
-    setLocale(lang);
-    void i18n.changeLanguage(lang);
-  }
+  const [creditsOpen, setCreditsOpen] = useState(false);
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#0b0b14] text-white">
-      {/* Capa 3D — ocupa toda la pantalla */}
-      <div className="absolute inset-0">
+      {/* Capa 3D — ocupa toda la pantalla, z-0 */}
+      <div className="absolute inset-0 z-0">
         {legacyFlag ? (
           <EmptyScene />
         ) : (
@@ -53,53 +48,45 @@ export function App() {
         )}
       </div>
 
-      {/* HUD superpuesto */}
-      <div className="pointer-events-none relative z-10 flex flex-col items-start gap-2 p-4">
-        <h1 className="text-2xl font-bold tracking-tight">{t('appName')}</h1>
-        <p className="text-sm text-gray-300">{t('tagline')}</p>
+      {/* HUD — pointer-events-none base, z-10 */}
+      <div className="pointer-events-none absolute inset-0 z-10">
+        {/* Top-left: Logo + HomeButton */}
+        <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2">
+          <Logo />
+          <HomeButton />
+        </div>
 
-        {/* Selector de nivel pedagógico */}
-        <LevelSelector />
+        {/* Top-center: SpeedControl — z-40, pointer-events-auto */}
+        <div className="pointer-events-auto absolute left-1/2 top-4 z-40 -translate-x-1/2">
+          <SpeedControl />
+        </div>
+
+        {/* Top-right: columna vertical (LanguageSelector → LevelDropdown → DatePicker) — z-40 */}
+        <div className="pointer-events-none absolute right-4 top-4 z-40 flex flex-col items-end gap-2">
+          <LanguageSelector />
+          <LevelDropdown />
+          <DatePicker />
+        </div>
 
         {/* Indicador de modo de visualización (solo visible en modo local) */}
-        <ViewModeIndicator />
+        <div className="pointer-events-auto absolute bottom-20 right-4">
+          <ViewModeIndicator />
+        </div>
 
-        {/* Botón de reset de cámara a vista global (solo en modo global) */}
-        <HomeButton />
-
-        {/* Fila inferior: selector de idioma + botón créditos */}
-        <div className="pointer-events-auto flex items-center gap-2">
-          <label htmlFor="locale-selector" className="sr-only">
-            Idioma
-          </label>
-          <select
-            id="locale-selector"
-            value={i18n.language}
-            onChange={handleLocaleChange}
-            className="rounded border border-white/20 bg-black/40 px-2 py-1 text-sm text-white backdrop-blur"
-          >
-            <option value="es">Español</option>
-            <option value="en">English</option>
-          </select>
-
-          <CreditsModal />
+        {/* Bottom-right: CreditsButton — z-40 */}
+        <div className="pointer-events-auto absolute bottom-4 right-4 z-40">
+          <CreditsButton onOpen={() => setCreditsOpen(true)} />
         </div>
       </div>
 
-      {/* Control de velocidad de simulación — top-center, fixed, pointer-events-auto */}
-      <SpeedControl />
-
-      {/* Panel de información del planeta seleccionado */}
+      {/* Panel de información del planeta seleccionado — z-50 */}
       <InfoPanel />
 
-      {/* Footer de atribución permanente */}
+      {/* Footer de atribución permanente — z-20 */}
       <AttributionFooter />
 
-      {/* Fecha de simulación — bottom-left, solo lectura, es-ES (REQ-DATE-4) */}
-      {/* z-40 > footer z-20: evita que el footer tape la fecha */}
-      <div className="pointer-events-none absolute bottom-4 left-4 z-40 text-sm text-white/80">
-        <DateControl />
-      </div>
+      {/* Modal de créditos — z-60, controlado por estado App */}
+      <CreditsModal isOpen={creditsOpen} onClose={() => setCreditsOpen(false)} />
     </div>
   );
 }

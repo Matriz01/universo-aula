@@ -60,10 +60,10 @@ test.describe('Atribución — Solar System Scope', () => {
   test('la atribución es visible tras cambio de nivel pedagógico', async ({ page }) => {
     await page.goto('/');
 
-    // Cambia a Investigador
-    const investigadorBtn = page.locator('[data-testid="level-button-investigador"]');
-    await expect(investigadorBtn).toBeVisible({ timeout: 10_000 });
-    await investigadorBtn.click();
+    // Cambia a Investigador (dropdown nativo, sustituye al grupo de 3 botones)
+    const levelDropdown = page.locator('select[aria-label="Nivel pedagógico"]');
+    await expect(levelDropdown).toBeVisible({ timeout: 10_000 });
+    await levelDropdown.selectOption('investigador');
 
     // El footer sigue siendo visible
     const footer = page.locator('[data-testid="attribution-footer"]');

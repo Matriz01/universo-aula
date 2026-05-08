@@ -50,24 +50,6 @@ describe('App', () => {
     expect(document.body).toBeTruthy();
   });
 
-  it('muestra el título principal de la aplicación', () => {
-    render(
-      <Providers>
-        <App />
-      </Providers>,
-    );
-    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-  });
-
-  it('muestra el selector de idioma', () => {
-    render(
-      <Providers>
-        <App />
-      </Providers>,
-    );
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
-  });
-
   it('monta la escena 3D (SolarSystemScene)', async () => {
     const { findByTestId } = render(
       <Providers>
@@ -90,5 +72,85 @@ describe('App', () => {
     const hrefs = links.map((l) => l.getAttribute('href'));
     expect(hrefs).toContain('/LICENSE');
     expect(hrefs).toContain('/CREDITS.md');
+  });
+
+  // T4.1 — Structural layout tests (RED → GREEN en T4.2)
+  describe('layout HUD', () => {
+    it('renderiza el Logo en el árbol DOM', () => {
+      render(
+        <Providers>
+          <App />
+        </Providers>,
+      );
+      // Logo renderiza un SVG con role="img" y aria-label="Universo Aula"
+      expect(screen.getByRole('img', { name: 'Universo Aula' })).toBeInTheDocument();
+    });
+
+    it('renderiza el LanguageSelector (select aria-label="Idioma")', () => {
+      render(
+        <Providers>
+          <App />
+        </Providers>,
+      );
+      expect(screen.getByRole('combobox', { name: /idioma/i })).toBeInTheDocument();
+    });
+
+    it('renderiza el LevelDropdown (select aria-label="Nivel pedagógico")', () => {
+      render(
+        <Providers>
+          <App />
+        </Providers>,
+      );
+      expect(screen.getByRole('combobox', { name: /nivel pedagógico/i })).toBeInTheDocument();
+    });
+
+    it('renderiza el DatePicker (botón de fecha)', () => {
+      render(
+        <Providers>
+          <App />
+        </Providers>,
+      );
+      // DatePicker en modo cerrado muestra un botón con aria-label="Fecha"
+      expect(screen.getByRole('button', { name: /fecha/i })).toBeInTheDocument();
+    });
+
+    it('renderiza el CreditsButton', () => {
+      render(
+        <Providers>
+          <App />
+        </Providers>,
+      );
+      // CreditsButton tiene aria-label="Créditos"
+      expect(screen.getByRole('button', { name: /créditos/i })).toBeInTheDocument();
+    });
+
+    it('NO hay h1 con tagline en el nuevo layout', () => {
+      render(
+        <Providers>
+          <App />
+        </Providers>,
+      );
+      expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+    });
+
+    it('NO hay LevelSelector (3 botones de nivel) en el nuevo layout', () => {
+      render(
+        <Providers>
+          <App />
+        </Providers>,
+      );
+      // LevelSelector usaba data-testid="level-selector"
+      expect(screen.queryByTestId('level-selector')).not.toBeInTheDocument();
+    });
+
+    it('NO hay DateControl en bottom-left (reemplazado por DatePicker)', () => {
+      render(
+        <Providers>
+          <App />
+        </Providers>,
+      );
+      // DateControl mostraba data-testid="date-control" o similar; ya no debe estar
+      expect(screen.queryByTestId('date-control')).not.toBeInTheDocument();
+    });
   });
 });

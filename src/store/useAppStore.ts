@@ -101,6 +101,34 @@ interface AppState {
 
   /** Retrocede al stop anterior de SPEED_STOPS_SECONDS_PER_SECOND. No-op si ya está en el primero. */
   decrementSpeedStop: () => void;
+
+  // — Date picker auto-pause —
+
+  /**
+   * Abre el date picker y pausa la simulación.
+   * Idempotente: si el picker ya está abierto, no hace nada.
+   */
+  openDatePicker: () => void;
+
+  /**
+   * Cierra el date picker y restaura la velocidad de simulación previa.
+   * Idempotente: si el picker no estaba abierto, no hace nada.
+   */
+  closeDatePicker: () => void;
+}
+
+/**
+ * Tipo interno que extiende AppState con campos privados del date picker.
+ * Los campos prefijados con `_` son convención-privada.
+ * Exportado para que los tests unitarios puedan acceder a ellos sin casts `any`.
+ */
+export interface AppStateInternal extends AppState {
+  /** True mientras el date picker está visible. */
+  datePickerOpen: boolean;
+  /** Velocidad guardada antes de abrir el picker. null = picker cerrado. */
+  _speedBeforePickerOpen: number | null;
+  /** JD guardado antes de abrir el picker (para cancelar con Escape). null = picker cerrado. */
+  _jdBeforePickerOpen: number | null;
 }
 
 /**
@@ -116,7 +144,7 @@ interface AppState {
  * Mover tiempo a 60Hz a Zustand provocó ~17 re-renders/frame (Refactor C regression).
  * Ver: src/scenes/simulationClock.ts — invariante arquitectónica documentada allí.
  */
-export const useAppStore = create<AppState>()((set) => ({
+export const useAppStore = create<AppStateInternal>()((set) => ({
   // Campos originales
   level: 'aprendiz',
   locale: 'es',
@@ -214,6 +242,35 @@ export const useAppStore = create<AppState>()((set) => ({
         set({ simulationSpeed: 0, lastNonZeroSpeed: lastNonZeroSpeed });
       }
     }
+  },
+
+  // — Date picker auto-pause —
+  datePickerOpen: false,
+  _speedBeforePickerOpen: null,
+  _jdBeforePickerOpen: null,
+
+  openDatePicker: () => {
+    const s = useAppStore.getState();
+    // Idempotente: si ya está abierto (_speedBeforePickerOpen ya guardado), no-op
+    if (s._speedBeforePickerOpen !== null) return;
+    set({
+      datePickerOpen: true,
+      _speedBeforePickerOpen: s.simulationSpeed,
+      simulationSpeed: 0,
+    });
+  },
+
+  closeDatePicker: () => {
+    const s = useAppStore.getState();
+    // Idempotente: si no estaba abierto, no-op
+    if (!s.datePickerOpen && s._speedBeforePickerOpen === null) return;
+    const restoredSpeed = s._speedBeforePickerOpen ?? s.lastNonZeroSpeed;
+    set({
+      datePickerOpen: false,
+      simulationSpeed: restoredSpeed,
+      _speedBeforePickerOpen: null,
+      _jdBeforePickerOpen: null,
+    });
   },
 }));
 

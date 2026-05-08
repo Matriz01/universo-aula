@@ -74,12 +74,32 @@ export const SPEED_STOP_LABELS_ES: readonly string[] = [
 ] as const;
 
 // ---------------------------------------------------------------------------
+// Función auxiliar interna: extrae la fecha UTC de hoy
+// ---------------------------------------------------------------------------
+
+/**
+ * Devuelve la fecha civil UTC del instante actual como { year, month, day }.
+ * Usa getUTC* para evitar desfases de timezone del sistema operativo.
+ * Uso exclusivo de la inicialización del módulo.
+ */
+function todayUTC(): { year: number; month: number; day: number } {
+  const d = new Date();
+  return {
+    year: d.getUTCFullYear(),
+    month: d.getUTCMonth() + 1,
+    day: d.getUTCDate(),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Estado interno (módulo-level, no exportado)
 // Mutación in-place — sin clases, sin React, sin Zustand.
 // ---------------------------------------------------------------------------
 
 const state: { jd: number; paused: boolean } = {
-  jd: J2000_JD,
+  // Inicialización en la fecha UTC real. J2000_JD permanece como constante
+  // exportada para los datos orbitales (epoch de referencia).
+  jd: gregorianToJD(todayUTC()),
   paused: false,
 };
 
@@ -137,6 +157,45 @@ export function getGregorianDate(): { year: number; month: number; day: number }
 // Algoritmo: Fliegel–Van Flandern (1968). Aritmética entera pura.
 // Referencia: Communications of the ACM, Vol 11, p 657.
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Conversión Gregoriano → JD (función pura, inverso de jdToGregorian)
+// Algoritmo: Fliegel–Van Flandern (variante directa).
+// Referencia: Communications of the ACM, Vol 11, p 657.
+// ---------------------------------------------------------------------------
+
+/**
+ * Convierte una fecha gregoriana a Julian Date.
+ *
+ * El resultado es el JD de la medianoche UTC del día indicado (JDN - 0.5).
+ * Esto es consistente con jdToGregorian, que usa floor(jd + 0.5) para
+ * extraer el número de día.
+ *
+ * TIMEZONE: la función opera sobre la fecha civil {year, month, day} tal como
+ * la proporciona el llamador. Para obtener la fecha local del usuario, extrae
+ * getFullYear/getMonth/getDate de `new Date()` antes de llamar a esta función.
+ * No usa Date internamente (sin riesgo de TZ del runtime).
+ *
+ * @param d - Fecha gregoriana { year, month, day } (month ∈ [1..12], day ∈ [1..31])
+ * @returns Julian Date de la medianoche UTC del día indicado.
+ */
+export function gregorianToJD(d: { year: number; month: number; day: number }): number {
+  const { year, month, day } = d;
+  const a = Math.floor((14 - month) / 12);
+  const y = year + 4800 - a;
+  const m = month + 12 * a - 3;
+  const jdn =
+    day +
+    Math.floor((153 * m + 2) / 5) +
+    365 * y +
+    Math.floor(y / 4) -
+    Math.floor(y / 100) +
+    Math.floor(y / 400) -
+    32045;
+  // JDN es el número de día juliano (mediodía TT).
+  // Restamos 0.5 para obtener la medianoche UTC del mismo día civil.
+  return jdn - 0.5;
+}
 
 /**
  * Convierte un Julian Date a fecha Gregoriana (pura, sin side-effects).
