@@ -1,4 +1,16 @@
 {
+  "hud": {
+    "language": "Idioma",
+    "level": "Nivel pedagógico",
+    "levelExplorador": "Explorador",
+    "levelAprendiz": "Aprendiz",
+    "levelInvestigador": "Investigador",
+    "date": "Fecha",
+    "goToToday": "Ir a hoy",
+    "creditsButton": "Créditos",
+    "centerOnSun": "Centrar en Sol",
+    "keplerDriftWarning": "Fuera del rango óptimo (1900-2100): la aproximación de Kepler deriva."
+  },
   "ui": {
     "level_selector": {
       "label": "Nivel pedagógico",
