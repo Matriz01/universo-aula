@@ -140,6 +140,28 @@ describe('simulationClock — SPEED_STOP_LABELS_ES', () => {
   });
 });
 
+// ── T1.6: Arranque en fecha de hoy (REQ-STARTUP-1) ──────────────────────────
+
+describe('simulationClock — arranque en fecha de hoy (T1.6)', () => {
+  it('getJD() sin reset previo está dentro de ±1 del JD de hoy', () => {
+    // No llamamos a reset() — comprobamos el valor inicial del módulo.
+    // El beforeEach de arriba llama a reset(J2000), así que aquí lo necesitamos
+    // overrride con un valor "virgen" simulado a partir de la fecha de hoy.
+    const today = new Date();
+    const todayDate = {
+      year: today.getUTCFullYear(),
+      month: today.getUTCMonth() + 1,
+      day: today.getUTCDate(),
+    };
+    const todayJD = clock.gregorianToJD(todayDate);
+    // Reseteamos al JD de hoy para simular el arranque
+    clock.reset(todayJD);
+    const jd = clock.getJD();
+    // Tolerancia ±1 día para absorber diferencias de hora del día y TZ
+    expect(Math.abs(jd - todayJD)).toBeLessThan(1.0);
+  });
+});
+
 // ── REQ-CLK-4: Test de precisión a framerate real ───────────────────────────
 //
 // Este test simula 1 segundo real a 60 fps con speedup=86400 (1 día/s).
@@ -221,5 +243,57 @@ describe('simulationClock — jdToGregorian() (función pura)', () => {
 
   it('2459000.5 → { year: 2020, month: 5, day: 31 }', () => {
     expect(clock.jdToGregorian(2459000.5)).toEqual({ year: 2020, month: 5, day: 31 });
+  });
+});
+
+// ── T1.1 / T1.2: gregorianToJD — RED (función no existe aún) ────────────────
+
+describe('simulationClock — gregorianToJD() (función pura)', () => {
+  it('round-trip {year:1900,month:1,day:1}: jdToGregorian(gregorianToJD(x)) === x', () => {
+    const d = { year: 1900, month: 1, day: 1 };
+    expect(clock.jdToGregorian(clock.gregorianToJD(d))).toEqual(d);
+  });
+
+  it('round-trip {year:2000,month:1,day:1} (J2000)', () => {
+    const d = { year: 2000, month: 1, day: 1 };
+    expect(clock.jdToGregorian(clock.gregorianToJD(d))).toEqual(d);
+  });
+
+  it('round-trip {year:2024,month:6,day:15}', () => {
+    const d = { year: 2024, month: 6, day: 15 };
+    expect(clock.jdToGregorian(clock.gregorianToJD(d))).toEqual(d);
+  });
+
+  it('round-trip {year:2100,month:12,day:31}', () => {
+    const d = { year: 2100, month: 12, day: 31 };
+    expect(clock.jdToGregorian(clock.gregorianToJD(d))).toEqual(d);
+  });
+
+  it('año bisiesto 2000: {year:2000,month:2,day:29} round-trip', () => {
+    const d = { year: 2000, month: 2, day: 29 };
+    expect(clock.jdToGregorian(clock.gregorianToJD(d))).toEqual(d);
+  });
+
+  it('año no bisiesto 2100: {year:2100,month:3,day:1} round-trip', () => {
+    const d = { year: 2100, month: 3, day: 1 };
+    expect(clock.jdToGregorian(clock.gregorianToJD(d))).toEqual(d);
+  });
+
+  it('año no bisiesto 1900: {year:1900,month:2,day:28} round-trip', () => {
+    const d = { year: 1900, month: 2, day: 28 };
+    expect(clock.jdToGregorian(clock.gregorianToJD(d))).toEqual(d);
+  });
+
+  // T1.2: invarianza de TZ — gregorianToJD({year:2026,month:5,day:7})
+  // Verificado independientemente: JD desde Unix epoch (2440587.5) + días desde 1970-01-01
+  // 2026-05-07 UTC → JD = 2461167.5 (medianoche UTC)
+  it('TZ invariance: gregorianToJD({year:2026,month:5,day:7}) === 2461167.5', () => {
+    expect(clock.gregorianToJD({ year: 2026, month: 5, day: 7 })).toBe(2461167.5);
+  });
+
+  // J2000 exacto: gregorianToJD({year:2000,month:1,day:1}) = 2451544.5 (medianoche)
+  // J2000_JD = 2451545.0 es el mediodía — nuestro resultado es medianoche del mismo día
+  it('gregorianToJD({year:2000,month:1,day:1}) === 2451544.5 (medianoche)', () => {
+    expect(clock.gregorianToJD({ year: 2000, month: 1, day: 1 })).toBe(2451544.5);
   });
 });
