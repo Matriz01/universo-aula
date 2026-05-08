@@ -165,3 +165,63 @@ describe('<InfoPanel>', () => {
     expect(() => render(<InfoPanel />)).not.toThrow();
   });
 });
+
+// ---------------------------------------------------------------------------
+// REQ-I18N-2 — HUD muestra el nombre de la Luna vía i18n (no hardcodeado)
+// ---------------------------------------------------------------------------
+
+describe('<InfoPanel> con selectedBody="moon" (REQ-I18N-2)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSelectedPlanet = null;
+    mockLevel = 'aprendiz';
+  });
+
+  it('renderiza el panel cuando selectedBody es "moon"', () => {
+    mockSelectedPlanet = 'moon';
+    render(<InfoPanel />);
+    expect(screen.getByTestId('info-panel')).toBeInTheDocument();
+  });
+
+  it('el título del panel usa t("solar:bodies.moon") — no texto hardcodeado', () => {
+    mockSelectedPlanet = 'moon';
+    render(<InfoPanel />);
+
+    // Nuestro mock de useTranslation retorna la key tal cual.
+    // Si el componente usara "Luna" hardcodeado, el heading diría "Luna".
+    // Si usa t('solar:bodies.moon'), el heading dirá 'solar:bodies.moon'.
+    // Verificamos que el heading es la i18n key, no el literal 'Luna'.
+    const heading = screen.getByRole('heading', { level: 2 });
+    expect(heading.textContent).toBe('solar:bodies.moon');
+  });
+
+  it('el heading NO contiene el literal "Luna" (lo que probaría hardcode)', () => {
+    mockSelectedPlanet = 'moon';
+    render(<InfoPanel />);
+    const heading = screen.getByRole('heading', { level: 2 });
+    // Con el mock que devuelve la key, "Luna" aparecería solo si estuviera hardcodeado.
+    expect(heading.textContent).not.toBe('Luna');
+  });
+
+  it('el botón de cerrar llama goToBody(null) también con selectedBody="moon"', () => {
+    mockSelectedPlanet = 'moon';
+    render(<InfoPanel />);
+    const closeButton = screen.getByRole('button', { name: /cerrar|close/i });
+    fireEvent.click(closeButton);
+    expect(mockGoToBody).toHaveBeenCalledWith(null);
+  });
+
+  it('no muestra datos de planeta (PLANET_BASIC/PLANET_SCIENTIFIC) para la Luna', () => {
+    mockSelectedPlanet = 'moon';
+    render(<InfoPanel />);
+    // La tabla de datos básicos (distancia, lunas, período) no debe aparecer
+    expect(screen.queryByText('Distancia media')).not.toBeInTheDocument();
+    expect(screen.queryByText('Periodo orbital')).not.toBeInTheDocument();
+  });
+
+  it('no muestra PlutoNote cuando selectedBody es "moon"', () => {
+    mockSelectedPlanet = 'moon';
+    render(<InfoPanel />);
+    expect(screen.queryByTestId('pluto-note')).not.toBeInTheDocument();
+  });
+});

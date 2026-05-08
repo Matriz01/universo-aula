@@ -147,3 +147,58 @@ describe('solar.json EN — sanity de contenido', () => {
     expect(getNestedKey(enSolar, 'earth.name')).toBe('Earth');
   });
 });
+
+// ---------------------------------------------------------------------------
+// REQ-I18N-1 — Clave bodies.moon en ES y EN
+// ---------------------------------------------------------------------------
+
+describe('solar.json — bodies.moon (REQ-I18N-1)', () => {
+  it('ES: bodies.moon === "Luna"', () => {
+    expect(getNestedKey(esSolar, 'bodies.moon')).toBe('Luna');
+  });
+
+  it('EN: bodies.moon === "Moon"', () => {
+    expect(getNestedKey(enSolar, 'bodies.moon')).toBe('Moon');
+  });
+
+  it('ES: bodies.moon existe y no está vacío', () => {
+    const value = getNestedKey(esSolar, 'bodies.moon');
+    expect(value).toBeTruthy();
+    expect(typeof value).toBe('string');
+  });
+
+  it('EN: bodies.moon existe y no está vacío', () => {
+    const value = getNestedKey(enSolar, 'bodies.moon');
+    expect(value).toBeTruthy();
+    expect(typeof value).toBe('string');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// REQ-I18N-3 — Claves hud.showAxes / hud.hideAxes en ES y EN
+// ---------------------------------------------------------------------------
+
+describe('solar.json — hud.showAxes / hud.hideAxes (REQ-I18N-3)', () => {
+  it('ES: hud.showAxes === "Mostrar ejes"', () => {
+    expect(getNestedKey(esSolar, 'hud.showAxes')).toBe('Mostrar ejes');
+  });
+
+  it('ES: hud.hideAxes === "Ocultar ejes"', () => {
+    expect(getNestedKey(esSolar, 'hud.hideAxes')).toBe('Ocultar ejes');
+  });
+
+  it('EN: hud.showAxes === "Show axes"', () => {
+    expect(getNestedKey(enSolar, 'hud.showAxes')).toBe('Show axes');
+  });
+
+  it('EN: hud.hideAxes === "Hide axes"', () => {
+    expect(getNestedKey(enSolar, 'hud.hideAxes')).toBe('Hide axes');
+  });
+
+  it('ES y EN tienen paridad en hud.showAxes / hud.hideAxes', () => {
+    expect(getNestedKey(esSolar, 'hud.showAxes')).toBeTruthy();
+    expect(getNestedKey(esSolar, 'hud.hideAxes')).toBeTruthy();
+    expect(getNestedKey(enSolar, 'hud.showAxes')).toBeTruthy();
+    expect(getNestedKey(enSolar, 'hud.hideAxes')).toBeTruthy();
+  });
+});
