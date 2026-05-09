@@ -46,6 +46,7 @@ export interface SunUniforms {
   uFlowSpeed: { value: number };
   uSunspotsEnabled: { value: boolean };
   uPerspectiveFactor: { value: number };
+  uEruptColor: { value: Color };
 }
 
 export interface SunProps {
@@ -74,6 +75,10 @@ const FLOW_SCALE = 8.0;
 // Función helper para crear los uniforms
 // ---------------------------------------------------------------------------
 
+// HDR cálido: valores >1 para que la contribución sea perceptible sobre el fondo brillante.
+// vec3(4.0, 2.5, 0.8) produce un naranja/amarillo intenso — similar a una llamarada solar.
+const ERUPT_COLOR = new Color(4.0, 2.5, 0.8);
+
 function createUniforms(reducedMotion: boolean, sunspotsEnabled: boolean): SunUniforms {
   return {
     uTime: { value: 0 },
@@ -84,6 +89,7 @@ function createUniforms(reducedMotion: boolean, sunspotsEnabled: boolean): SunUn
     uFlowSpeed: { value: reducedMotion ? FLOW_SPEED_NOMINAL * 0.2 : FLOW_SPEED_NOMINAL },
     uSunspotsEnabled: { value: sunspotsEnabled },
     uPerspectiveFactor: { value: 1.0 },
+    uEruptColor: { value: ERUPT_COLOR.clone() },
   };
 }
 

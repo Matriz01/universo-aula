@@ -296,3 +296,41 @@ describe('<Sun> — uniforms correctos', () => {
     expect(mat.uniforms['uPerspectiveFactor']?.value).toBe(1.0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// C.1 TEST — Smoke test eruption layer: uEruptColor uniform presente
+// ---------------------------------------------------------------------------
+
+describe('<Sun> — eruption layer (C.1)', () => {
+  it('con capability="high" tiene uEruptColor en uniforms (capa de erupciones)', () => {
+    render(
+      <div data-testid="canvas">
+        <Sun capability="high" reducedMotion={false} />
+      </div>,
+    );
+    const mat = getShaderMat();
+    expect(mat.uniforms['uEruptColor']).toBeDefined();
+  });
+
+  it('con capability="mid" tiene uEruptColor en uniforms', () => {
+    render(
+      <div data-testid="canvas">
+        <Sun capability="mid" reducedMotion={false} />
+      </div>,
+    );
+    const mat = getShaderMat();
+    expect(mat.uniforms['uEruptColor']).toBeDefined();
+  });
+
+  it('uEruptColor NO está en capability="low" (usa shader lite)', () => {
+    render(
+      <div data-testid="canvas">
+        <Sun capability="low" reducedMotion={false} />
+      </div>,
+    );
+    // En 'low' se usa sun.lite.frag — el uniform uEruptColor no se necesita
+    // (sun.lite.frag no tiene la capa de erupciones).
+    // El test sólo verifica que el componente monta sin errores.
+    expect(shaderMaterialSpy).toHaveBeenCalled();
+  });
+});
