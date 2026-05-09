@@ -15,14 +15,7 @@ import React, { useRef, useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import type { Group, Mesh, Vector3 } from 'three';
-import {
-  SphereGeometry,
-  MeshStandardMaterial,
-  MeshBasicMaterial,
-  RingGeometry,
-  Color,
-  DoubleSide,
-} from 'three';
+import { SphereGeometry, MeshBasicMaterial, RingGeometry, DoubleSide } from 'three';
 import type { PlanetData } from '@/scenes/data/types';
 import { useScaledRadius } from '@/scenes/hooks/useScaledRadius';
 import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
@@ -31,6 +24,8 @@ import { degToRad } from '@/scenes/orbital';
 import { getJD, J2000_JD } from '@/scenes/simulationClock';
 import { useAppStore } from '@/store/useAppStore';
 import { RotationAxisLine } from '@/scenes/components/RotationAxisLine';
+import { usePlanetMaterial } from '@/scenes/hooks/usePlanetMaterial';
+import { RimOutline } from '@/scenes/components/RimOutline';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -79,11 +74,14 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
   // Geometría de la esfera del planeta
   const sphereGeometry = useMemo(() => new SphereGeometry(planetRadius, 64, 64), [planetRadius]);
 
-  // Material de la esfera
-  const sphereMaterial = useMemo(
-    () => new MeshStandardMaterial({ map: planetTexture }),
-    [planetTexture],
-  );
+  // Hook de swap de material: toon en explorador, standard (textura) en otros niveles
+  // ADR-3: los anillos NO reciben tratamiento toon, solo la esfera
+  usePlanetMaterial({
+    meshRef: sphereRef,
+    level,
+    colorHex: planet.color_hex,
+    texture: planetTexture,
+  });
 
   // Geometría de los anillos (en unidades visuales)
   const ringGeometry = useMemo(() => {
@@ -131,13 +129,11 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
     <group ref={groupRef} name={planet.id} onClick={() => onClick?.(planet.id)}>
       {/* Grupo con inclinación axial: esfera rota sobre su eje inclinado */}
       <group rotation={[0, 0, tiltRad]}>
-        <mesh
-          ref={sphereRef}
-          geometry={sphereGeometry}
-          material={sphereMaterial}
-          name={`${planet.id}-sphere`}
-        />
+        <mesh ref={sphereRef} geometry={sphereGeometry} name={`${planet.id}-sphere`} />
+        {/* Outline cartoon — solo en nivel explorador (ADR-3: solo esfera, no anillos) */}
+        {level === 'explorador' && <RimOutline geometry={sphereGeometry} />}
         {/* Anillos: no rotan con el planeta, son estructuras independientes */}
+        {/* ADR-3: los anillos mantienen MeshBasicMaterial en todos los niveles */}
         {ringGeometry && (
           <mesh
             geometry={ringGeometry}
@@ -159,6 +155,7 @@ function SaturnMeshInner({ planet, level, onClick, positionsRef }: SaturnProps) 
 
 function SaturnFallback({ planet, level, onClick, positionsRef }: SaturnProps) {
   const groupRef = useRef<Group>(null);
+  const sphereRef = useRef<Mesh>(null);
   const posRef = usePlanetPosition(planet, level);
   const showRotationAxes = useAppStore((s) => s.showRotationAxes);
 
@@ -166,10 +163,9 @@ function SaturnFallback({ planet, level, onClick, positionsRef }: SaturnProps) {
   const planetRadius = useScaledRadius(planet.radius_km);
 
   const sphereGeometry = useMemo(() => new SphereGeometry(planetRadius, 16, 16), [planetRadius]);
-  const sphereMaterial = useMemo(
-    () => new MeshStandardMaterial({ color: new Color(planet.color_hex) }),
-    [planet.color_hex],
-  );
+
+  // Hook de swap de material: toon en explorador, color sólido en otros niveles
+  usePlanetMaterial({ meshRef: sphereRef, level, colorHex: planet.color_hex, texture: null });
 
   const ringGeometry = useMemo(() => {
     if (!planet.rings) return null;
@@ -203,7 +199,10 @@ function SaturnFallback({ planet, level, onClick, positionsRef }: SaturnProps) {
   return (
     <group ref={groupRef} name={planet.id} onClick={() => onClick?.(planet.id)}>
       <group rotation={[0, 0, tiltRad]}>
-        <mesh geometry={sphereGeometry} material={sphereMaterial} />
+        <mesh ref={sphereRef} geometry={sphereGeometry} />
+        {/* Outline cartoon — solo en nivel explorador */}
+        {level === 'explorador' && <RimOutline geometry={sphereGeometry} />}
+        {/* ADR-3: anillos mantienen MeshBasicMaterial en todos los niveles */}
         {ringGeometry && (
           <mesh geometry={ringGeometry} material={ringMaterial} rotation={[Math.PI / 2, 0, 0]} />
         )}

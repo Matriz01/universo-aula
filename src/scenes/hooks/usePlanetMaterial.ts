@@ -20,8 +20,8 @@ import { acquireToonGradientTexture, releaseToonGradientTexture } from '@/scenes
 // ---------------------------------------------------------------------------
 
 export interface UsePlanetMaterialArgs {
-  /** Ref al mesh cuyo material será gestionado. */
-  meshRef: React.RefObject<Pick<Mesh, 'material'>>;
+  /** Ref al mesh cuyo material será gestionado. React 19 devuelve RefObject<T | null>. */
+  meshRef: React.RefObject<Mesh | null>;
   /** Nivel pedagógico activo. */
   level: PedagogicalLevel;
   /** Color hexadecimal del planeta (usado cuando no hay textura). */
