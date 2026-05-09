@@ -27,30 +27,42 @@
 export const J2000_JD = 2451545.0 as const;
 
 /**
- * Escala discreta de 13 velocidades de simulación, en segundos simulados
+ * Escala discreta de 25 velocidades de simulación, en segundos simulados
  * por segundo real (s_sim / s_real).
  *
- * Stop 0 = pausa (0 s/s)
- * Stop 1 = tiempo real (1 s/s)
- * Stop 12 = 1 año simulado por segundo real (31 536 000 s/s)
+ * La escala es simétrica alrededor del stop central (índice 12 = pausa = 0 s/s).
+ * Velocidades negativas permiten retroceder en el tiempo.
  *
  * Correspondencia:
- *  0  → 0          (Pausa)
- *  1  → 1          (1 s/s — tiempo real)
- *  2  → 3 600      (1 h/s)
- *  3  → 10 800     (3 h/s)
- *  4  → 21 600     (6 h/s)
- *  5  → 43 200     (12 h/s)
- *  6  → 86 400     (24 h/s = 1 día/s)
- *  7  → 259 200    (3 d/s)
- *  8  → 604 800    (1 semana/s)
- *  9  → 2 592 000  (1 mes/s ≈ 30 días)
- * 10  → 7 776 000  (3 meses/s)
- * 11  → 15 552 000 (6 meses/s)
- * 12  → 31 536 000 (1 año/s = 365 días)
+ *  0  → -31 536 000 (-1 año/s)
+ *  1  → -15 552 000 (-6 mes/s)
+ *  2  →  -7 776 000 (-3 mes/s)
+ *  3  →  -2 592 000 (-1 mes/s)
+ *  4  →    -604 800 (-1 sem/s)
+ *  5  →    -259 200 (-3 d/s)
+ *  6  →     -86 400 (-24 h/s)
+ *  7  →     -43 200 (-12 h/s)
+ *  8  →     -21 600 (-6 h/s)
+ *  9  →     -10 800 (-3 h/s)
+ * 10  →      -3 600 (-1 h/s)
+ * 11  →          -1 (-1 s/s)
+ * 12  →           0 (Pausa)
+ * 13  →           1 (1 s/s — tiempo real)
+ * 14  →       3 600 (1 h/s)
+ * 15  →      10 800 (3 h/s)
+ * 16  →      21 600 (6 h/s)
+ * 17  →      43 200 (12 h/s)
+ * 18  →      86 400 (24 h/s = 1 día/s)
+ * 19  →     259 200 (3 d/s)
+ * 20  →     604 800 (1 semana/s)
+ * 21  →   2 592 000 (1 mes/s ≈ 30 días)
+ * 22  →   7 776 000 (3 meses/s)
+ * 23  →  15 552 000 (6 meses/s)
+ * 24  →  31 536 000 (1 año/s = 365 días)
  */
 export const SPEED_STOPS_SECONDS_PER_SECOND: readonly number[] = [
-  0, 1, 3600, 10800, 21600, 43200, 86400, 259200, 604800, 2592000, 7776000, 15552000, 31536000,
+  -31536000, -15552000, -7776000, -2592000, -604800, -259200, -86400, -43200, -21600, -10800, -3600,
+  -1, 0, 1, 3600, 10800, 21600, 43200, 86400, 259200, 604800, 2592000, 7776000, 15552000, 31536000,
 ] as const;
 
 /**
@@ -58,6 +70,18 @@ export const SPEED_STOPS_SECONDS_PER_SECOND: readonly number[] = [
  * Índice sincronizado con SPEED_STOPS_SECONDS_PER_SECOND.
  */
 export const SPEED_STOP_LABELS_ES: readonly string[] = [
+  '-1 año/s',
+  '-6 mes/s',
+  '-3 mes/s',
+  '-1 mes/s',
+  '-1 sem/s',
+  '-3 d/s',
+  '-24 h/s',
+  '-12 h/s',
+  '-6 h/s',
+  '-3 h/s',
+  '-1 h/s',
+  '-1 s/s',
   'Pausa',
   '1 s/s',
   '1 h/s',

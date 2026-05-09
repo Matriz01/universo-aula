@@ -16,13 +16,21 @@
  * REQ-DATE-2, REQ-DATE-3, REQ-DATE-4, REQ-DATE-5.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/store/useAppStore';
 import { getGregorianDate, gregorianToJD, reset } from '@/scenes/simulationClock';
 
 const DATE_MIN = '1900-01-01';
 const DATE_MAX = '2100-12-31';
+
+/** Formateador singleton para el botón cerrado — igual que DateControl */
+const FMT_LONG = new Intl.DateTimeFormat('es-ES', { dateStyle: 'long' });
+
+/** Formatea { year, month, day } a cadena es-ES larga */
+function formatDateLong(d: { year: number; month: number; day: number }): string {
+  return FMT_LONG.format(new Date(Date.UTC(d.year, d.month - 1, d.day)));
+}
 
 /** Convierte { year, month, day } a string YYYY-MM-DD para <input type="date"> */
 function toDateString(d: { year: number; month: number; day: number }): string {
@@ -59,6 +67,21 @@ export const DatePicker = React.memo(function DatePicker() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState<string>(() => toDateString(getGregorianDate()));
   const [showWarning, setShowWarning] = useState(false);
+
+  // Etiqueta de fecha en modo cerrado: sondeo cada 1 s para reflejar el avance del reloj
+  const [closedLabel, setClosedLabel] = useState<string>(() => formatDateLong(getGregorianDate()));
+
+  // Sondeo activo solo cuando el picker está cerrado (no consume ciclos mientras está abierto)
+  const updateClosedLabel = useCallback(() => {
+    const next = formatDateLong(getGregorianDate());
+    setClosedLabel((prev) => (prev === next ? prev : next));
+  }, []);
+
+  useEffect(() => {
+    if (datePickerOpen) return; // no necesario mientras está abierto
+    const id = setInterval(updateClosedLabel, 1000);
+    return () => clearInterval(id);
+  }, [datePickerOpen, updateClosedLabel]);
 
   // Foco automático al abrir
   useEffect(() => {
@@ -128,12 +151,6 @@ export const DatePicker = React.memo(function DatePicker() {
     }
   }
 
-  // Fecha formateada para mostrar en el botón (es-ES largo)
-  const currentDate = getGregorianDate();
-  const dateLabel = new Intl.DateTimeFormat('es-ES', { dateStyle: 'long' }).format(
-    new Date(Date.UTC(currentDate.year, currentDate.month - 1, currentDate.day)),
-  );
-
   if (!datePickerOpen) {
     return (
       <button
@@ -144,7 +161,7 @@ export const DatePicker = React.memo(function DatePicker() {
         aria-label={t('solar:hud.date', 'Fecha')}
         title={t('solar:hud.date', 'Fecha')}
       >
-        {dateLabel}
+        {closedLabel}
       </button>
     );
   }

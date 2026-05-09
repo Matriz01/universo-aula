@@ -9,8 +9,8 @@
  * (e) input tiene min/max; tooltip cuando valor en bordes
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, fireEvent, screen, act } from '@testing-library/react';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks (requerido para evitar ReferenceError en vi.mock factories)
@@ -86,12 +86,49 @@ import { DatePicker } from '@/components/hud/DatePicker';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.useFakeTimers();
   mockDatePickerOpenRef.open = false;
   mockGetGregorianDate.mockReturnValue({ year: 2026, month: 5, day: 7 });
   mockGetJD.mockReturnValue(2461167.5);
   // Restaurar la implementación del mock de gregorianToJD
   mockGregorianToJD.mockImplementation((d: { year: number; month: number; day: number }) => {
     return d.year * 365.25 + d.month * 30 + d.day;
+  });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe('<DatePicker> — etiqueta de fecha en modo cerrado (live polling)', () => {
+  it('T3.5a: el botón cerrado muestra la fecha inicial de getGregorianDate()', () => {
+    mockGetGregorianDate.mockReturnValue({ year: 2026, month: 5, day: 7 });
+    const { container } = render(<DatePicker />);
+    const btn = container.querySelector('button');
+    expect(btn).not.toBeNull();
+    // Debe contener algo de la fecha — el año como mínimo
+    expect(btn!.textContent).toContain('2026');
+  });
+
+  it('T3.5b: tras 1 segundo, el botón muestra la fecha actualizada (junio, no mayo)', () => {
+    // Fecha inicial: 7 de mayo de 2026
+    mockGetGregorianDate.mockReturnValue({ year: 2026, month: 5, day: 7 });
+    const { container } = render(<DatePicker />);
+    const btnBefore = container.querySelector('button');
+    // Mayo en es-ES
+    expect(btnBefore!.textContent).toContain('mayo');
+
+    // Avanzar el reloj simulado a junio
+    mockGetGregorianDate.mockReturnValue({ year: 2026, month: 6, day: 15 });
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    const btnAfter = container.querySelector('button');
+    // Debe mostrar junio — no mayo — tras el intervalo de polling
+    expect(btnAfter!.textContent).toContain('junio');
+    expect(btnAfter!.textContent).not.toContain('mayo');
   });
 });
 

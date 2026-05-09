@@ -60,12 +60,13 @@ export interface SunProps {
 // ---------------------------------------------------------------------------
 
 const FLOW_SPEED_NOMINAL = 0.2;
-// HDR: valores > 1.0 para superar el luminanceThreshold del Bloom (0.85)
-// Valores elevados para mayor halo bloom visible
-const COLOR_CORE = new Color(5.0, 3.5, 1.8);
+// HDR: valores > 1.0 para superar el luminanceThreshold del Bloom (0.85).
+// Aumentados para compensar la corrección de uTime (que ahora no escala con speed),
+// y para que el Sol se vea brillante de forma más consistente.
+const COLOR_CORE = new Color(8.0, 5.5, 2.5);
 // Borde sólo ligeramente menos brillante que el núcleo — el Sol no tiene cara
 // oscura (es el foco). Mantenemos un leve gradiente para evitar plano sólido.
-const COLOR_EDGE = new Color(4.0, 2.5, 1.2);
+const COLOR_EDGE = new Color(6.0, 3.8, 1.6);
 const GRANULATION_SCALE = 3.0;
 const FLOW_SCALE = 8.0;
 
@@ -103,7 +104,6 @@ const PERSPECTIVE_LERP_MS = 500;
 export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunProps) {
   const materialRef = useRef<ShaderMaterial | MeshStandardMaterial | null>(null);
   const meshRef = useRef<Mesh>(null);
-  const speed = useAppStore((s) => s.simulationSpeed);
   const viewMode = useAppStore((s) => s.viewMode);
   const selectedBody = useAppStore((s) => s.selectedBody);
   // Para el cálculo de perspectiva del Sol: si la Luna está seleccionada, usar la
@@ -151,8 +151,6 @@ export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunPro
 
   // useFrame actualiza uTime en cada frame (sólo para ShaderMaterial) y rota el Sol
   useFrame((_state, dt) => {
-    const dtScaled = dt * speed;
-
     // Calcular factor de perspectiva objetivo
     let newTargetFactor = 1.0;
     if (viewMode === 'local' && selectedPlanetForPerspective && data) {
@@ -179,9 +177,10 @@ export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunPro
     if (materialRef.current instanceof ShaderMaterial) {
       const uniforms = materialRef.current.uniforms as unknown as SunUniforms;
       if (uniforms.uTime) {
-        // uTime: animación visual del shader (usa real-dt, NO estado orbital).
-        // Intencional: el shader de granulación solar es flair visual, no física.
-        uniforms.uTime.value += dtScaled;
+        // uTime: animación visual del shader — usa real-dt (NO simulationSpeed).
+        // La granulación solar es flair visual: debe animar al mismo ritmo visual
+        // independientemente de cuán rápido corran los planetas.
+        uniforms.uTime.value += dt;
       }
       if (uniforms.uPerspectiveFactor) {
         uniforms.uPerspectiveFactor.value = perspectiveFactorRef.current;
@@ -203,7 +202,13 @@ export const Sun = React.memo(function Sun({ capability, reducedMotion }: SunPro
     <>
       <mesh ref={meshRef} geometry={geometry} material={material} name="sun" />
       {/* Eje de rotación axial del Sol — visible solo cuando showRotationAxes=true */}
-      <RotationAxisLine radius={radius} tiltDeg={SUN_AXIAL_TILT_DEG} visible={showRotationAxes} />
+      {/* forceOnTop: la malla del Sol (bloom/shader) ocluye la línea sin depthTest=false */}
+      <RotationAxisLine
+        radius={radius}
+        tiltDeg={SUN_AXIAL_TILT_DEG}
+        visible={showRotationAxes}
+        forceOnTop
+      />
     </>
   );
 });

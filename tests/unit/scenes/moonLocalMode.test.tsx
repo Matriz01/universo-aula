@@ -1,11 +1,11 @@
 /**
  * T B.8 — TEST: Moon local mode — Earth renderizada, MoonOrbitPath visible,
- * OrbitPaths heliocentricas ocultas, MoonOrbitPath con Earth+Moon local.
+ * OrbitPaths heliocentricas traducidas al frame local, MoonOrbitPath con Earth+Moon local.
  *
  * Verifica:
  * 1. selectedBody='moon', viewMode='local': <Planet> de Earth está montado
  * 2. <MoonOrbitPath> está montado cuando selectedBody='moon'
- * 3. <OrbitPath> heliocentricos NO están montados en modo local
+ * 3. <OrbitPath> heliocentricos SÍ están montados en modo local (Bug 1 fix: LocalOrbitPaths)
  * 4. <MoonOrbitPath> está montado cuando selectedBody='earth'
  * 5. <MoonOrbitPath> está montado en modo global
  */
@@ -310,15 +310,17 @@ describe('Moon local mode — renderizado de escena (T B.8)', () => {
     expect(mockCounts.Planet).toBeGreaterThanOrEqual(1);
   });
 
-  it("selectedBody='moon', viewMode='local': OrbitPaths heliocentricos NO montados", () => {
+  it("selectedBody='moon', viewMode='local': OrbitPaths heliocentricos SÍ montados (Bug 1 fix)", () => {
     storeState.selectedBody = 'moon';
     storeState.selectedPlanet = 'moon';
     storeState.viewMode = 'local';
 
     render(<SolarSystemScene />);
 
-    // En modo local no debe haber OrbitPaths heliocentricas
-    expect(mockCounts.OrbitPath).toBe(0);
+    // Bug 1 fix: en modo local las órbitas heliocentricas SÍ se renderizan
+    // (traducidas por -originOffset para alinearse con el Sol).
+    // Deben existir al menos tantas como planetas hay (9 planetas → 9 órbitas).
+    expect(mockCounts.OrbitPath).toBeGreaterThan(0);
   });
 
   it("selectedBody='moon', viewMode='local': MoonOrbitPath montado (vía PlanetMoon visible)", () => {
@@ -332,14 +334,16 @@ describe('Moon local mode — renderizado de escena (T B.8)', () => {
     expect(mockCounts.PlanetMoon).toBeGreaterThanOrEqual(1);
   });
 
-  it("selectedBody='earth', viewMode='local': OrbitPaths heliocentricos NO montados", () => {
+  it("selectedBody='earth', viewMode='local': OrbitPaths heliocentricos SÍ montados (Bug 1 fix)", () => {
     storeState.selectedBody = 'earth';
     storeState.selectedPlanet = 'earth';
     storeState.viewMode = 'local';
 
     render(<SolarSystemScene />);
 
-    expect(mockCounts.OrbitPath).toBe(0);
+    // Bug 1 fix: en modo local las órbitas heliocentricas SÍ se renderizan
+    // (traducidas por -originOffset para alinearse con el Sol).
+    expect(mockCounts.OrbitPath).toBeGreaterThan(0);
   });
 
   it("viewMode='global': OrbitPaths montados", () => {

@@ -94,26 +94,37 @@ describe('simulationClock — getPaused() / setPaused()', () => {
 // ── REQ-CLK-2: Escala de velocidad SPEED_STOPS_SECONDS_PER_SECOND ───────────
 
 describe('simulationClock — SPEED_STOPS_SECONDS_PER_SECOND', () => {
-  it('exporta SPEED_STOPS_SECONDS_PER_SECOND como array de 13 elementos', () => {
-    expect(clock.SPEED_STOPS_SECONDS_PER_SECOND).toHaveLength(13);
+  it('exporta SPEED_STOPS_SECONDS_PER_SECOND como array de 25 elementos', () => {
+    expect(clock.SPEED_STOPS_SECONDS_PER_SECOND).toHaveLength(25);
   });
 
-  it('el primer stop es 0 (pausa)', () => {
-    expect(clock.SPEED_STOPS_SECONDS_PER_SECOND[0]).toBe(0);
+  it('el primer stop es -31536000 (-1 año/s)', () => {
+    expect(clock.SPEED_STOPS_SECONDS_PER_SECOND[0]).toBe(-31536000);
   });
 
-  it('el segundo stop es 1 (tiempo real)', () => {
-    expect(clock.SPEED_STOPS_SECONDS_PER_SECOND[1]).toBe(1);
+  it('el stop central (índice 12) es 0 (pausa)', () => {
+    expect(clock.SPEED_STOPS_SECONDS_PER_SECOND[12]).toBe(0);
   });
 
-  it('el último stop es 31536000 (1 año/s)', () => {
-    expect(clock.SPEED_STOPS_SECONDS_PER_SECOND[12]).toBe(31536000);
+  it('el stop 13 es 1 (tiempo real)', () => {
+    expect(clock.SPEED_STOPS_SECONDS_PER_SECOND[13]).toBe(1);
   });
 
-  it('los stops son estrictamente crecientes (excepto el primero que es 0)', () => {
+  it('el último stop (índice 24) es 31536000 (1 año/s)', () => {
+    expect(clock.SPEED_STOPS_SECONDS_PER_SECOND[24]).toBe(31536000);
+  });
+
+  it('los stops son estrictamente crecientes', () => {
     const stops = clock.SPEED_STOPS_SECONDS_PER_SECOND;
-    for (let i = 2; i < stops.length; i++) {
+    for (let i = 1; i < stops.length; i++) {
       expect(stops[i]).toBeGreaterThan(stops[i - 1]);
+    }
+  });
+
+  it('es simétrico alrededor de 0: stops[12-k] === -stops[12+k]', () => {
+    const stops = clock.SPEED_STOPS_SECONDS_PER_SECOND;
+    for (let k = 1; k <= 12; k++) {
+      expect(stops[12 - k]).toBe(-stops[12 + k]);
     }
   });
 
@@ -123,20 +134,24 @@ describe('simulationClock — SPEED_STOPS_SECONDS_PER_SECOND', () => {
 });
 
 describe('simulationClock — SPEED_STOP_LABELS_ES', () => {
-  it('exporta SPEED_STOP_LABELS_ES como array de 13 etiquetas', () => {
-    expect(clock.SPEED_STOP_LABELS_ES).toHaveLength(13);
+  it('exporta SPEED_STOP_LABELS_ES como array de 25 etiquetas', () => {
+    expect(clock.SPEED_STOP_LABELS_ES).toHaveLength(25);
   });
 
-  it('la etiqueta del stop 0 es "Pausa"', () => {
-    expect(clock.SPEED_STOP_LABELS_ES[0]).toBe('Pausa');
+  it('la etiqueta del stop 0 (índice 0) es "-1 año/s"', () => {
+    expect(clock.SPEED_STOP_LABELS_ES[0]).toBe('-1 año/s');
   });
 
-  it('la etiqueta del stop 1 es "1 s/s"', () => {
-    expect(clock.SPEED_STOP_LABELS_ES[1]).toBe('1 s/s');
+  it('la etiqueta del stop central (índice 12) es "Pausa"', () => {
+    expect(clock.SPEED_STOP_LABELS_ES[12]).toBe('Pausa');
   });
 
-  it('la etiqueta del último stop es "1 año/s"', () => {
-    expect(clock.SPEED_STOP_LABELS_ES[12]).toBe('1 año/s');
+  it('la etiqueta del stop 13 es "1 s/s"', () => {
+    expect(clock.SPEED_STOP_LABELS_ES[13]).toBe('1 s/s');
+  });
+
+  it('la etiqueta del último stop (índice 24) es "1 año/s"', () => {
+    expect(clock.SPEED_STOP_LABELS_ES[24]).toBe('1 año/s');
   });
 });
 

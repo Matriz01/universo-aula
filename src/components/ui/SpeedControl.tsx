@@ -1,15 +1,16 @@
 /**
- * <SpeedControl> — control HUD de velocidad de simulación con escala de 13 stops.
+ * <SpeedControl> — control HUD de velocidad de simulación con escala de 25 stops.
  *
- * Diseño Batch 4:
+ * Diseño Batch 4 (actualizado Issues 9-11):
  *   Layout: top-center, fijo, sobre el contenido HUD principal.
  *   Controles: [ ◀ ] [ ⏸/▶ ] [ ▶ ] + leyenda con la etiqueta del stop actual.
  *
  * - Flechas ◀/▶ invocan decrementSpeedStop / incrementSpeedStop del store.
  * - Botón central alterna pausa/play via togglePause.
- * - Leyenda muestra SPEED_STOP_LABELS_ES[stopIndex] (ej: "1 h/s", "Pausa").
- * - Flecha izquierda deshabilitada en stop 0 (pausa).
- * - Flecha derecha deshabilitada en el último stop (1 año/s).
+ * - Leyenda muestra SPEED_STOP_LABELS_ES[stopIndex] (ej: "1 h/s", "Pausa", "-1 h/s").
+ * - Flecha izquierda deshabilitada en el primer stop (-1 año/s, índice 0).
+ * - Flecha derecha deshabilitada en el último stop (1 año/s, índice 24).
+ * - Velocidades negativas: retroceso en el tiempo. El botón central pausa/reanuda.
  * - Sin i18n externo — etiquetas hardcoded en es-ES (castellano peninsular).
  * - Sin nuevas dependencias.
  */
@@ -23,7 +24,7 @@ import { SPEED_STOPS_SECONDS_PER_SECOND, SPEED_STOP_LABELS_ES } from '@/scenes/s
 
 function getStopIndex(speed: number): number {
   const idx = SPEED_STOPS_SECONDS_PER_SECOND.indexOf(speed);
-  return idx === -1 ? 1 : idx; // fallback a stop 1 (tiempo real)
+  return idx === -1 ? 13 : idx; // fallback a stop 13 (tiempo real, índice 13 en escala de 25)
 }
 
 // ---------------------------------------------------------------------------

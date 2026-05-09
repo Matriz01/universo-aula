@@ -38,6 +38,12 @@ export interface RotationAxisLineProps {
   visible: boolean;
   /** Color de la línea. Por defecto AXIS_COLOR. */
   color?: string;
+  /**
+   * Si true, deshabilita el depth test y usa renderOrder alto para que la línea
+   * se renderice SOBRE cuerpos con materiales opacos (p.ej. el Sol con bloom).
+   * Por defecto false.
+   */
+  forceOnTop?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +65,7 @@ export function RotationAxisLine({
   tiltDeg,
   visible,
   color = AXIS_COLOR,
+  forceOnTop = false,
 }: RotationAxisLineProps) {
   if (!visible) return null;
 
@@ -70,7 +77,13 @@ export function RotationAxisLine({
 
   return (
     <group rotation={[0, 0, degToRad(tiltDeg)]}>
-      <Line points={points} color={color} lineWidth={1.5} />
+      <Line
+        points={points}
+        color={color}
+        lineWidth={1.5}
+        depthTest={!forceOnTop}
+        renderOrder={forceOnTop ? 999 : 0}
+      />
     </group>
   );
 }

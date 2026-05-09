@@ -7,10 +7,11 @@
  * Verifica:
  * - Renderizado: 3 botones (◀ play/pause ▶) + leyenda
  * - Leyenda muestra la etiqueta correcta para el stop actual
- * - Botón central muestra icono pausa cuando speed > 0, play cuando speed === 0
+ * - Botón central muestra icono pausa cuando speed != 0, play cuando speed === 0
  * - Flechas invocan las acciones correctas del store
- * - Flecha izquierda deshabilitada en stop 0
- * - Flecha derecha deshabilitada en stop 12 (último)
+ * - Flecha izquierda deshabilitada en stop 0 (speed === -31536000)
+ * - Flecha derecha deshabilitada en stop 24 (speed === 31536000, último)
+ * - Velocidades negativas muestran etiqueta correcta
  */
 
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -90,11 +91,30 @@ describe('<SpeedControl> — leyenda', () => {
     renderSpeedControl();
     expect(screen.getByText('1 año/s')).toBeTruthy();
   });
+
+  it('muestra "-1 año/s" cuando simulationSpeed === -31536000', () => {
+    useAppStore.setState({ simulationSpeed: -31536000 });
+    renderSpeedControl();
+    expect(screen.getByText('-1 año/s')).toBeTruthy();
+  });
+
+  it('muestra "-1 h/s" cuando simulationSpeed === -3600', () => {
+    useAppStore.setState({ simulationSpeed: -3600 });
+    renderSpeedControl();
+    expect(screen.getByText('-1 h/s')).toBeTruthy();
+  });
 });
 
 describe('<SpeedControl> — botón pause/play', () => {
   it('muestra aria-label de pausar cuando speed > 0', () => {
     useAppStore.setState({ simulationSpeed: 1 });
+    renderSpeedControl();
+    const btn = screen.getByRole('button', { name: /pausar/i });
+    expect(btn).toBeTruthy();
+  });
+
+  it('muestra aria-label de pausar cuando speed < 0 (velocidad negativa activa)', () => {
+    useAppStore.setState({ simulationSpeed: -3600 });
     renderSpeedControl();
     const btn = screen.getByRole('button', { name: /pausar/i });
     expect(btn).toBeTruthy();
@@ -145,8 +165,8 @@ describe('<SpeedControl> — flechas', () => {
     expect(useAppStore.getState().simulationSpeed).toBe(1);
   });
 
-  it('flecha izquierda deshabilitada en stop 0 (speed === 0)', () => {
-    useAppStore.setState({ simulationSpeed: 0 });
+  it('flecha izquierda deshabilitada en el primer stop (speed === -31536000)', () => {
+    useAppStore.setState({ simulationSpeed: -31536000 });
     renderSpeedControl();
     const leftBtn = screen.getByRole('button', { name: /reducir velocidad/i });
     expect(leftBtn).toBeDisabled();
@@ -159,7 +179,7 @@ describe('<SpeedControl> — flechas', () => {
     expect(rightBtn).toBeDisabled();
   });
 
-  it('flecha izquierda habilitada cuando speed > 0', () => {
+  it('flecha izquierda habilitada cuando speed > -31536000', () => {
     useAppStore.setState({ simulationSpeed: 3600 });
     renderSpeedControl();
     const leftBtn = screen.getByRole('button', { name: /reducir velocidad/i });
@@ -168,6 +188,20 @@ describe('<SpeedControl> — flechas', () => {
 
   it('flecha derecha habilitada cuando speed < 31536000', () => {
     useAppStore.setState({ simulationSpeed: 1 });
+    renderSpeedControl();
+    const rightBtn = screen.getByRole('button', { name: /aumentar velocidad/i });
+    expect(rightBtn).not.toBeDisabled();
+  });
+
+  it('flecha izquierda habilitada en speed === 0 (pausa no es el primer stop)', () => {
+    useAppStore.setState({ simulationSpeed: 0 });
+    renderSpeedControl();
+    const leftBtn = screen.getByRole('button', { name: /reducir velocidad/i });
+    expect(leftBtn).not.toBeDisabled();
+  });
+
+  it('flecha derecha habilitada en speed === 0 (pausa no es el último stop)', () => {
+    useAppStore.setState({ simulationSpeed: 0 });
     renderSpeedControl();
     const rightBtn = screen.getByRole('button', { name: /aumentar velocidad/i });
     expect(rightBtn).not.toBeDisabled();
