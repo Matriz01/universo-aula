@@ -23,14 +23,17 @@ import { useState } from 'react';
 // Hoisted mocks
 // ---------------------------------------------------------------------------
 
-const { useTextureSpy, usePlanetPositionSpy, acquireSpy, releaseSpy } = vi.hoisted(() => ({
-  useTextureSpy: vi.fn().mockReturnValue({}),
-  usePlanetPositionSpy: vi.fn().mockReturnValue({
-    current: { x: 5, y: 0, z: 0, set: vi.fn(), clone: vi.fn(() => ({ x: 5, y: 0, z: 0 })) },
+const { useTextureSpy, usePlanetPositionSpy, acquireSpy, releaseSpy, rimOutlineSpy } = vi.hoisted(
+  () => ({
+    useTextureSpy: vi.fn().mockReturnValue({}),
+    usePlanetPositionSpy: vi.fn().mockReturnValue({
+      current: { x: 5, y: 0, z: 0, set: vi.fn(), clone: vi.fn(() => ({ x: 5, y: 0, z: 0 })) },
+    }),
+    acquireSpy: vi.fn().mockReturnValue({ isTexture: true }),
+    releaseSpy: vi.fn(),
+    rimOutlineSpy: vi.fn().mockReturnValue(null),
   }),
-  acquireSpy: vi.fn().mockReturnValue({ isTexture: true }),
-  releaseSpy: vi.fn(),
-}));
+);
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -70,6 +73,11 @@ vi.mock('@/scenes/hooks/usePlanetPosition', () => ({
 vi.mock('@/scenes/data/toonGradient', () => ({
   acquireToonGradientTexture: acquireSpy,
   releaseToonGradientTexture: releaseSpy,
+}));
+
+// Mock de RimOutline — spy para contar renders (REQ-RIM-2)
+vi.mock('@/scenes/components/RimOutline', () => ({
+  RimOutline: rimOutlineSpy,
 }));
 
 vi.mock('@/store/useAppStore', () => ({
@@ -120,6 +128,7 @@ beforeEach(() => {
     current: { x: 5, y: 0, z: 0, set: vi.fn(), clone: vi.fn(() => ({ x: 5, y: 0, z: 0 })) },
   });
   acquireSpy.mockReturnValue({ isTexture: true });
+  rimOutlineSpy.mockReturnValue(null);
 
   disposeToonSpy = vi.spyOn(MeshToonMaterial.prototype, 'dispose');
 
@@ -213,15 +222,18 @@ describe('<Planet> — integración material-swap (Phase B.1)', () => {
     expect(disposeToonSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('Scenario rimoutline-explorador: árbol contiene exactamente un <RimOutline> con level=explorador', () => {
-    const { container } = render(<PlanetWrapper initialLevel="explorador" />);
+  it('Scenario rimoutline-explorador: exactamente 1 <RimOutline> renderizado con level=explorador', () => {
+    // rimOutlineSpy es el mock de @/scenes/components/RimOutline.
+    // Contar llamadas garantiza que una regresión que elimine <RimOutline> del JSX sea detectada.
+    render(<PlanetWrapper initialLevel="explorador" />);
 
-    // RimOutline renderiza un <mesh> con meshBasicMaterial BackSide
-    // En JSDOM, R3F renderiza elementos custom pero el componente se monta
-    // Verificamos indirectamente que RimOutline es montado (no lanza)
-    expect(container).toBeTruthy();
-    // El test principal aquí es que el render no falla con explorador
-    expect(() => render(<PlanetWrapper initialLevel="explorador" />)).not.toThrow();
+    expect(rimOutlineSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('Scenario rimoutline-ausente-no-explorador: 0 <RimOutline> con level=aprendiz', () => {
+    render(<PlanetWrapper initialLevel="aprendiz" />);
+
+    expect(rimOutlineSpy).not.toHaveBeenCalled();
   });
 
   it('Scenario mount-sin-errores explorador: monta sin errores en explorador', () => {
