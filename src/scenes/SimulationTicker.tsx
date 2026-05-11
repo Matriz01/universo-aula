@@ -25,10 +25,14 @@ import { tick } from '@/scenes/simulationClock';
  * La fórmula jd += (delta × simulationSpeed) / 86400 convierte correctamente a días JD.
  */
 export function SimulationTicker(): null {
+  // Priority -2: garantiza que el JD avanza ANTES que OriginTracker (-1) y consumers (0).
+  // Sin esto, OriginTracker computa el offset con JD del frame anterior mientras que
+  // los consumers leen el JD ya avanzado para este frame → mismatch = motion-per-frame
+  // de drift en la posición del cuerpo seleccionado, visible como temblor a alta velocidad.
   useFrame((_state, delta) => {
     const { simulationSpeed } = useAppStore.getState();
     tick(delta, simulationSpeed);
-  });
+  }, -2);
   return null;
 }
 
