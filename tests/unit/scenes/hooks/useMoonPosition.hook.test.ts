@@ -153,4 +153,34 @@ describe('useMoonPosition — hook (ref actualizado por frame)', () => {
     expect(result.current).toBe(refObject);
     expect(posA.distanceTo(posB)).toBeGreaterThan(10);
   });
+
+  // ---------------------------------------------------------------------------
+  // Regresión: bug de doble-offset
+  // ---------------------------------------------------------------------------
+  //
+  // Antes del fix, useMoonPosition restaba el originOffset incluso cuando
+  // earthPosRef ya venía con el offset aplicado (por usePlanetPosition).
+  // Resultado: Moon position = moonRelative − earthWorldPos, dejando la Luna
+  // fuera de cámara (~150 000 unidades) en local Tierra.
+  //
+  // En el frame del cuerpo seleccionado, earthPosRef.current = (0,0,0) cuando
+  // Tierra está seleccionada. computeMoonPosition con (0,0,0) retorna
+  // exactamente moonRelative. La posición resultante DEBE estar a ~300-500
+  // unidades de escena local (Luna a ~384 000 km / 1000 = 384 unidades).
+  //
+  // Si alguien restaura el .sub(originOffset) erróneamente, este test falla.
+
+  it('regresión: con earthPosRef=(0,0,0) la Luna queda dentro del rango orbital lunar', () => {
+    const earthPosRef = { current: new Vector3(0, 0, 0) };
+    mockedJD = 2451545.0;
+
+    const { result } = renderHook(() => useMoonPosition(earthPosRef));
+    capturedFrameCallback!();
+
+    // Distancia esperada: ~384 unidades (semieje mayor lunar a escala 1u=1000km)
+    // Con eccentricidad 0.0549 → rango aproximado 326 a 446 unidades
+    const distance = result.current.current.length();
+    expect(distance).toBeGreaterThan(300);
+    expect(distance).toBeLessThan(500);
+  });
 });
