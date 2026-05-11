@@ -54,8 +54,13 @@ vi.mock('../../../src/scenes/simulationClock', () => ({
   ],
 }));
 
+// Capturador del priority pasado a useFrame — clave para el regression test
+// del orden de ejecución frente a OriginTracker(-1) y consumers(0).
+let capturedPriority: number | undefined;
+
 vi.mock('@react-three/fiber', () => ({
-  useFrame: (cb: (_state: object, delta: number) => void) => {
+  useFrame: (cb: (_state: object, delta: number) => void, priority?: number) => {
+    capturedPriority = priority;
     cb({}, FAKE_DELTA);
   },
 }));
@@ -86,6 +91,7 @@ describe('SimulationTicker (Batch 4)', () => {
   beforeEach(() => {
     mockTick.mockClear();
     mockGetState.mockClear().mockReturnValue({ simulationSpeed: FAKE_SPEED });
+    capturedPriority = undefined;
   });
 
   afterEach(() => {
@@ -113,5 +119,23 @@ describe('SimulationTicker (Batch 4)', () => {
   it('retorna null (no renderiza nada en el DOM)', () => {
     const { container } = render(<SimulationTicker />);
     expect(container.firstChild).toBeNull();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Regresión: prioridad de useFrame
+  // ---------------------------------------------------------------------------
+  //
+  // El orden esperado por frame es:
+  //   1. SimulationTicker  (priority -2) — avanza JD
+  //   2. OriginTracker     (priority -1) — computa offset basado en JD nuevo
+  //   3. Consumers         (priority  0) — computan posición con JD y offset
+  //
+  // Sin priority -2 (default 0), JD avanza DESPUÉS de OriginTracker,
+  // así que offset y posición del cuerpo seleccionado divergen 1 frame
+  // → motion-per-frame de drift visible como temblor a alta velocidad.
+
+  it('regresión: useFrame usa priority -2 (orden tick → OriginTracker → consumers)', () => {
+    render(<SimulationTicker />);
+    expect(capturedPriority).toBe(-2);
   });
 });
