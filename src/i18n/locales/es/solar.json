@@ -148,6 +148,7 @@
     }
   },
   "bodies": {
+    "sun": "Sol",
     "moon": "Luna"
   },
   "hud": {

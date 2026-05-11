@@ -4,7 +4,7 @@
  * Compone todos los componentes 3D:
  * - <Sun> con shader procedural
  * - Modo global: <Planet> × 8 + <Saturn> + <PlanetMoon> + <AsteroidBelt> + <OrbitPath> × 9
- * - Modo local: planeta seleccionado (full detail) + <DistantMarker> para el resto +
+ * - Modo local: planeta seleccionado (full detail) + <BodyMarker> para el resto +
  *   <PlanetMoon> si Tierra seleccionada + directionalLight para sombras Luna↔Tierra
  * - <CameraController> con OrbitControls + teclado
  * - <Stars> de Drei como fondo
@@ -16,6 +16,7 @@
  */
 
 import React, { Suspense, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { PerformanceMonitor, Line } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
@@ -39,7 +40,6 @@ import { PlanetMoon } from '@/scenes/components/PlanetMoon';
 import { AsteroidBelt } from '@/scenes/components/AsteroidBelt';
 import { OrbitPath } from '@/scenes/components/OrbitPath';
 import { CameraController } from '@/scenes/components/CameraController';
-import { DistantMarker } from '@/scenes/components/DistantMarker';
 import { BodyMarker } from '@/scenes/components/BodyMarker';
 import { KnownEventsLayer } from '@/scenes/components/KnownEventsLayer';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
@@ -226,21 +226,20 @@ function MoonOrbitPath() {
 }
 
 // ---------------------------------------------------------------------------
-// MoonMarker — marcador estilo NASA Eyes para localizar la Luna en local Tierra
+// Marcadores estilo NASA Eyes — localizan cuerpos pequeños/lejanos en local
 // ---------------------------------------------------------------------------
+//
+// En modo local los cuerpos no seleccionados quedan a distancias enormes en
+// escala real: planetas a millones de unidades, Sol a ~150 000 u desde la
+// Tierra, Luna a ~388 u. Sin un overlay constante en pantalla son casi
+// imposibles de encontrar. Estos wrappers calculan posición + lanzan
+// <BodyMarker> con label localizado y color del cuerpo.
+//
+// Coste por frame: una resolución de Kepler extra por marker. Negligible.
 
-/**
- * MoonMarker — círculo + label "Luna" siempre visible sobre la Luna real.
- *
- * En local Tierra la Luna mide ~1.74u y orbita a ~384u: con cualquier zoom
- * razonable queda como un punto sub-pixel, casi imposible de localizar.
- * Este marcador resuelve esa fricción visual sin tocar la posición real
- * (el clic sigue funcionando sobre el mesh de la Luna).
- *
- * Computa su propia posición (duplica useMoonPosition con PlanetMoon, coste
- * irrelevante: dos resoluciones de Kepler por frame).
- */
+/** Marcador de la Luna — visible en local Tierra. */
 function MoonMarker() {
+  const { t } = useTranslation('solar');
   const level = useAppStore((s) => s.level);
   const goToBody = useAppStore((s) => s.goToBody);
   const { data } = usePlanetsData();
@@ -251,11 +250,43 @@ function MoonMarker() {
   return (
     <BodyMarker
       positionRef={moonPosRef}
-      label="Luna"
+      label={t('bodies.moon')}
       color="#aaccff"
       onClick={() => goToBody('moon')}
     />
   );
+}
+
+/** Marcador genérico para un planeta — usado para cualquier planeta no seleccionado. */
+function PlanetMarker({ planet }: { planet: PlanetData }) {
+  const { t } = useTranslation('solar');
+  const level = useAppStore((s) => s.level);
+  const goToBody = useAppStore((s) => s.goToBody);
+  const posRef = usePlanetPosition(planet, level);
+
+  return (
+    <BodyMarker
+      positionRef={posRef}
+      label={t(`${planet.id}.name`, planet.id)}
+      color={planet.color_hex}
+      onClick={() => goToBody(planet.id)}
+    />
+  );
+}
+
+/** Marcador del Sol — visible en cualquier vista local (Sol siempre en -offset). */
+function SunMarker() {
+  const { t } = useTranslation('solar');
+  const offsetRef = useOriginOffset();
+  const sunPosRef = useRef(new Vector3());
+
+  useFrame(() => {
+    const o = offsetRef.current;
+    sunPosRef.current.set(-o.x, -o.y, -o.z);
+  });
+
+  // Sin onClick: el Sol no es un body seleccionable en el modelo actual.
+  return <BodyMarker positionRef={sunPosRef} label={t('bodies.sun')} color="#ffcc00" />;
 }
 
 // ---------------------------------------------------------------------------
@@ -539,23 +570,18 @@ function SolarSystemContent({
               {/* Órbita de la Luna (geocéntrica) — visible en modo local Luna */}
               <MoonOrbitPath />
 
-              {/* DistantMarkers para Sol + otros planetas */}
+              {/* Marcadores estilo NASA Eyes para Sol + Tierra + planetas */}
+              <SunMarker />
+              {(() => {
+                const earthData = planets.find((p) => p.id === 'earth');
+                return earthData ? <PlanetMarker planet={earthData} /> : null;
+              })()}
               {nonSaturnPlanets
                 .filter((p) => p.id !== 'earth')
                 .map((planet) => (
-                  <DistantMarker
-                    key={`dm-${planet.id}`}
-                    planet={planet}
-                    positionsRef={planetPositionsRef}
-                  />
+                  <PlanetMarker key={`pm-${planet.id}`} planet={planet} />
                 ))}
-              {saturnData && (
-                <DistantMarker
-                  key="dm-saturn"
-                  planet={saturnData}
-                  positionsRef={planetPositionsRef}
-                />
-              )}
+              {saturnData && <PlanetMarker key="pm-saturn" planet={saturnData} />}
             </>
           )}
 
@@ -597,22 +623,15 @@ function SolarSystemContent({
                 </>
               )}
 
-              {/* DistantMarker para cada planeta no seleccionado */}
+              {/* Marcadores estilo NASA Eyes para Sol + planetas no seleccionados */}
+              <SunMarker />
               {nonSaturnPlanets
                 .filter((p) => p.id !== selectedPlanet)
                 .map((planet) => (
-                  <DistantMarker
-                    key={`dm-${planet.id}`}
-                    planet={planet}
-                    positionsRef={planetPositionsRef}
-                  />
+                  <PlanetMarker key={`pm-${planet.id}`} planet={planet} />
                 ))}
               {saturnData && selectedPlanet !== 'saturn' && (
-                <DistantMarker
-                  key="dm-saturn"
-                  planet={saturnData}
-                  positionsRef={planetPositionsRef}
-                />
+                <PlanetMarker key="pm-saturn" planet={saturnData} />
               )}
             </>
           )}
