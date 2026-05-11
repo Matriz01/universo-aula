@@ -30,7 +30,7 @@ import { usePlanetsData } from '@/scenes/hooks/usePlanetsData';
 import { usePlanetPosition, computePosition } from '@/scenes/hooks/usePlanetPosition';
 import { useGpuCapability } from '@/scenes/hooks/useGpuCapability';
 import { OriginOffsetProvider, useOriginOffset } from '@/scenes/contexts/OriginOffsetContext';
-import { computeMoonPosition } from '@/scenes/hooks/useMoonPosition';
+import { computeMoonPosition, useMoonPosition } from '@/scenes/hooks/useMoonPosition';
 import { getJD } from '@/scenes/simulationClock';
 import { Sun } from '@/scenes/components/Sun';
 import { Planet } from '@/scenes/components/Planet';
@@ -40,6 +40,7 @@ import { AsteroidBelt } from '@/scenes/components/AsteroidBelt';
 import { OrbitPath } from '@/scenes/components/OrbitPath';
 import { CameraController } from '@/scenes/components/CameraController';
 import { DistantMarker } from '@/scenes/components/DistantMarker';
+import { BodyMarker } from '@/scenes/components/BodyMarker';
 import { KnownEventsLayer } from '@/scenes/components/KnownEventsLayer';
 import type { PedagogicalLevel } from '@/scenes/hooks/usePlanetPosition';
 import type { GpuCapabilityExtended } from '@/scenes/components/Sun';
@@ -221,6 +222,39 @@ function MoonOrbitPath() {
         renderOrder={0}
       />
     </group>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MoonMarker — marcador estilo NASA Eyes para localizar la Luna en local Tierra
+// ---------------------------------------------------------------------------
+
+/**
+ * MoonMarker — círculo + label "Luna" siempre visible sobre la Luna real.
+ *
+ * En local Tierra la Luna mide ~1.74u y orbita a ~384u: con cualquier zoom
+ * razonable queda como un punto sub-pixel, casi imposible de localizar.
+ * Este marcador resuelve esa fricción visual sin tocar la posición real
+ * (el clic sigue funcionando sobre el mesh de la Luna).
+ *
+ * Computa su propia posición (duplica useMoonPosition con PlanetMoon, coste
+ * irrelevante: dos resoluciones de Kepler por frame).
+ */
+function MoonMarker() {
+  const level = useAppStore((s) => s.level);
+  const goToBody = useAppStore((s) => s.goToBody);
+  const { data } = usePlanetsData();
+  const earthData = data?.planets.find((p) => p.id === 'earth') ?? EARTH_FALLBACK_DATA;
+  const earthPosRef = usePlanetPosition(earthData, level);
+  const moonPosRef = useMoonPosition(earthPosRef);
+
+  return (
+    <BodyMarker
+      positionRef={moonPosRef}
+      label="Luna"
+      color="#aaccff"
+      onClick={() => goToBody('moon')}
+    />
   );
 }
 
@@ -559,6 +593,7 @@ function SolarSystemContent({
                 <>
                   <PlanetMoon positionsRef={planetPositionsRef} castShadow receiveShadow />
                   <MoonOrbitPath />
+                  <MoonMarker />
                 </>
               )}
 
