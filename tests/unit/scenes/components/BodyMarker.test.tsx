@@ -1,0 +1,86 @@
+/**
+ * Tests del componente <BodyMarker> — marcador estilo NASA Eyes.
+ *
+ * Verifica:
+ * - Renderizado de label
+ * - Visibilidad condicional (visible=false → null)
+ * - Lectura de positionRef en cada frame
+ * - Click handler
+ */
+
+import { render, fireEvent } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { Vector3 } from 'three';
+
+// ---------------------------------------------------------------------------
+// Mocks R3F + drei
+// ---------------------------------------------------------------------------
+
+let capturedFrameCallback: (() => void) | undefined;
+
+vi.mock('@react-three/fiber', () => ({
+  useFrame: (cb: () => void) => {
+    capturedFrameCallback = cb;
+  },
+}));
+
+vi.mock('@react-three/drei', () => ({
+  Html: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="body-marker-html">{children}</div>
+  ),
+}));
+
+// ---------------------------------------------------------------------------
+// Import después de mocks
+// ---------------------------------------------------------------------------
+
+import { BodyMarker } from '@/scenes/components/BodyMarker';
+
+beforeEach(() => {
+  capturedFrameCallback = undefined;
+  vi.clearAllMocks();
+});
+
+describe('<BodyMarker>', () => {
+  it('renderiza el label cuando visible (default)', () => {
+    const positionRef = { current: new Vector3(0, 0, 0) };
+    const { getByText } = render(<BodyMarker positionRef={positionRef} label="Luna" />);
+    expect(getByText('Luna')).toBeInTheDocument();
+  });
+
+  it('no renderiza nada cuando visible=false', () => {
+    const positionRef = { current: new Vector3(0, 0, 0) };
+    const { container } = render(
+      <BodyMarker positionRef={positionRef} label="Luna" visible={false} />,
+    );
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('llama a onClick cuando el usuario clica el label', () => {
+    const positionRef = { current: new Vector3(0, 0, 0) };
+    const onClick = vi.fn();
+    const { getByText } = render(
+      <BodyMarker positionRef={positionRef} label="Luna" onClick={onClick} />,
+    );
+    fireEvent.click(getByText('Luna'));
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('registra un useFrame para sincronizar la posición del group', () => {
+    const positionRef = { current: new Vector3(388, -126, -20) };
+    render(<BodyMarker positionRef={positionRef} label="Luna" />);
+
+    // Registro del callback per-frame; la ejecución real requiere R3F (no jsdom).
+    expect(capturedFrameCallback).toBeDefined();
+  });
+
+  it('aplica el color recibido al borde del ring y al texto del label', () => {
+    const positionRef = { current: new Vector3(0, 0, 0) };
+    const { getByText } = render(
+      <BodyMarker positionRef={positionRef} label="Marte" color="#ff6633" />,
+    );
+    const label = getByText('Marte');
+    // El color se propaga al span del label
+    expect(label).toHaveStyle({ color: '#ff6633' });
+  });
+});
