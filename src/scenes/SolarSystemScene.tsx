@@ -19,7 +19,7 @@ import React, { Suspense, useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { PerformanceMonitor, Line } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
-import { Vector3 } from 'three';
+import { Vector3, AdditiveBlending } from 'three';
 import type {
   Vector3 as Vector3Type,
   Group,
@@ -140,6 +140,7 @@ function OriginTracker({ planets, level }: OriginTrackerProps) {
 function MoonOrbitPath() {
   const groupRef = useRef<Group>(null);
   const level = useAppStore((s) => s.level);
+  const gpuRaw = useGpuCapability();
   const { data } = usePlanetsData();
   const earthData = data?.planets.find((p) => p.id === 'earth') ?? EARTH_FALLBACK_DATA;
   const earthPosRef = usePlanetPosition(earthData, level);
@@ -191,9 +192,34 @@ function MoonOrbitPath() {
     groupRef.current.position.set(pos.x, pos.y, pos.z);
   });
 
+  // null mientras detecta → tratar como 'mid' (muestra glow como fallback)
+  const gpuCap = gpuRaw ?? 'mid';
+  const showMoonGlow = gpuCap !== 'low';
+
   return (
     <group ref={groupRef}>
-      <Line points={points} color="#aaccff" lineWidth={1} transparent opacity={0.5} />
+      {/* Glow aditivo — solo GPU mid/high */}
+      {showMoonGlow && (
+        <Line
+          points={points}
+          color="#aaccff"
+          lineWidth={4}
+          transparent
+          opacity={0.15}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          renderOrder={-1}
+        />
+      )}
+      {/* Línea principal */}
+      <Line
+        points={points}
+        color="#aaccff"
+        lineWidth={2}
+        transparent
+        opacity={0.5}
+        renderOrder={0}
+      />
     </group>
   );
 }

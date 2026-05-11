@@ -21,6 +21,9 @@ uniform float uFlowScale;         // 8.0
 uniform float uFlowSpeed;         // 0.20  (0.04 si prefers-reduced-motion)
 uniform bool  uSunspotsEnabled;
 uniform float uPerspectiveFactor; // 1.0 en global; ley de cuadrado inverso en local
+uniform vec3  uEruptColor;        // HDR cálido: vec3(4.0, 2.5, 0.8) — erupciones solares
+
+const float ERUPT_THRESH = 0.55;
 
 varying vec3 vNormal;
 varying vec3 vWorldPos;
@@ -93,17 +96,27 @@ void main() {
   float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 0.6);
   vec3 base = mix(uColorCore, uColorEdge, fresnel);
 
-  // Capa 3: Sunspots (opcional, sólo en GPU high)
+  // Capa 3: Sunspots con smoothstep — bordes orgánicos (REQ-SUN-2)
   if (uSunspotsEnabled) {
     float spot = snoise(n * 1.2 + vec3(uTime * uFlowSpeed * 0.1));
-    if (spot < -0.55) {
-      base *= 0.45;
-    }
+    float spotMask = 1.0 - smoothstep(-0.6, -0.5, spot);
+    base = mix(base, base * 0.45, spotMask);
   }
+
+  // Capa 4: Erupciones — noise de frecuencia media, desplazado en tiempo (REQ-SUN-1)
+  // Escala 2.0 produce manchas de erupción de tamaño moderado (~1/4 del disco).
+  // Velocidades 0.3/0.15 dan ciclos de ~10-30 s reales: visibles pero no ansiosas.
+  float eruptNoise = snoise(n * 2.0 + vec3(uTime * uFlowSpeed * 0.3, uTime * uFlowSpeed * 0.15, 0.0));
 
   vec3 col = base * intensity;
   // bloom suave (clamp alto para HDR si está activo)
   col += vec3(0.05) * intensity;
+
+  // Contribución aditiva de erupciones (solo cuando eruptNoise supera el umbral)
+  if (eruptNoise > ERUPT_THRESH) {
+    col += (eruptNoise - ERUPT_THRESH) / (1.0 - ERUPT_THRESH) * uEruptColor;
+  }
+
   // Perspectiva: escalar el brillo según distancia del planeta al Sol (modo local)
   col *= uPerspectiveFactor;
   gl_FragColor = vec4(col, 1.0);

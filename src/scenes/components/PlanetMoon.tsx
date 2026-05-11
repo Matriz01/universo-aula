@@ -16,7 +16,7 @@ import type { MutableRefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import type { Mesh } from 'three';
-import { SphereGeometry, MeshStandardMaterial, Vector3 } from 'three';
+import { SphereGeometry, Vector3 } from 'three';
 import { useAppStore } from '@/store/useAppStore';
 import { visualRadius, localVisualRadius } from '@/scenes/scale';
 import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
@@ -25,6 +25,8 @@ import { usePlanetsData } from '@/scenes/hooks/usePlanetsData';
 import { EARTH_FALLBACK_DATA } from '@/scenes/data/earthFallback';
 import { MOON_AXIAL_TILT_DEG } from '@/scenes/data/moon';
 import { RotationAxisLine } from '@/scenes/components/RotationAxisLine';
+import { usePlanetMaterial } from '@/scenes/hooks/usePlanetMaterial';
+import { RimOutline } from '@/scenes/components/RimOutline';
 
 // ---------------------------------------------------------------------------
 // Constantes
@@ -87,7 +89,9 @@ function MoonMeshInner({
     [viewMode],
   );
   const geometry = useMemo(() => new SphereGeometry(moonRadius, 16, 16), [moonRadius]);
-  const material = useMemo(() => new MeshStandardMaterial({ map: texture }), [texture]);
+
+  // Hook de swap de material: toon en explorador, standard (textura) en otros
+  usePlanetMaterial({ meshRef, level, colorHex: '#c8c8c8', texture });
 
   const fallbackEarthPos = useMemo(
     () => new Vector3(...earthPosition),
@@ -128,7 +132,6 @@ function MoonMeshInner({
       <mesh
         ref={meshRef}
         geometry={geometry}
-        material={material}
         name="moon"
         onClick={(e) => {
           e.stopPropagation();
@@ -143,6 +146,8 @@ function MoonMeshInner({
         {...(cs ? { castShadow: true } : {})}
         {...(rs ? { receiveShadow: true } : {})}
       />
+      {/* Outline cartoon — solo en nivel explorador */}
+      {level === 'explorador' && <RimOutline geometry={geometry} />}
       {/* Eje de rotación axial de la Luna — visible solo cuando showRotationAxes=true */}
       <RotationAxisLine
         radius={moonRadius}
@@ -179,7 +184,9 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
     [viewMode],
   );
   const geometry = useMemo(() => new SphereGeometry(moonRadius, 8, 8), [moonRadius]);
-  const material = useMemo(() => new MeshStandardMaterial({ color: '#c8c8c8' }), []);
+
+  // Hook de swap de material: toon en explorador, color sólido en otros
+  usePlanetMaterial({ meshRef, level, colorHex: '#c8c8c8', texture: null });
 
   const fallbackEarthPos = useMemo(
     () => new Vector3(...earthPosition),
@@ -212,7 +219,6 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
       <mesh
         ref={meshRef}
         geometry={geometry}
-        material={material}
         name="moon-fallback"
         onClick={(e) => {
           e.stopPropagation();
@@ -225,6 +231,8 @@ function MoonFallback({ earthPosition = [0, 0, 0], positionsRef }: PlanetMoonPro
           document.body.style.cursor = 'auto';
         }}
       />
+      {/* Outline cartoon — solo en nivel explorador */}
+      {level === 'explorador' && <RimOutline geometry={geometry} />}
       {/* Eje de rotación axial de la Luna — visible solo cuando showRotationAxes=true */}
       <RotationAxisLine
         radius={moonRadius}

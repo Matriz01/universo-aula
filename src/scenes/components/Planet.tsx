@@ -14,7 +14,7 @@ import { useFrame } from '@react-three/fiber';
 import { useTexture, Html } from '@react-three/drei';
 import { useTranslation } from 'react-i18next';
 import type { Mesh, Group, Vector3 } from 'three';
-import { SphereGeometry, MeshStandardMaterial, Color } from 'three';
+import { SphereGeometry } from 'three';
 import type { PlanetData } from '@/scenes/data/types';
 import { useScaledRadius } from '@/scenes/hooks/useScaledRadius';
 import { usePlanetPosition } from '@/scenes/hooks/usePlanetPosition';
@@ -24,6 +24,8 @@ import { useAppStore } from '@/store/useAppStore';
 import { getJD, J2000_JD } from '@/scenes/simulationClock';
 import { computeLabelOffset } from '@/scenes/helpers/labelHelpers';
 import { RotationAxisLine } from '@/scenes/components/RotationAxisLine';
+import { usePlanetMaterial } from '@/scenes/hooks/usePlanetMaterial';
+import { RimOutline } from '@/scenes/components/RimOutline';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -87,8 +89,8 @@ function PlanetMeshInner({
     [planetRadius],
   );
 
-  // Material con textura
-  const material = useMemo(() => new MeshStandardMaterial({ map: texture }), [texture]);
+  // Hook de swap de material: toon en explorador, standard en aprendiz/investigador
+  usePlanetMaterial({ meshRef, level, colorHex: planet.color_hex, texture });
 
   // Inclinación axial del planeta
   const tiltRad = useMemo(() => degToRad(planet.axial_tilt_deg), [planet.axial_tilt_deg]);
@@ -127,11 +129,12 @@ function PlanetMeshInner({
         <mesh
           ref={meshRef}
           geometry={geometries[0]}
-          material={material}
           name={`${planet.id}-sphere`}
           {...(cs ? { castShadow: true } : {})}
           {...(rs ? { receiveShadow: true } : {})}
         />
+        {/* Outline cartoon — solo en nivel explorador */}
+        {level === 'explorador' && <RimOutline geometry={geometries[0]} />}
         {/* Eje de rotación axial — visible solo cuando showRotationAxes=true */}
         <RotationAxisLine radius={planetRadius} tiltDeg={0} visible={showRotationAxes} />
       </group>
@@ -170,10 +173,9 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
 
   const planetRadius = useScaledRadius(planet.radius_km);
   const geometry = useMemo(() => new SphereGeometry(planetRadius, 16, 16), [planetRadius]);
-  const material = useMemo(
-    () => new MeshStandardMaterial({ color: new Color(planet.color_hex) }),
-    [planet.color_hex],
-  );
+
+  // Hook de swap de material: toon en explorador, standard (color sólido) en otros niveles
+  usePlanetMaterial({ meshRef, level, colorHex: planet.color_hex, texture: null });
 
   const tiltRad = useMemo(() => degToRad(planet.axial_tilt_deg), [planet.axial_tilt_deg]);
 
@@ -201,7 +203,9 @@ function PlanetFallback({ planet, level, onClick, positionsRef }: PlanetMeshProp
   return (
     <group ref={groupRef} name={planet.id} onClick={() => onClick?.(planet.id)}>
       <group rotation={[0, 0, tiltRad]}>
-        <mesh ref={meshRef} geometry={geometry} material={material} name={`${planet.id}-sphere`} />
+        <mesh ref={meshRef} geometry={geometry} name={`${planet.id}-sphere`} />
+        {/* Outline cartoon — solo en nivel explorador */}
+        {level === 'explorador' && <RimOutline geometry={geometry} />}
         <RotationAxisLine radius={planetRadius} tiltDeg={0} visible={showRotationAxes} />
       </group>
     </group>
