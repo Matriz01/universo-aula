@@ -298,7 +298,7 @@ describe('usePlanetMaterial — null guard', () => {
     expect(() => {
       renderHook(() =>
         usePlanetMaterial({
-          meshRef: meshRef as never,
+          meshRef,
           level: 'explorador',
           colorHex: '#4a90e2',
           texture: null,
