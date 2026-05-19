@@ -60,7 +60,11 @@ sdd-init, sdd-explore, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply, 
 
 ### chained-pr
 
-- Split obligatorio si el PR supera **400 líneas cambiadas**, salvo `size:exception` explícito del maintainer.
+> El skill describe el repo de su autor (`agent-teams-lite`). En universo-aula
+> NO existe el label `size:exception` ni un Action que mida el tamaño del PR: el
+> umbral de 400 líneas es una guía de revisión, no una puerta automática.
+
+- Guía: si un PR supera ~400 líneas cambiadas, divídelo en PRs encadenados — mantiene la revisión enfocada.
 - Cada PR debe ser revisable en ≤60 minutos.
 - Un PR = un deliverable work unit; tests y docs van en el mismo PR que el código que verifican.
 - Cada PR encadenado incluye diagrama de dependencias marcando la posición actual con `📍`.
