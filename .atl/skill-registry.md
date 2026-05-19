@@ -46,15 +46,17 @@ sdd-init, sdd-explore, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply, 
 
 ### branch-pr
 
-- Cada PR DEBE vincular un issue con `status:approved` — sin excepciones.
-- Cada PR DEBE tener exactamente una etiqueta `type:*`.
-- Nombre de rama: `^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)\/[a-z0-9._-]+$` — validado por GitHub ruleset.
-- Descripción en rama: solo minúsculas, sin espacios, sin caracteres especiales.
-- Commits: `<type>(<scope>): <description>` — description en minúsculas, sin trailing whitespace.
+> Flujo REAL de universo-aula (`Matriz01/universo-aula`), verificado. El skill
+> `branch-pr` describe el repo de su autor (`agent-teams-lite`) — ese sistema de
+> gobernanza NO aplica aquí.
+
+- Conventional commits obligatorios: `<type>(<scope>): <description>` — validados por commitlint (`@commitlint/config-conventional`) en el hook `commit-msg`.
+- Cuerpo del commit: cada línea ≤ 100 caracteres (`body-max-line-length`); commitlint rechaza el commit si se excede.
+- pre-commit (husky + lint-staged): `prettier --write` sobre `*.{json,md,yml,yaml,css}` y lint sobre `*.{ts,tsx,js,jsx}` — los archivos staged se reformatean automáticamente.
+- Nombre de rama recomendado: `type/description` en minúsculas (`feat/`, `fix/`, `chore/`, `docs/`, `refactor/`…).
 - No `Co-Authored-By` ni atribución de AI en commits.
-- Antes de abrir el PR: `pnpm test` (unit) + Playwright (e2e) deben pasar localmente.
-- El cuerpo del PR DEBE contener `Closes #N` / `Fixes #N` / `Resolves #N`.
-- Nunca abrir un PR sin issue aprobado previo — el Actions lo bloqueará.
+- El cuerpo del PR debe contener `Closes #N` / `Fixes #N` / `Resolves #N` para vincular y cerrar el issue.
+- NO existen plantilla de PR, labels `type:*`/`status:*` ni Actions de validación de PR. No hay flujo de aprobación: el PR se abre y se mergea con el flujo estándar de GitHub.
 
 ### chained-pr
 
@@ -88,12 +90,14 @@ sdd-init, sdd-explore, sdd-propose, sdd-spec, sdd-design, sdd-tasks, sdd-apply, 
 
 ### issue-creation
 
-- Nunca crear issues en blanco — usar siempre template (bug report o feature request).
-- Buscar duplicados ANTES de crear el issue.
-- Bugs → template `bug_report.yml`; mejoras/features → template `feature_request.yml`.
-- Preguntas van a Discussions, no a Issues.
-- Al crearse, el issue recibe automáticamente `status:needs-review`; un maintainer debe añadir `status:approved` antes de abrir un PR.
-- Título del issue en formato conventional commit: `fix(scope): description` / `feat(scope): description`.
+> Flujo REAL de universo-aula, verificado. El skill `issue-creation` describe el
+> repo de su autor (`agent-teams-lite`) — sus plantillas y labels NO aplican aquí.
+
+- Buscar duplicados ANTES de crear el issue (`gh issue list --search`).
+- Título en formato conventional commit: `feat(scope): …` / `fix(scope): …` / `chore(scope): …`.
+- NO hay plantillas de issue (`.github/ISSUE_TEMPLATE/` no existe): issue de texto libre con secciones claras (p. ej. Problema, Solución propuesta, Validación).
+- Labels disponibles: solo los de GitHub por defecto — `bug`, `enhancement`, `documentation`, `duplicate`, `good first issue`, `help wanted`, `invalid`, `question`, `wontfix`. NO existen `status:*` ni `type:*`.
+- No hay aprobación de maintainer (`status:approved`): el PR puede abrirse en cuanto el issue existe.
 
 ### judgment-day
 
