@@ -2,9 +2,9 @@
   "hud": {
     "language": "Idioma",
     "level": "Nivel pedagógico",
-    "levelExplorador": "Explorador",
-    "levelAprendiz": "Aprendiz",
-    "levelInvestigador": "Investigador",
+    "levelExplorador": "Explorador (básico)",
+    "levelAprendiz": "Aprendiz (medio)",
+    "levelInvestigador": "Investigador (avanzado)",
     "date": "Fecha",
     "goToToday": "Ir a hoy",
     "creditsButton": "Créditos",

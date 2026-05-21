@@ -80,4 +80,14 @@ describe('<LevelDropdown>', () => {
     const select = container.querySelector('select') as HTMLSelectElement;
     expect(select.value).toBe('explorador');
   });
+
+  // Regresión: el orden de los niveles refleja la progresión pedagógica
+  // (básico → medio → avanzado). Si alguien reordena el array LEVELS,
+  // este test falla y obliga a justificarlo.
+  it('orden: las opciones aparecen como básico → medio → avanzado (explorador, aprendiz, investigador)', () => {
+    const { container } = render(<LevelDropdown />);
+    const options = container.querySelectorAll('option');
+    const values = Array.from(options).map((o) => o.getAttribute('value'));
+    expect(values).toEqual(['explorador', 'aprendiz', 'investigador']);
+  });
 });
