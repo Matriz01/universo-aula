@@ -72,6 +72,10 @@ interface AppState {
   showKnownEvents: boolean;
   setShowKnownEvents: (show: boolean) => void;
 
+  /** Mostrar la capa de la Nube de Oort en modo global. Desactivado por defecto. */
+  showOortCloud: boolean;
+  setShowOortCloud: (show: boolean) => void;
+
   /**
    * Acción unificada de navegación.
    * null    → vuelve a modo global (selectedBody=null, viewMode='global', cameraMode='overview')
@@ -196,6 +200,9 @@ export const useAppStore = create<AppStateInternal>()((set) => ({
   showKnownEvents: false,
   setShowKnownEvents: (showKnownEvents) => set({ showKnownEvents }),
 
+  showOortCloud: false,
+  setShowOortCloud: (showOortCloud) => set({ showOortCloud }),
+
   goToBody: (id) => {
     if (id === null) {
       set({ selectedBody: null, viewMode: 'global', cameraMode: 'overview' });
@@ -318,5 +325,6 @@ export const usePrefersReducedMotion = () => useAppStore((s) => s.prefersReduced
 export const useSunShaderVariant = () => useAppStore((s) => s.sunShaderVariant);
 export const useViewMode = () => useAppStore((s) => s.viewMode);
 export const useShowKnownEvents = () => useAppStore((s) => s.showKnownEvents);
+export const useShowOortCloud = () => useAppStore((s) => s.showOortCloud);
 export const useSimulationSpeed = () => useAppStore((s) => s.simulationSpeed);
 export const useLastNonZeroSpeed = () => useAppStore((s) => s.lastNonZeroSpeed);
