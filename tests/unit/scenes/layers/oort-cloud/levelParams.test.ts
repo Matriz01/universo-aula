@@ -74,7 +74,7 @@ describe('levelParams — boundary', () => {
     const params = getOortParamsForLevel('explorador');
     const originalCount = params.count;
     // Mutating the returned object should not affect the source record
-    (params as Record<string, unknown>).count = 9999;
+    (params as unknown as Record<string, unknown>).count = 9999;
     expect(getOortParamsForLevel('explorador').count).toBe(originalCount);
   });
 });

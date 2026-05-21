@@ -12,7 +12,6 @@
  *   - @/store/useAppStore: controllable state + spied setter
  */
 
-import React from 'react';
 import { render, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { PedagogicalLevel } from '@/types';
