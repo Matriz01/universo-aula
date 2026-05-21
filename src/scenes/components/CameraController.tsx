@@ -61,51 +61,53 @@ export interface CameraControllerProps {
 function GlobalCameraControls() {
   const controlsRef = useRef<CameraControlsImpl | null>(null);
   const cameraHomeRequested = useAppStore((s) => s.cameraHomeRequested);
-  const showOortCloud = useAppStore((s) => s.showOortCloud);
 
-  // maxDistance dinámico: 200 normal; 2000 cuando la nube de Oort está activa.
-  // El outer edge de la nube cae ~198u en visualDistance global; con Oort
-  // activo el usuario espera poder alejarse hasta ver el Sistema Solar como
-  // un punto dentro de la nube, así que damos ~10× el outer edge. La cámara
-  // tiene far=1_000_000 (ver SolarSystemScene), así que no se corta el render.
-  const maxDistance = showOortCloud ? 2000 : 200;
+  // maxDistance fijo a 1000u: ~5× el outer edge de la Oort (~198u en
+  // visualDistance global). El alumno puede explorar todo el Sistema Solar
+  // como un punto distante, esté o no la nube visible. Cámara far=1_000_000.
 
   /**
-   * Ejecuta el tween de reset a vista home en DOS FASES:
-   *   1. Gira la cámara hacia el Sol (cambia el target manteniendo la posición).
-   *   2. Viaja hacia la posición home (cambia la posición manteniendo el target).
+   * Ejecuta el tween de reset a vista home en DOS FASES encadenadas:
+   *   1. Rotación: la cámara mira al Sol manteniendo su posición.
+   *   2. Traslación: la cámara viaja a la posición home mirando al Sol.
    *
-   * Esto da sensación de viaje cuando el usuario está lejos (p. ej. fuera de
-   * la nube de Oort): primero ve dónde va, luego siente el desplazamiento. En
-   * lugar del salto simultáneo de un único setLookAt, que se siente brusco.
+   * Esto da sensación de viaje cuando el usuario está lejos (fuera de la nube
+   * de Oort): primero ve a dónde va, luego siente el desplazamiento.
    *
-   * smoothTime se sube temporalmente a 0.5s por fase (default 0.15s) para que
-   * cada fase sea perceptible sin alargar el reset por encima de ~1s en total.
+   * Implementación: las promesas que devuelve camera-controls al pasar
+   * enableTransition=true pueden quedar pendientes hasta el siguiente input
+   * del usuario, lo que rompía la cadena (la fase 2 no arrancaba sola). Usamos
+   * un timer deterministic en lugar de `await` sobre la promesa: la fase 1
+   * arranca, dejamos correr el tween durante PHASE_DURATION_MS, y enseguida
+   * arrancamos la fase 2. smoothTime se sube a 0.4s para que el tween termine
+   * dentro de la ventana de 500ms con margen.
    */
   async function doHomeReset() {
     const controls = controlsRef.current;
     if (!controls) return;
 
+    const PHASE_DURATION_MS = 500;
     const prevSmoothTime = controls.smoothTime;
-    controls.smoothTime = 0.5;
+    controls.smoothTime = 0.4;
 
     try {
-      // Fase 1 — rotación: la cámara mira al Sol sin moverse.
-      await controls.setTarget(
+      // Fase 1 — rotación. Descartamos la promesa: avanzamos por tiempo.
+      void controls.setTarget(
         HOME_TARGET_POSITION.x,
         HOME_TARGET_POSITION.y,
         HOME_TARGET_POSITION.z,
         true,
       );
-      // Fase 2 — traslación: la cámara viaja a la posición home; sigue mirando al Sol.
-      await controls.setPosition(
+      await new Promise<void>((resolve) => setTimeout(resolve, PHASE_DURATION_MS));
+
+      // Fase 2 — traslación. La cámara sigue mirando al Sol mientras viaja.
+      void controls.setPosition(
         HOME_CAMERA_POSITION.x,
         HOME_CAMERA_POSITION.y,
         HOME_CAMERA_POSITION.z,
         true,
       );
-    } catch {
-      // Silenciar — setTarget/setPosition devuelven Promise que puede rechazarse al unmount
+      await new Promise<void>((resolve) => setTimeout(resolve, PHASE_DURATION_MS));
     } finally {
       controls.smoothTime = prevSmoothTime;
     }
@@ -138,7 +140,7 @@ function GlobalCameraControls() {
       truckSpeed={2.0}
       // Límites de distancia en modo global (didáctico)
       minDistance={2}
-      maxDistance={maxDistance}
+      maxDistance={1000}
       // smoothTime: amortiguación (segundos) — similar a OrbitControls dampingFactor=0.05
       smoothTime={0.15}
       draggingSmoothTime={0.05}
