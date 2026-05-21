@@ -63,35 +63,59 @@ function GlobalCameraControls() {
   const cameraHomeRequested = useAppStore((s) => s.cameraHomeRequested);
   const showOortCloud = useAppStore((s) => s.showOortCloud);
 
-  // maxDistance dinámico: 200 normal; 400 cuando la nube de Oort está activa
-  // (el outer edge de la nube cae ~198u en visualDistance global, así que el
-  // usuario necesita poder alejarse más para verla desde fuera por exploración).
-  const maxDistance = showOortCloud ? 400 : 200;
+  // maxDistance dinámico: 200 normal; 2000 cuando la nube de Oort está activa.
+  // El outer edge de la nube cae ~198u en visualDistance global; con Oort
+  // activo el usuario espera poder alejarse hasta ver el Sistema Solar como
+  // un punto dentro de la nube, así que damos ~10× el outer edge. La cámara
+  // tiene far=1_000_000 (ver SolarSystemScene), así que no se corta el render.
+  const maxDistance = showOortCloud ? 2000 : 200;
 
-  /** Ejecuta el tween de reset a vista home */
-  function doHomeReset() {
+  /**
+   * Ejecuta el tween de reset a vista home en DOS FASES:
+   *   1. Gira la cámara hacia el Sol (cambia el target manteniendo la posición).
+   *   2. Viaja hacia la posición home (cambia la posición manteniendo el target).
+   *
+   * Esto da sensación de viaje cuando el usuario está lejos (p. ej. fuera de
+   * la nube de Oort): primero ve dónde va, luego siente el desplazamiento. En
+   * lugar del salto simultáneo de un único setLookAt, que se siente brusco.
+   *
+   * smoothTime se sube temporalmente a 0.5s por fase (default 0.15s) para que
+   * cada fase sea perceptible sin alargar el reset por encima de ~1s en total.
+   */
+  async function doHomeReset() {
     const controls = controlsRef.current;
     if (!controls) return;
-    controls
-      .setLookAt(
-        HOME_CAMERA_POSITION.x,
-        HOME_CAMERA_POSITION.y,
-        HOME_CAMERA_POSITION.z,
+
+    const prevSmoothTime = controls.smoothTime;
+    controls.smoothTime = 0.5;
+
+    try {
+      // Fase 1 — rotación: la cámara mira al Sol sin moverse.
+      await controls.setTarget(
         HOME_TARGET_POSITION.x,
         HOME_TARGET_POSITION.y,
         HOME_TARGET_POSITION.z,
-        true, // con transición suave
-      )
-      .catch(() => {
-        // Silenciar — setLookAt devuelve Promise que puede rechazarse si unmount
-      });
+        true,
+      );
+      // Fase 2 — traslación: la cámara viaja a la posición home; sigue mirando al Sol.
+      await controls.setPosition(
+        HOME_CAMERA_POSITION.x,
+        HOME_CAMERA_POSITION.y,
+        HOME_CAMERA_POSITION.z,
+        true,
+      );
+    } catch {
+      // Silenciar — setTarget/setPosition devuelven Promise que puede rechazarse al unmount
+    } finally {
+      controls.smoothTime = prevSmoothTime;
+    }
   }
 
   // Shortcut H: reset a vista home
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'h' || event.key === 'H') {
-        doHomeReset();
+        void doHomeReset(); // fire-and-forget: doHomeReset es async (2 fases)
       }
     }
     window.addEventListener('keydown', handleKeyDown);
@@ -101,7 +125,7 @@ function GlobalCameraControls() {
   // Botón HUD: reset a vista home (vía store counter)
   useEffect(() => {
     if (cameraHomeRequested > 0) {
-      doHomeReset();
+      void doHomeReset(); // fire-and-forget: doHomeReset es async (2 fases)
     }
   }, [cameraHomeRequested]);
 
