@@ -91,3 +91,56 @@ describe('<LevelDropdown>', () => {
     expect(values).toEqual(['explorador', 'aprendiz', 'investigador']);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Regresión del bloque "hud" duplicado en los locales.
+//
+// Históricamente solar.json tenía DOS bloques "hud" en el mismo objeto JSON:
+// el segundo aplastaba al primero al parsear, dejando las claves del primero
+// (incluidos los labels de nivel) huérfanas y forzando el fallback de t().
+// Resultado visible: el dropdown mostraba "explorador / aprendiz / investigador"
+// en minúsculas en vez de los labels con etiqueta.
+//
+// Importamos el JSON resuelto y verificamos que las claves siguen accesibles
+// tras el parse. Si alguien vuelve a introducir un bloque "hud" duplicado,
+// estos assert fallan.
+// ---------------------------------------------------------------------------
+
+import esSolar from '@/i18n/locales/es/solar.json';
+import enSolar from '@/i18n/locales/en/solar.json';
+
+describe('locales — claves "hud.level*" alcanzables tras el parse (regresión)', () => {
+  it('es: hud.levelExplorador llega como "Explorador (básico)"', () => {
+    expect(esSolar.hud.levelExplorador).toBe('Explorador (básico)');
+  });
+
+  it('es: hud.levelAprendiz llega como "Aprendiz (medio)"', () => {
+    expect(esSolar.hud.levelAprendiz).toBe('Aprendiz (medio)');
+  });
+
+  it('es: hud.levelInvestigador llega como "Investigador (avanzado)"', () => {
+    expect(esSolar.hud.levelInvestigador).toBe('Investigador (avanzado)');
+  });
+
+  it('en: hud.levelExplorador llega como "Explorer (basic)"', () => {
+    expect(enSolar.hud.levelExplorador).toBe('Explorer (basic)');
+  });
+
+  it('en: hud.levelAprendiz llega como "Apprentice (intermediate)"', () => {
+    expect(enSolar.hud.levelAprendiz).toBe('Apprentice (intermediate)');
+  });
+
+  it('en: hud.levelInvestigador llega como "Researcher (advanced)"', () => {
+    expect(enSolar.hud.levelInvestigador).toBe('Researcher (advanced)');
+  });
+
+  it('es: hud.showAxes y hud.hideAxes siguen alcanzables tras consolidar', () => {
+    expect(esSolar.hud.showAxes).toBe('Mostrar ejes');
+    expect(esSolar.hud.hideAxes).toBe('Ocultar ejes');
+  });
+
+  it('en: hud.showAxes y hud.hideAxes siguen alcanzables tras consolidar', () => {
+    expect(enSolar.hud.showAxes).toBe('Show axes');
+    expect(enSolar.hud.hideAxes).toBe('Hide axes');
+  });
+});
