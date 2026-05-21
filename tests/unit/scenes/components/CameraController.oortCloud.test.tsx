@@ -1,20 +1,19 @@
 /**
- * Tests del comportamiento Oort-cloud-aware del CameraController.
+ * Tests del rango de zoom del CameraController en modo global.
  *
- * Cuando showOortCloud=true en modo global, el maxDistance del control de
- * cámara crece para permitir al usuario hacer zoom out manualmente hasta
- * atravesar la esfera de la nube de Oort (outer edge ~198u en visualDistance).
+ * Motivación: la nube de Oort cae ~198u (outer edge) en visualDistance global.
+ * El usuario debe poder alejarse lo suficiente para verla "desde fuera", esté
+ * o no la capa visible. Pedagógicamente, exploración cósmica libre.
  *
- * Decisión: NO mover la cámara automáticamente al activar el toggle (rechaza
- * ADR-009). En su lugar, ampliar el rango de zoom para que el usuario
- * descubra la nube por exploración.
+ * Decisión: NO condicionar maxDistance al toggle de la nube. Un único rango
+ * 2u..1000u en modo global, ~5× el outer edge de la Oort. Cámara far=1_000_000.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 
 // ---------------------------------------------------------------------------
-// State + capture, hoisted antes de los mocks
+// State + capture (hoisted, antes de los mocks)
 // ---------------------------------------------------------------------------
 
 const { capturedCameraControlsProps, mockState } = vi.hoisted(() => {
@@ -31,7 +30,7 @@ const { capturedCameraControlsProps, mockState } = vi.hoisted(() => {
 });
 
 // ---------------------------------------------------------------------------
-// Mocks (orden: fiber/drei + hooks + store antes del SUT)
+// Mocks
 // ---------------------------------------------------------------------------
 
 vi.mock('@react-three/fiber', () => ({
@@ -68,7 +67,7 @@ vi.mock('@/store/useAppStore', () => ({
 }));
 
 // ---------------------------------------------------------------------------
-// SUT — import después de los mocks
+// SUT — después de los mocks
 // ---------------------------------------------------------------------------
 
 import { CameraController } from '@/scenes/components/CameraController';
@@ -88,33 +87,20 @@ beforeEach(() => {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('<CameraController> — maxDistance dinámico según showOortCloud', () => {
+describe('<CameraController> — rango de zoom en modo global', () => {
   // ── happy path ────────────────────────────────────────────────────────────
   describe('happy path', () => {
-    it('por defecto (showOortCloud=false), maxDistance=200 en modo global', () => {
-      mockState.showOortCloud = false;
+    it('en modo global, maxDistance=1000 (suficiente para verlo todo)', () => {
       render(
         <div data-testid="canvas">
           <CameraController />
         </div>,
       );
       expect(capturedCameraControlsProps).toHaveLength(1);
-      expect(capturedCameraControlsProps[0].maxDistance).toBe(200);
+      expect(capturedCameraControlsProps[0].maxDistance).toBe(1000);
     });
 
-    it('con showOortCloud=true, maxDistance crece para permitir salir de la nube', () => {
-      mockState.showOortCloud = true;
-      render(
-        <div data-testid="canvas">
-          <CameraController />
-        </div>,
-      );
-      expect(capturedCameraControlsProps).toHaveLength(1);
-      expect(capturedCameraControlsProps[0].maxDistance).toBe(2000);
-    });
-
-    it('minDistance se mantiene en 2 independientemente de showOortCloud', () => {
-      mockState.showOortCloud = true;
+    it('en modo global, minDistance=2', () => {
       render(
         <div data-testid="canvas">
           <CameraController />
@@ -122,17 +108,37 @@ describe('<CameraController> — maxDistance dinámico según showOortCloud', ()
       );
       expect(capturedCameraControlsProps[0].minDistance).toBe(2);
     });
+
+    it('maxDistance NO depende del toggle de la nube de Oort', () => {
+      // Render con Oort apagada
+      mockState.showOortCloud = false;
+      const { unmount } = render(
+        <div data-testid="canvas">
+          <CameraController />
+        </div>,
+      );
+      const withoutOort = capturedCameraControlsProps[0].maxDistance;
+      unmount();
+      capturedCameraControlsProps.length = 0;
+
+      // Render con Oort encendida
+      mockState.showOortCloud = true;
+      render(
+        <div data-testid="canvas">
+          <CameraController />
+        </div>,
+      );
+      const withOort = capturedCameraControlsProps[0].maxDistance;
+
+      expect(withOort).toBe(withoutOort);
+      expect(withOort).toBe(1000);
+    });
   });
 
   // ── boundary / invariante de escala ──────────────────────────────────────
-  describe('boundary — alcance de zoom respecto al outer edge de Oort', () => {
-    it('maxDistance con Oort activo supera 5× el outer edge (~198u) — sistema solar como un punto', () => {
-      // El outer edge de la nube de Oort en visualDistance global es ~198u
-      // (visualDistance(100000 AU)). El usuario espera poder ver el Sistema
-      // Solar reducido a un punto DENTRO de la nube, lo que exige >=5× el
-      // outer edge. far plane de la cámara es 1_000_000, así que no hay
-      // riesgo de clipping al alejarse.
-      mockState.showOortCloud = true;
+  describe('boundary — alcance respecto al outer edge de Oort', () => {
+    it('maxDistance supera 5× el outer edge (~198u) — sistema solar como un punto', () => {
+      // visualDistance(100 000 AU) ≈ 198u. 5× para verlo claramente.
       render(
         <div data-testid="canvas">
           <CameraController />
@@ -142,15 +148,14 @@ describe('<CameraController> — maxDistance dinámico según showOortCloud', ()
       expect(max).toBeGreaterThanOrEqual(198 * 5);
     });
 
-    it('maxDistance sin Oort se mantiene compacto (<=250u) para no perder al usuario en vacío', () => {
-      mockState.showOortCloud = false;
+    it('maxDistance se mantiene por debajo del far plane (1_000_000)', () => {
       render(
         <div data-testid="canvas">
           <CameraController />
         </div>,
       );
       const max = capturedCameraControlsProps[0].maxDistance as number;
-      expect(max).toBeLessThanOrEqual(250);
+      expect(max).toBeLessThan(1_000_000);
     });
   });
 
@@ -158,7 +163,6 @@ describe('<CameraController> — maxDistance dinámico según showOortCloud', ()
   describe('error path', () => {
     it('en modo local, no se monta GlobalCameraControls (no captura props)', () => {
       mockState.viewMode = 'local';
-      mockState.showOortCloud = true; // irrelevante en local
       render(
         <div data-testid="canvas">
           <CameraController />
@@ -169,16 +173,15 @@ describe('<CameraController> — maxDistance dinámico según showOortCloud', ()
   });
 
   // ── determinismo ─────────────────────────────────────────────────────────
-  describe('determinismo — mismo showOortCloud → mismo maxDistance', () => {
-    it('dos renders independientes con showOortCloud=true devuelven el mismo maxDistance', () => {
-      mockState.showOortCloud = true;
-
+  describe('determinismo', () => {
+    it('dos renders independientes en modo global devuelven el mismo rango', () => {
       const { unmount } = render(
         <div data-testid="canvas">
           <CameraController />
         </div>,
       );
-      const first = capturedCameraControlsProps[0].maxDistance;
+      const firstMax = capturedCameraControlsProps[0].maxDistance;
+      const firstMin = capturedCameraControlsProps[0].minDistance;
       unmount();
       capturedCameraControlsProps.length = 0;
 
@@ -187,30 +190,8 @@ describe('<CameraController> — maxDistance dinámico según showOortCloud', ()
           <CameraController />
         </div>,
       );
-      const second = capturedCameraControlsProps[0].maxDistance;
-
-      expect(first).toBe(second);
-      expect(first).toBe(2000);
-    });
-
-    it('alternar showOortCloud entre dos renders refleja el nuevo maxDistance', () => {
-      mockState.showOortCloud = false;
-      const { unmount } = render(
-        <div data-testid="canvas">
-          <CameraController />
-        </div>,
-      );
-      expect(capturedCameraControlsProps[0].maxDistance).toBe(200);
-      unmount();
-      capturedCameraControlsProps.length = 0;
-
-      mockState.showOortCloud = true;
-      render(
-        <div data-testid="canvas">
-          <CameraController />
-        </div>,
-      );
-      expect(capturedCameraControlsProps[0].maxDistance).toBe(2000);
+      expect(capturedCameraControlsProps[0].maxDistance).toBe(firstMax);
+      expect(capturedCameraControlsProps[0].minDistance).toBe(firstMin);
     });
   });
 });
