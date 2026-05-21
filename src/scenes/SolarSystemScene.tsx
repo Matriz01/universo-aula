@@ -53,6 +53,19 @@ import { MOON_ORBITAL_ELEMENTS } from '@/scenes/data/moon';
 import { applyOrbitalRotation, degToRad, solveKeplerNewtonRaphson } from '@/scenes/orbital';
 
 // ---------------------------------------------------------------------------
+// Lazy import — Oort cloud layer (REQ-LAZY-1, ADR-006)
+// ---------------------------------------------------------------------------
+
+/**
+ * OortCloudLayer is lazy-imported so it only loads when showOortCloud=true for
+ * the first time. The existing <Suspense fallback={null}> at line ~721 covers
+ * this component — no second Suspense is added (design §0 finding #1).
+ */
+const OortCloudLayer = React.lazy(
+  () => import(/* webpackChunkName: "layer-oort-cloud" */ './layers/oort-cloud/OortCloudLayer'),
+);
+
+// ---------------------------------------------------------------------------
 // Constantes para órbita lunar
 // ---------------------------------------------------------------------------
 
@@ -403,6 +416,8 @@ interface SolarSystemContentProps {
   viewMode: 'global' | 'local';
   selectedBody: BodyId | null;
   showKnownEvents: boolean;
+  /** Controls whether the lazy-loaded Oort cloud layer is mounted (REQ-LAZY-1). */
+  showOortCloud: boolean;
 }
 
 function SolarSystemContent({
@@ -414,6 +429,7 @@ function SolarSystemContent({
   viewMode,
   selectedBody,
   showKnownEvents,
+  showOortCloud,
 }: SolarSystemContentProps) {
   // selectedPlanet: PlanetId | null — extraído de selectedBody excluyendo 'moon'
   const selectedPlanet = selectedBody !== 'moon' ? selectedBody : null;
@@ -534,6 +550,11 @@ function SolarSystemContent({
 
           {/* Cinturón de asteroides */}
           <AsteroidBelt config={data.asteroid_belt} />
+
+          {/* Nube de Oort — lazy-loaded, solo cuando showOortCloud=true (REQ-LAZY-1, REQ-LEVEL-2).
+              El OortCloudLayer mismo devuelve null si viewMode !== 'global', por diseño.
+              Mounted inside the existing <Suspense fallback={null}> at line ~721 — no new Suspense. */}
+          {showOortCloud && <OortCloudLayer />}
 
           {/* Nota: MoonOrbitPath NO se muestra en global — usa escala real (~384 u),
               que en escala didáctica global queda más allá de todos los planetas.
@@ -678,6 +699,7 @@ export function SolarSystemScene() {
   const viewMode = useAppStore((s) => s.viewMode);
   const selectedBody = useAppStore((s) => s.selectedBody);
   const showKnownEvents = useAppStore((s) => s.showKnownEvents);
+  const showOortCloud = useAppStore((s) => s.showOortCloud);
 
   const rawGpu = useGpuCapability();
 
@@ -732,6 +754,7 @@ export function SolarSystemScene() {
               viewMode={viewMode}
               selectedBody={selectedBody}
               showKnownEvents={showKnownEvents}
+              showOortCloud={showOortCloud}
             />
           </OriginOffsetProvider>
         </Suspense>
