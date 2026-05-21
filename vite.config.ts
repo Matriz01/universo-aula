@@ -53,6 +53,8 @@ export default defineConfig({
           ],
           'vendor-react': ['react', 'react-dom'],
           'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
+          // Oort cloud layer — lazy-loaded separately (REQ-LAZY-1, ADR-006)
+          'layer-oort-cloud': ['./src/scenes/layers/oort-cloud/OortCloudLayer.tsx'],
         },
       },
     },
