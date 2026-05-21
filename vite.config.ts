@@ -33,6 +33,18 @@ export default defineConfig({
               cacheName: 'solar-data-v1',
             },
           },
+          // Lazy layer chunks — served from cache after first fetch (REQ-LAZY-4, ADR-006)
+          {
+            urlPattern: /\/assets\/layer-.+\.js$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'solar-layers-v1',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 30 * 24 * 60 * 60,
+              },
+            },
+          },
         ],
       },
       devOptions: {
