@@ -61,6 +61,12 @@ export interface CameraControllerProps {
 function GlobalCameraControls() {
   const controlsRef = useRef<CameraControlsImpl | null>(null);
   const cameraHomeRequested = useAppStore((s) => s.cameraHomeRequested);
+  const showOortCloud = useAppStore((s) => s.showOortCloud);
+
+  // maxDistance dinámico: 200 normal; 400 cuando la nube de Oort está activa
+  // (el outer edge de la nube cae ~198u en visualDistance global, así que el
+  // usuario necesita poder alejarse más para verla desde fuera por exploración).
+  const maxDistance = showOortCloud ? 400 : 200;
 
   /** Ejecuta el tween de reset a vista home */
   function doHomeReset() {
@@ -108,7 +114,7 @@ function GlobalCameraControls() {
       truckSpeed={2.0}
       // Límites de distancia en modo global (didáctico)
       minDistance={2}
-      maxDistance={200}
+      maxDistance={maxDistance}
       // smoothTime: amortiguación (segundos) — similar a OrbitControls dampingFactor=0.05
       smoothTime={0.15}
       draggingSmoothTime={0.05}
