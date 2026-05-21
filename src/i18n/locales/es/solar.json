@@ -157,6 +157,20 @@
     "toggleOortCloud": "Nube de Oort",
     "toggleOortCloudTooltip": "Muestra la nube de cometas que rodea el sistema solar"
   },
+  "layers": {
+    "oort": {
+      "title": {
+        "explorador": "Nube de cometas",
+        "aprendiz": "Nube de Oort",
+        "investigador": "Nube de Oort"
+      },
+      "body": {
+        "explorador": "Una enorme burbuja de cometas rodea al Sol y a todos los planetas. ¡Es la frontera del Sistema Solar!",
+        "aprendiz": "La Nube de Oort es un reservorio esférico de cometas que se extiende entre unas 2 000 y 100 000 UA del Sol.",
+        "investigador": "Reservorio cometario hipotético que envuelve el Sistema Solar. Sedna, descubierta en 2003, es un candidato a objeto del Oort interior; su pertenencia exacta sigue en debate científico."
+      }
+    }
+  },
   "pluto": {
     "name": "Plutón",
     "explorador": { "description": "Antes era un planeta. Ahora se llama planeta enano." },
