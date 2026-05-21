@@ -110,7 +110,7 @@ describe('<CameraController> — maxDistance dinámico según showOortCloud', ()
         </div>,
       );
       expect(capturedCameraControlsProps).toHaveLength(1);
-      expect(capturedCameraControlsProps[0].maxDistance).toBe(400);
+      expect(capturedCameraControlsProps[0].maxDistance).toBe(2000);
     });
 
     it('minDistance se mantiene en 2 independientemente de showOortCloud', () => {
@@ -126,10 +126,12 @@ describe('<CameraController> — maxDistance dinámico según showOortCloud', ()
 
   // ── boundary / invariante de escala ──────────────────────────────────────
   describe('boundary — alcance de zoom respecto al outer edge de Oort', () => {
-    it('maxDistance con Oort activo supera 1.5× el outer edge (~198u) — visión clara desde fuera', () => {
+    it('maxDistance con Oort activo supera 5× el outer edge (~198u) — sistema solar como un punto', () => {
       // El outer edge de la nube de Oort en visualDistance global es ~198u
-      // (visualDistance(100000 AU)). Para que el alumno pueda hacer zoom out
-      // hasta verse FUERA de la nube con margen, exigimos >=1.5× ese valor.
+      // (visualDistance(100000 AU)). El usuario espera poder ver el Sistema
+      // Solar reducido a un punto DENTRO de la nube, lo que exige >=5× el
+      // outer edge. far plane de la cámara es 1_000_000, así que no hay
+      // riesgo de clipping al alejarse.
       mockState.showOortCloud = true;
       render(
         <div data-testid="canvas">
@@ -137,7 +139,7 @@ describe('<CameraController> — maxDistance dinámico según showOortCloud', ()
         </div>,
       );
       const max = capturedCameraControlsProps[0].maxDistance as number;
-      expect(max).toBeGreaterThanOrEqual(198 * 1.5);
+      expect(max).toBeGreaterThanOrEqual(198 * 5);
     });
 
     it('maxDistance sin Oort se mantiene compacto (<=250u) para no perder al usuario en vacío', () => {
@@ -188,7 +190,7 @@ describe('<CameraController> — maxDistance dinámico según showOortCloud', ()
       const second = capturedCameraControlsProps[0].maxDistance;
 
       expect(first).toBe(second);
-      expect(first).toBe(400);
+      expect(first).toBe(2000);
     });
 
     it('alternar showOortCloud entre dos renders refleja el nuevo maxDistance', () => {
@@ -208,7 +210,7 @@ describe('<CameraController> — maxDistance dinámico según showOortCloud', ()
           <CameraController />
         </div>,
       );
-      expect(capturedCameraControlsProps[0].maxDistance).toBe(400);
+      expect(capturedCameraControlsProps[0].maxDistance).toBe(2000);
     });
   });
 });
