@@ -2,14 +2,18 @@
   "hud": {
     "language": "Idioma",
     "level": "Nivel pedagógico",
-    "levelExplorador": "Explorador",
-    "levelAprendiz": "Aprendiz",
-    "levelInvestigador": "Investigador",
+    "levelExplorador": "Explorador (básico)",
+    "levelAprendiz": "Aprendiz (medio)",
+    "levelInvestigador": "Investigador (avanzado)",
     "date": "Fecha",
     "goToToday": "Ir a hoy",
     "creditsButton": "Créditos",
     "centerOnSun": "Centrar en Sol",
-    "keplerDriftWarning": "Fuera del rango óptimo (1900-2100): la aproximación de Kepler deriva."
+    "keplerDriftWarning": "Fuera del rango óptimo (1900-2100): la aproximación de Kepler deriva.",
+    "showAxes": "Mostrar ejes",
+    "hideAxes": "Ocultar ejes",
+    "toggleOortCloud": "Nube de Oort",
+    "toggleOortCloudTooltip": "Muestra la nube de cometas que rodea el sistema solar"
   },
   "ui": {
     "level_selector": {
@@ -150,12 +154,6 @@
   "bodies": {
     "sun": "Sol",
     "moon": "Luna"
-  },
-  "hud": {
-    "showAxes": "Mostrar ejes",
-    "hideAxes": "Ocultar ejes",
-    "toggleOortCloud": "Nube de Oort",
-    "toggleOortCloudTooltip": "Muestra la nube de cometas que rodea el sistema solar"
   },
   "layers": {
     "oort": {

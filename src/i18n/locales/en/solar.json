@@ -2,14 +2,18 @@
   "hud": {
     "language": "Language",
     "level": "Pedagogical level",
-    "levelExplorador": "Explorer",
-    "levelAprendiz": "Apprentice",
-    "levelInvestigador": "Researcher",
+    "levelExplorador": "Explorer (basic)",
+    "levelAprendiz": "Apprentice (intermediate)",
+    "levelInvestigador": "Researcher (advanced)",
     "date": "Date",
     "goToToday": "Go to today",
     "creditsButton": "Credits",
     "centerOnSun": "Center on Sun",
-    "keplerDriftWarning": "Out of optimal range (1900-2100): Kepler approximation drifts."
+    "keplerDriftWarning": "Out of optimal range (1900-2100): Kepler approximation drifts.",
+    "showAxes": "Show axes",
+    "hideAxes": "Hide axes",
+    "toggleOortCloud": "Oort Cloud",
+    "toggleOortCloudTooltip": "Show the cometary cloud surrounding the solar system"
   },
   "ui": {
     "level_selector": {
@@ -150,12 +154,6 @@
   "bodies": {
     "sun": "Sun",
     "moon": "Moon"
-  },
-  "hud": {
-    "showAxes": "Show axes",
-    "hideAxes": "Hide axes",
-    "toggleOortCloud": "Oort Cloud",
-    "toggleOortCloudTooltip": "Show the cometary cloud surrounding the solar system"
   },
   "layers": {
     "oort": {
