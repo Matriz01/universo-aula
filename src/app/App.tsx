@@ -15,6 +15,7 @@ import { LanguageSelector } from '@/components/hud/LanguageSelector';
 import { LevelDropdown } from '@/components/hud/LevelDropdown';
 import { DatePicker } from '@/components/hud/DatePicker';
 import { CreditsButton } from '@/components/hud/CreditsButton';
+import { OortCloudToggle } from '@/components/hud/OortCloudToggle';
 
 // Lazy import de SolarSystemScene — Three.js sólo se carga cuando se necesita
 const SolarSystemScene = lazy(() =>
@@ -88,6 +89,11 @@ export function App() {
         {/* Indicador de modo de visualización (solo visible en modo local) */}
         <div className="pointer-events-auto absolute bottom-20 right-4">
           <ViewModeIndicator />
+        </div>
+
+        {/* Toggle Nube de Oort (solo visible en modo global, ADR-005) */}
+        <div className="pointer-events-auto absolute bottom-32 right-4">
+          <OortCloudToggle />
         </div>
 
         {/* Bottom-right: CreditsButton — z-40 */}

@@ -62,30 +62,62 @@ function GlobalCameraControls() {
   const controlsRef = useRef<CameraControlsImpl | null>(null);
   const cameraHomeRequested = useAppStore((s) => s.cameraHomeRequested);
 
-  /** Ejecuta el tween de reset a vista home */
-  function doHomeReset() {
+  // maxDistance fijo a 1000u: ~5× el outer edge de la Oort (~198u en
+  // visualDistance global). El alumno puede explorar todo el Sistema Solar
+  // como un punto distante, esté o no la nube visible. Cámara far=1_000_000.
+
+  /**
+   * Ejecuta el tween de reset a vista home en DOS FASES encadenadas:
+   *   1. Rotación: la cámara mira al Sol manteniendo su posición.
+   *   2. Traslación: la cámara viaja a la posición home mirando al Sol.
+   *
+   * Esto da sensación de viaje cuando el usuario está lejos (fuera de la nube
+   * de Oort): primero ve a dónde va, luego siente el desplazamiento.
+   *
+   * Implementación: las promesas que devuelve camera-controls al pasar
+   * enableTransition=true pueden quedar pendientes hasta el siguiente input
+   * del usuario, lo que rompía la cadena (la fase 2 no arrancaba sola). Usamos
+   * un timer deterministic en lugar de `await` sobre la promesa: la fase 1
+   * arranca, dejamos correr el tween durante PHASE_DURATION_MS, y enseguida
+   * arrancamos la fase 2. smoothTime se sube a 0.4s para que el tween termine
+   * dentro de la ventana de 500ms con margen.
+   */
+  async function doHomeReset() {
     const controls = controlsRef.current;
     if (!controls) return;
-    controls
-      .setLookAt(
-        HOME_CAMERA_POSITION.x,
-        HOME_CAMERA_POSITION.y,
-        HOME_CAMERA_POSITION.z,
+
+    const PHASE_DURATION_MS = 500;
+    const prevSmoothTime = controls.smoothTime;
+    controls.smoothTime = 0.4;
+
+    try {
+      // Fase 1 — rotación. Descartamos la promesa: avanzamos por tiempo.
+      void controls.setTarget(
         HOME_TARGET_POSITION.x,
         HOME_TARGET_POSITION.y,
         HOME_TARGET_POSITION.z,
-        true, // con transición suave
-      )
-      .catch(() => {
-        // Silenciar — setLookAt devuelve Promise que puede rechazarse si unmount
-      });
+        true,
+      );
+      await new Promise<void>((resolve) => setTimeout(resolve, PHASE_DURATION_MS));
+
+      // Fase 2 — traslación. La cámara sigue mirando al Sol mientras viaja.
+      void controls.setPosition(
+        HOME_CAMERA_POSITION.x,
+        HOME_CAMERA_POSITION.y,
+        HOME_CAMERA_POSITION.z,
+        true,
+      );
+      await new Promise<void>((resolve) => setTimeout(resolve, PHASE_DURATION_MS));
+    } finally {
+      controls.smoothTime = prevSmoothTime;
+    }
   }
 
   // Shortcut H: reset a vista home
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'h' || event.key === 'H') {
-        doHomeReset();
+        void doHomeReset(); // fire-and-forget: doHomeReset es async (2 fases)
       }
     }
     window.addEventListener('keydown', handleKeyDown);
@@ -95,7 +127,7 @@ function GlobalCameraControls() {
   // Botón HUD: reset a vista home (vía store counter)
   useEffect(() => {
     if (cameraHomeRequested > 0) {
-      doHomeReset();
+      void doHomeReset(); // fire-and-forget: doHomeReset es async (2 fases)
     }
   }, [cameraHomeRequested]);
 
@@ -108,7 +140,7 @@ function GlobalCameraControls() {
       truckSpeed={2.0}
       // Límites de distancia en modo global (didáctico)
       minDistance={2}
-      maxDistance={200}
+      maxDistance={1000}
       // smoothTime: amortiguación (segundos) — similar a OrbitControls dampingFactor=0.05
       smoothTime={0.15}
       draggingSmoothTime={0.05}

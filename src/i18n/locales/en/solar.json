@@ -157,6 +157,20 @@
     "toggleOortCloud": "Oort Cloud",
     "toggleOortCloudTooltip": "Show the cometary cloud surrounding the solar system"
   },
+  "layers": {
+    "oort": {
+      "title": {
+        "explorador": "Comet Cloud",
+        "aprendiz": "Oort Cloud",
+        "investigador": "Oort Cloud"
+      },
+      "body": {
+        "explorador": "A huge bubble of comets surrounds the Sun and all the planets. It is the boundary of the Solar System!",
+        "aprendiz": "The Oort Cloud is a spherical reservoir of comets stretching roughly 2,000 to 100,000 AU from the Sun.",
+        "investigador": "A hypothetical cometary reservoir that envelops the Solar System. Sedna, discovered in 2003, is a candidate inner Oort Cloud object whose exact classification remains scientifically debated."
+      }
+    }
+  },
   "pluto": {
     "name": "Pluto",
     "explorador": { "description": "It used to be a planet. Now it is called a dwarf planet." },
