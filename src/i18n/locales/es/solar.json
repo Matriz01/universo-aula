@@ -153,7 +153,9 @@
   },
   "hud": {
     "showAxes": "Mostrar ejes",
-    "hideAxes": "Ocultar ejes"
+    "hideAxes": "Ocultar ejes",
+    "toggleOortCloud": "Nube de Oort",
+    "toggleOortCloudTooltip": "Muestra la nube de cometas que rodea el sistema solar"
   },
   "pluto": {
     "name": "Plutón",
