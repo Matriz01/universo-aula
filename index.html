@@ -2,6 +2,15 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      Fallback CSP for hosts that ignore public/_headers (vite preview, S3, IIS).
+      Mirrors _headers minus frame-ancestors (unsupported in <meta>; covered by
+      X-Frame-Options / the _headers CSP on Cloudflare-style hosts).
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0b1020" />
     <meta
