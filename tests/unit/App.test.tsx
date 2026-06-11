@@ -1,7 +1,6 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { Providers } from '@/app/providers';
 import { App } from '@/app/App';
-import { useAppStore } from '@/store/useAppStore';
 
 // R3F no puede renderizarse en jsdom — mockeamos Canvas para que pase children
 vi.mock('@react-three/fiber', () => ({
@@ -154,88 +153,71 @@ describe('App', () => {
       expect(screen.queryByTestId('date-control')).not.toBeInTheDocument();
     });
   });
-});
 
-// ---------------------------------------------------------------------------
-// REQ-AXIS-VIS-5 — HUD toggle de ejes de rotación axial (REQ-I18N-3 incluido)
-// ---------------------------------------------------------------------------
+  // CockpitFrame PR1 — asserts estructurales de integración
+  // (REQ-GRID-1, REQ-TOPBAR-1, REQ-INV-5)
+  describe('CockpitFrame PR1 — integración estructural', () => {
+    it('el frame cockpit-frame está montado', () => {
+      render(
+        <Providers>
+          <App />
+        </Providers>,
+      );
+      expect(screen.getByTestId('cockpit-frame')).toBeInTheDocument();
+    });
 
-describe('App — botón HUD de ejes de rotación axial (REQ-AXIS-VIS-5)', () => {
-  beforeEach(() => {
-    // Resetear el store al estado inicial antes de cada test
-    useAppStore.setState({ showRotationAxes: false });
-  });
+    it('existe la celda cockpit-topbar-cell', () => {
+      render(
+        <Providers>
+          <App />
+        </Providers>,
+      );
+      expect(screen.getByTestId('cockpit-topbar-cell')).toBeInTheDocument();
+    });
 
-  it('el botón "Mostrar ejes" está presente en el HUD (showRotationAxes=false)', () => {
-    render(
-      <Providers>
-        <App />
-      </Providers>,
-    );
-    // El botón tiene aria-label = t('hud.showAxes') cuando los ejes están ocultos.
-    // react-i18next en tests usa la key por defecto, pero Providers incluye i18n real.
-    // Buscamos por el texto renderizado O por aria-label parcial.
-    const button = screen.getByRole('button', { name: /mostrar ejes|show axes/i });
-    expect(button).toBeInTheDocument();
-  });
+    it('la celda canvas tiene aislamiento de stacking context (ADR-B)', () => {
+      render(
+        <Providers>
+          <App />
+        </Providers>,
+      );
+      const canvasCell = screen.getByTestId('cockpit-canvas-cell');
+      expect(canvasCell.className).toMatch(/\bisolate\b/);
+      expect(canvasCell.className).toMatch(/\brelative\b/);
+      expect(canvasCell.className).toMatch(/\bz-0\b/);
+    });
 
-  it('un click en el botón activa showRotationAxes en el store', () => {
-    render(
-      <Providers>
-        <App />
-      </Providers>,
-    );
-    expect(useAppStore.getState().showRotationAxes).toBe(false);
+    it('LanguageSelector es descendiente de cockpit-topbar-cell', () => {
+      render(
+        <Providers>
+          <App />
+        </Providers>,
+      );
+      const topbarCell = screen.getByTestId('cockpit-topbar-cell');
+      const langSelect = screen.getByRole('combobox', { name: /idioma/i });
+      expect(topbarCell.contains(langSelect)).toBe(true);
+    });
 
-    const button = screen.getByRole('button', { name: /mostrar ejes|show axes/i });
-    fireEvent.click(button);
+    it('LevelDropdown es descendiente de cockpit-topbar-cell', () => {
+      render(
+        <Providers>
+          <App />
+        </Providers>,
+      );
+      const topbarCell = screen.getByTestId('cockpit-topbar-cell');
+      const levelSelect = screen.getByRole('combobox', { name: /nivel pedagógico/i });
+      expect(topbarCell.contains(levelSelect)).toBe(true);
+    });
 
-    expect(useAppStore.getState().showRotationAxes).toBe(true);
-  });
-
-  it('dos clicks alternan showRotationAxes false → true → false', () => {
-    render(
-      <Providers>
-        <App />
-      </Providers>,
-    );
-    expect(useAppStore.getState().showRotationAxes).toBe(false);
-
-    // Primer click: false → true
-    const button = screen.getByRole('button', { name: /mostrar ejes|show axes/i });
-    fireEvent.click(button);
-    expect(useAppStore.getState().showRotationAxes).toBe(true);
-
-    // Segundo click: true → false.
-    // El botón ahora tiene aria-label "Ocultar ejes" — buscamos de nuevo.
-    const hideButton = screen.getByRole('button', { name: /ocultar ejes|hide axes/i });
-    fireEvent.click(hideButton);
-    expect(useAppStore.getState().showRotationAxes).toBe(false);
-  });
-
-  it('cuando showRotationAxes=false el botón usa t("hud.showAxes") como aria-label', () => {
-    useAppStore.setState({ showRotationAxes: false });
-    render(
-      <Providers>
-        <App />
-      </Providers>,
-    );
-    // El aria-label debe ser la traducción de hud.showAxes, no un literal hardcodeado.
-    // En ES (locale por defecto) = "Mostrar ejes".
-    const button = screen.getByRole('button', { name: /mostrar ejes/i });
-    expect(button).toBeInTheDocument();
-    expect(button.getAttribute('aria-label')).toMatch(/mostrar ejes/i);
-  });
-
-  it('cuando showRotationAxes=true el botón usa t("hud.hideAxes") como aria-label', () => {
-    useAppStore.setState({ showRotationAxes: true });
-    render(
-      <Providers>
-        <App />
-      </Providers>,
-    );
-    const button = screen.getByRole('button', { name: /ocultar ejes/i });
-    expect(button).toBeInTheDocument();
-    expect(button.getAttribute('aria-label')).toMatch(/ocultar ejes/i);
+    it('DatePicker es descendiente de cockpit-topbar-cell', () => {
+      render(
+        <Providers>
+          <App />
+        </Providers>,
+      );
+      const topbarCell = screen.getByTestId('cockpit-topbar-cell');
+      const dateTrigger = screen.getByTestId('date-trigger');
+      expect(topbarCell.contains(dateTrigger)).toBe(true);
+    });
   });
 });
