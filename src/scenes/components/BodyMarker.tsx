@@ -40,11 +40,18 @@ export const BodyMarker = React.memo(function BodyMarker({
 }: BodyMarkerProps) {
   const groupRef = useRef<Group>(null);
 
+  // Priority 1: el marker lee su posición DESPUÉS de TODOS los consumers
+  // priority-0 que la escriben (el sprite del planeta calcula su posición vía
+  // usePlanetPosition en priority 0). El invariante de orden por frame es
+  // SimulationTicker (-2) → OriginTracker (-1) → consumers (0) → marker (1).
+  // Sin esta prioridad tardía, sprite y label se leían en el mismo nivel (0)
+  // sin orden garantizado → el marker podía leer el ref del frame anterior →
+  // drift de 1 frame → label desplazado respecto al sprite en modo local (#44).
   useFrame(() => {
     if (!groupRef.current) return;
     const p = positionRef.current;
     groupRef.current.position.set(p.x, p.y, p.z);
-  });
+  }, 1);
 
   if (!visible) return null;
 
@@ -55,6 +62,13 @@ export const BodyMarker = React.memo(function BodyMarker({
           <button
             type="button"
             onClick={onClick}
+            // En modo local OrbitControls está activo. Si el pointerdown/up del
+            // botón se propaga al domElement de OrbitControls, un micro-jitter
+            // entre down y up se interpreta como drag-rotate y cancela el click
+            // nativo → la selección no dispara (#43). Cortamos la propagación DOM
+            // para que OrbitControls no reciba estos eventos; onClick sigue intacto.
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
             aria-label={`Ir a ${label}`}
             style={{
               display: 'flex',
@@ -64,7 +78,10 @@ export const BodyMarker = React.memo(function BodyMarker({
               userSelect: 'none',
               background: 'transparent',
               border: 'none',
-              padding: 0,
+              // Padding amplía el área clicable de planetas lejanos (UX, no es
+              // la causa raíz del #43). El offset visual del ring/label es
+              // despreciable frente a la ganancia de alcance del hit target.
+              padding: 4,
             }}
           >
             <span
