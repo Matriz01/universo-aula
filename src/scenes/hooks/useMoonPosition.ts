@@ -103,6 +103,14 @@ export function computeMoonPosition(earthWorldPos: Vector3, jd: number): Vector3
 export function useMoonPosition(earthPosRef: MutableRefObject<Vector3>): MutableRefObject<Vector3> {
   const moonPosRef = useRef<Vector3>(new Vector3());
 
+  // Priority -0.5: este hook ESCRIBE moonPosRef (consumido por PlanetMoon y
+  // MoonMarker→BodyMarker) → banda de escritores. NO usar priority > 0 (render
+  // takeover de R3F: congela el canvas sin EffectComposer — bug C1).
+  // Cadena writer→writer: este hook LEE earthPosRef, escrito por
+  // usePlanetPosition (también -0.5). El orden intra-banda es por orden de
+  // montaje (sort estable de R3F) y usePlanetPosition se invoca siempre antes
+  // que useMoonPosition en los componentes que los combinan (MoonMarker,
+  // PlanetMoon) — el mismo orden que tenían cuando ambos iban en priority 0.
   useFrame(() => {
     const jd = getJD();
     // earthPosRef.current YA viene con el originOffset aplicado por usePlanetPosition,
@@ -112,7 +120,7 @@ export function useMoonPosition(earthPosRef: MutableRefObject<Vector3>): Mutable
     // (regresión de Phase C orbital-fidelity, enmascarada por test con offset=0).
     const moonPos = computeMoonPosition(earthPosRef.current, jd);
     moonPosRef.current.copy(moonPos);
-  });
+  }, -0.5);
 
   return moonPosRef;
 }

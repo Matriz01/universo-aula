@@ -40,18 +40,23 @@ export const BodyMarker = React.memo(function BodyMarker({
 }: BodyMarkerProps) {
   const groupRef = useRef<Group>(null);
 
-  // Priority 1: el marker lee su posición DESPUÉS de TODOS los consumers
-  // priority-0 que la escriben (el sprite del planeta calcula su posición vía
-  // usePlanetPosition en priority 0). El invariante de orden por frame es
-  // SimulationTicker (-2) → OriginTracker (-1) → consumers (0) → marker (1).
-  // Sin esta prioridad tardía, sprite y label se leían en el mismo nivel (0)
-  // sin orden garantizado → el marker podía leer el ref del frame anterior →
-  // drift de 1 frame → label desplazado respecto al sprite en modo local (#44).
+  // Priority 0 (default): el marker es un LECTOR — lee positionRef DESPUÉS de
+  // los escritores de posición, que van en la banda -0.5 (usePlanetPosition,
+  // useMoonPosition, SunMarker). Invariante de orden por frame:
+  // SimulationTicker (-2) → OriginTracker (-1) → position writers (-0.5)
+  // → consumers/readers (0) → render/composer (1, SOLO quien renderiza).
+  //
+  // IMPORTANTE — NO subir esto a priority > 0: en R3F cualquier suscripción con
+  // priority > 0 activa el render takeover (internal.priority++ → R3F deja de
+  // llamar gl.render). El único renderizador manual es el EffectComposer de
+  // postprocessing, que solo se monta con gpu === 'high' → con priority 1 aquí,
+  // en GPU mid/low el canvas se congelaba al entrar en modo local (bug C1).
+  // El fix de drift de #44 se conserva porque los escritores van en -0.5.
   useFrame(() => {
     if (!groupRef.current) return;
     const p = positionRef.current;
     groupRef.current.position.set(p.x, p.y, p.z);
-  }, 1);
+  });
 
   if (!visible) return null;
 

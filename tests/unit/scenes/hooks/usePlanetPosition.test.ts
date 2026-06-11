@@ -28,10 +28,12 @@ const { mockState } = vi.hoisted(() => {
 
 type FrameCallback = (state: unknown, dt: number) => void;
 let capturedFrameCallbacks: FrameCallback[] = [];
+let capturedFramePriorities: (number | undefined)[] = [];
 
 vi.mock('@react-three/fiber', () => ({
-  useFrame: (cb: FrameCallback) => {
+  useFrame: (cb: FrameCallback, priority?: number) => {
     capturedFrameCallbacks.push(cb);
+    capturedFramePriorities.push(priority);
   },
 }));
 
@@ -94,9 +96,29 @@ function tickFrames(count: number, dt = 0.016) {
 
 beforeEach(() => {
   capturedFrameCallbacks = [];
+  capturedFramePriorities = [];
   mockState.speed = 1.0;
   mockState.viewMode = 'global';
   vi.clearAllMocks();
+});
+
+// ---------------------------------------------------------------------------
+// Regresión C1 — banda de prioridad de los ESCRITORES de posición
+//
+// usePlanetPosition ESCRIBE un posRef consumido por otros useFrame (BodyMarker,
+// Planet, Saturn, MoonOrbitPath, useMoonPosition). Para garantizar el orden
+// writer → reader SIN usar priority > 0 (que activa el render takeover de R3F
+// y congela el canvas en GPU mid/low, bug C1), los escritores van en la banda
+// -0.5: Ticker (-2) → Origin (-1) → writers (-0.5) → readers (0) → composer (1).
+// ---------------------------------------------------------------------------
+
+describe('usePlanetPosition — prioridad de frame (writer band)', () => {
+  it('regresión C1: registra su useFrame con priority -0.5 (escritor de posición)', () => {
+    renderHook(() => usePlanetPosition(earthData, 'aprendiz'));
+
+    expect(capturedFramePriorities).toHaveLength(1);
+    expect(capturedFramePriorities[0]).toBe(-0.5);
+  });
 });
 
 describe('usePlanetPosition — Fix C: pausa congela traslación', () => {
