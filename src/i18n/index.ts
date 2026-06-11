@@ -41,6 +41,13 @@ void i18n
       return fallbackChain(code);
     },
     supportedLngs: ['es', 'en', 'ca'],
+    detection: {
+      // Sin cookies: solo localStorage (estrictamente necesario para
+      // recordar el idioma elegido). Se omite 'cookie' del order y de caches.
+      order: ['querystring', 'localStorage', 'navigator', 'htmlTag'],
+      caches: ['localStorage'],
+      lookupLocalStorage: 'ua_lang',
+    },
     interpolation: {
       escapeValue: false,
     },

@@ -87,5 +87,11 @@
     "*.{json,md,yml,yaml,css}": [
       "prettier --write"
     ]
+  },
+  "pnpm": {
+    "overrides": {
+      "ws@>=8.0.0 <8.20.1": ">=8.20.1",
+      "brace-expansion@>=5.0.0 <5.0.6": ">=5.0.6"
+    }
   }
 }
