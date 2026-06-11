@@ -66,6 +66,30 @@ describe('<BodyMarker>', () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  // Regresión #43: en modo local OrbitControls está activo. El pointerdown sobre
+  // el botón del marker se propagaba al domElement de OrbitControls; un micro-jitter
+  // entre down y up se interpretaba como drag-rotate y cancelaba el click nativo →
+  // la selección no disparaba. El botón debe cortar la propagación DOM de los
+  // eventos de puntero para que OrbitControls no los reciba.
+  it('regresión #43: detiene la propagación de pointerdown/pointerup en el botón', () => {
+    const positionRef = { current: new Vector3(0, 0, 0) };
+    const onClick = vi.fn();
+    const { getByRole } = render(
+      <BodyMarker positionRef={positionRef} label="Luna" onClick={onClick} />,
+    );
+    const button = getByRole('button');
+
+    const downEvent = new MouseEvent('pointerdown', { bubbles: true });
+    const downSpy = vi.spyOn(downEvent, 'stopPropagation');
+    fireEvent(button, downEvent);
+    expect(downSpy).toHaveBeenCalledTimes(1);
+
+    const upEvent = new MouseEvent('pointerup', { bubbles: true });
+    const upSpy = vi.spyOn(upEvent, 'stopPropagation');
+    fireEvent(button, upEvent);
+    expect(upSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('registra un useFrame para sincronizar la posición del group', () => {
     const positionRef = { current: new Vector3(388, -126, -20) };
     render(<BodyMarker positionRef={positionRef} label="Luna" />);
