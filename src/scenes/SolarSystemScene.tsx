@@ -81,9 +81,11 @@ const SHADOW_LIGHT_DISTANCE = 50;
 /**
  * OriginTracker — componente interno que actualiza el OriginOffsetContext cada frame.
  *
- * Se registra en useFrame con priority -1 para ejecutarse ANTES que los renders
- * de los cuerpos celestes (que usan priority 0 por defecto). Esto garantiza que
- * todos los consumidores leen el offset correcto del frame actual (no el anterior).
+ * Se registra en useFrame con priority -1 para ejecutarse ANTES que los
+ * escritores de posición (-0.5) y que los lectores (0). Esto garantiza que
+ * todos los consumidores leen el offset correcto del frame actual (no el
+ * anterior). Invariante por frame: SimulationTicker (-2) → OriginTracker (-1)
+ * → position writers (-0.5) → consumers/readers (0) → composer (1).
  *
  * En modo global: offset = (0,0,0) — sin cambio.
  * En modo local:  offset = posición absoluta del cuerpo seleccionado.
@@ -134,7 +136,7 @@ function OriginTracker({ planets, level }: OriginTrackerProps) {
         offsetRef.current.set(abs.x, abs.y, abs.z);
       }
     },
-    -1, // Priority -1: se ejecuta ANTES que los renders (priority 0)
+    -1, // Priority -1: ANTES que los position writers (-0.5) y los readers (0)
   );
 
   return null;
@@ -293,10 +295,15 @@ function SunMarker() {
   const offsetRef = useOriginOffset();
   const sunPosRef = useRef(new Vector3());
 
+  // Priority -0.5: ESCRIBE sunPosRef (consumido por BodyMarker, lector en 0).
+  // Lee offsetRef, escrito por OriginTracker en -1 → orden correcto.
+  // Banda de escritores del invariante: Ticker (-2) → Origin (-1) →
+  // writers (-0.5) → readers (0) → composer (1). NUNCA priority > 0 aquí
+  // (render takeover de R3F — bug C1).
   useFrame(() => {
     const o = offsetRef.current;
     sunPosRef.current.set(-o.x, -o.y, -o.z);
-  });
+  }, -0.5);
 
   // Sin onClick: el Sol no es un body seleccionable en el modelo actual.
   return <BodyMarker positionRef={sunPosRef} label={t('bodies.sun')} color="#ffcc00" />;

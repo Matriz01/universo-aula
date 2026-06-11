@@ -25,7 +25,11 @@ import { tick } from '@/scenes/simulationClock';
  * La fórmula jd += (delta × simulationSpeed) / 86400 convierte correctamente a días JD.
  */
 export function SimulationTicker(): null {
-  // Priority -2: garantiza que el JD avanza ANTES que OriginTracker (-1) y consumers (0).
+  // Priority -2: garantiza que el JD avanza ANTES que OriginTracker (-1), que los
+  // escritores de posición (-0.5) y que los lectores (0). Invariante por frame:
+  // SimulationTicker (-2) → OriginTracker (-1) → position writers (-0.5)
+  // → consumers/readers (0) → render/composer (1, SOLO quien renderiza — en R3F
+  // priority > 0 implica render takeover, ver BodyMarker.tsx / bug C1).
   // Sin esto, OriginTracker computa el offset con JD del frame anterior mientras que
   // los consumers leen el JD ya avanzado para este frame → mismatch = motion-per-frame
   // de drift en la posición del cuerpo seleccionado, visible como temblor a alta velocidad.

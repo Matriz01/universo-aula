@@ -130,12 +130,19 @@ export function usePlanetPosition(
   // En modo local:  offset = posición absoluta del cuerpo seleccionado.
   const originOffsetRef = useOriginOffset();
 
+  // Priority -0.5: este hook ESCRIBE posRef, consumido por otros useFrame
+  // (Planet/Saturn, MoonOrbitPath, BodyMarker, useMoonPosition). La banda de
+  // escritores garantiza que los lectores priority-0 ven el valor del frame
+  // actual (fix de drift #44) SIN usar priority > 0, que en R3F activa el
+  // render takeover y congela el canvas cuando no hay EffectComposer (GPU
+  // mid/low — bug C1). Invariante: Ticker (-2) → OriginTracker (-1) →
+  // position writers (-0.5) → consumers/readers (0) → composer (1).
   useFrame(() => {
     const jd = getJD();
     // Pasar el offset del origen para obtener la posición relativa (REQ-FRAME-1)
     const pos = computePosition(planet, level, jd, viewModeRef.current, originOffsetRef.current);
     posRef.current.set(pos.x, pos.y, pos.z);
-  });
+  }, -0.5);
 
   return posRef;
 }

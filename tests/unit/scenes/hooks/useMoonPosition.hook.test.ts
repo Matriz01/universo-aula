@@ -26,10 +26,12 @@ import { Vector3 } from 'three';
  * para poder dispararlo manualmente con la configuración que necesitemos.
  */
 let capturedFrameCallback: (() => void) | null = null;
+let capturedFramePriority: number | undefined;
 
 vi.mock('@react-three/fiber', () => ({
-  useFrame: (cb: () => void) => {
+  useFrame: (cb: () => void, priority?: number) => {
     capturedFrameCallback = cb;
+    capturedFramePriority = priority;
   },
   Canvas: ({ children }: { children: React.ReactNode }) => children,
   useThree: () => ({}),
@@ -75,6 +77,7 @@ import { useMoonPosition } from '@/scenes/hooks/useMoonPosition';
 describe('useMoonPosition — hook (ref actualizado por frame)', () => {
   beforeEach(() => {
     capturedFrameCallback = null;
+    capturedFramePriority = undefined;
     mockedJD = 2451545.0;
     zeroOffsetRef.current.set(0, 0, 0);
   });
@@ -83,6 +86,21 @@ describe('useMoonPosition — hook (ref actualizado por frame)', () => {
     const earthPosRef = { current: new Vector3(0, 0, 0) };
     renderHook(() => useMoonPosition(earthPosRef));
     expect(capturedFrameCallback).toBeTypeOf('function');
+  });
+
+  // Regresión C1 — useMoonPosition ESCRIBE moonPosRef (consumido por PlanetMoon
+  // y MoonMarker→BodyMarker), así que pertenece a la banda de escritores -0.5.
+  // No puede usar priority > 0: en R3F eso activa el render takeover y congela
+  // el canvas cuando no hay EffectComposer (GPU mid/low).
+  // Cadena writer→writer: este hook LEE earthPosRef escrito por usePlanetPosition
+  // (también -0.5). El orden intra-banda lo da el orden de montaje (sort estable
+  // de R3F): usePlanetPosition se invoca antes que useMoonPosition en todos los
+  // componentes que los combinan (MoonMarker, PlanetMoon) — igual que ocurría
+  // cuando ambos estaban en priority 0.
+  it('regresión C1: registra su useFrame con priority -0.5 (escritor de posición)', () => {
+    const earthPosRef = { current: new Vector3(0, 0, 0) };
+    renderHook(() => useMoonPosition(earthPosRef));
+    expect(capturedFramePriority).toBe(-0.5);
   });
 
   it('el ref devuelto tiene un Vector3 con length > 0 tras el primer frame', () => {

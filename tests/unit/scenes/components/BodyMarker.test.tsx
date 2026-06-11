@@ -20,9 +20,10 @@ let capturedFrameCallback: (() => void) | undefined;
 let capturedFramePriority: number | undefined;
 
 vi.mock('@react-three/fiber', () => ({
-  // El 2º argumento (priority) decide el orden de ejecución por frame. El
-  // BodyMarker debe leer su posición DESPUÉS de los consumers priority-0, así
-  // que lo capturamos para poder asertarlo (bug #44).
+  // El 2º argumento (priority) decide el orden de ejecución por frame Y la
+  // semántica de render: en R3F cualquier suscripción con priority > 0 activa
+  // el "render takeover" (R3F deja de llamar gl.render automáticamente). Lo
+  // capturamos para asertar que el BodyMarker NUNCA usa priority > 0 (C1).
   useFrame: (cb: () => void, priority?: number) => {
     capturedFrameCallback = cb;
     capturedFramePriority = priority;
@@ -104,16 +105,23 @@ describe('<BodyMarker>', () => {
     expect(capturedFrameCallback).toBeDefined();
   });
 
-  // Regresión #44: el sprite y el label se calculaban en dos useFrame distintos,
-  // ambos priority 0, sin orden garantizado → el marker leía su posRef ANTES de
-  // que el consumer la escribiera ese frame → drift de 1 frame (label desplazado
-  // respecto al sprite). El marker debe leer su ref con priority 1, DESPUÉS de
-  // todos los consumers priority-0 (invariante: Ticker -2 → Origin -1 → consumers 0 → marker 1).
-  it('regresión #44: registra el useFrame de posición con priority 1 (lee tras los consumers)', () => {
+  // Regresión C1 (render takeover): el fix original de #44 puso este useFrame en
+  // priority 1, pero en @react-three/fiber CUALQUIER suscripción con priority > 0
+  // tiene semántica de render takeover — R3F incrementa internal.priority y deja
+  // de llamar gl.render automáticamente (ver fiber: `internal.priority =
+  // internal.priority + (priority > 0 ? 1 : 0)` y `if (!state.internal.priority &&
+  // state.gl.render) state.gl.render(...)`). El único renderizador manual del
+  // proyecto es el EffectComposer de postprocessing, que solo se monta con
+  // gpu === 'high' → en GPU mid/low el canvas quedaba CONGELADO (0 draw calls)
+  // al entrar en modo local. El fix de #44 se conserva moviendo los ESCRITORES
+  // de posición a priority -0.5; el marker vuelve a ser lector en priority 0.
+  // Invariante: Ticker (-2) → Origin (-1) → writers (-0.5) → readers (0) → composer (1).
+  it('regresión C1: el useFrame de posición NO usa priority > 0 (evita render takeover)', () => {
     const positionRef = { current: new Vector3(388, -126, -20) };
     render(<BodyMarker positionRef={positionRef} label="Luna" />);
 
-    expect(capturedFramePriority).toBe(1);
+    // priority 0 explícito o undefined (default 0) — nunca > 0
+    expect(capturedFramePriority ?? 0).toBe(0);
   });
 
   it('aplica el color recibido al borde del ring y al texto del label', () => {

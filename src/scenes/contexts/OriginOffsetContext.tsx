@@ -3,7 +3,10 @@
  *
  * ADR-1: Se usa un ref (no state) para evitar re-renders en consumidores.
  * El ref se actualiza en OriginTracker (useFrame priority -1) ANTES que los
- * renders de cada cuerpo. Consumidores leen el valor actual en su propio useFrame.
+ * escritores de posición (-0.5) y que los lectores (0). Consumidores leen el
+ * valor actual en su propio useFrame. Invariante por frame:
+ * SimulationTicker (-2) → OriginTracker (-1) → position writers (-0.5)
+ * → consumers/readers (0) → render/composer (1, solo quien renderiza).
  *
  * En modo global: offset = (0,0,0) → sin cambio en posiciones.
  * En modo local:  offset = posición absoluta del cuerpo seleccionado →
