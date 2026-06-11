@@ -1,5 +1,4 @@
 import { lazy, Suspense, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/store/useAppStore';
 import { EmptyScene } from '@/scenes/EmptyScene';
 import { InfoPanel } from '@/components/ui/InfoPanel';
@@ -7,15 +6,11 @@ import { AttributionFooter } from '@/components/ui/AttributionFooter';
 import { CreditsModal } from '@/components/ui/CreditsModal';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ViewModeIndicator } from '@/components/ui/ViewModeIndicator';
-import { SpeedControl } from '@/components/ui/SpeedControl';
-import { ErrorBoundary } from '@/app/ErrorBoundary';
-import { HomeButton } from '@/components/hud/HomeButton';
-import { Logo } from '@/components/hud/Logo';
-import { LanguageSelector } from '@/components/hud/LanguageSelector';
-import { LevelDropdown } from '@/components/hud/LevelDropdown';
-import { DatePicker } from '@/components/hud/DatePicker';
 import { CreditsButton } from '@/components/hud/CreditsButton';
 import { OortCloudToggle } from '@/components/hud/OortCloudToggle';
+import { ErrorBoundary } from '@/app/ErrorBoundary';
+import { CockpitFrame } from '@/components/cockpit/CockpitFrame';
+import { TopBar } from '@/components/cockpit/TopBar';
 
 // Lazy import de SolarSystemScene — Three.js sólo se carga cuando se necesita
 const SolarSystemScene = lazy(() =>
@@ -32,84 +27,58 @@ function readLegacyFlag(): boolean {
 }
 
 export function App() {
-  const { t: tSolar } = useTranslation('solar');
   const legacyFlag = useAppStore((s) => s.legacyFlag) || readLegacyFlag();
-  const showRotationAxes = useAppStore((s) => s.showRotationAxes);
-  const toggleRotationAxes = useAppStore((s) => s.toggleRotationAxes);
   const [creditsOpen, setCreditsOpen] = useState(false);
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-[#0b0b14] text-white">
-      {/* Capa 3D — ocupa toda la pantalla, z-0 */}
-      <div className="absolute inset-0 z-0">
-        {legacyFlag ? (
-          <EmptyScene />
-        ) : (
-          <ErrorBoundary>
-            <Suspense fallback={<LoadingScreen />}>
-              <SolarSystemScene />
-            </Suspense>
-          </ErrorBoundary>
-        )}
-      </div>
-
-      {/* HUD — pointer-events-none base, z-10 */}
-      <div className="pointer-events-none absolute inset-0 z-10">
-        {/* Top-left: Logo + HomeButton */}
-        <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2">
-          <Logo />
-          <HomeButton />
+    <>
+      <CockpitFrame topBar={<TopBar />}>
+        {/* Escena 3D — ocupa toda la celda canvas */}
+        <div className="absolute inset-0">
+          {legacyFlag ? (
+            <EmptyScene />
+          ) : (
+            <ErrorBoundary>
+              <Suspense fallback={<LoadingScreen />}>
+                <SolarSystemScene />
+              </Suspense>
+            </ErrorBoundary>
+          )}
         </div>
 
-        {/* Top-center: SpeedControl — z-40, pointer-events-auto */}
-        <div className="pointer-events-auto absolute left-1/2 top-4 z-40 -translate-x-1/2">
-          <SpeedControl />
+        {/* OverlayLayer transitorio (ADR-D8) — anclado a la celda canvas, NO al viewport.
+            Los widgets pendientes de migrar (PR2) viven aquí.
+            pointer-events-none en la capa; cada widget restaura pointer-events-auto. */}
+        <div className="pointer-events-none absolute inset-0 z-10">
+          {/* Panel de información del planeta seleccionado
+              InfoPanel usa absolute (ya no fixed) → anclado a esta celda */}
+          <InfoPanel />
+
+          {/* Indicador de modo de visualización (solo visible en modo local) */}
+          <div className="pointer-events-auto absolute bottom-20 right-4">
+            <ViewModeIndicator />
+          </div>
+
+          {/* Toggle Nube de Oort (solo visible en modo global, ADR-005) */}
+          <div className="pointer-events-auto absolute bottom-32 right-4">
+            <OortCloudToggle />
+          </div>
+
+          {/* Bottom-right: CreditsButton */}
+          <div className="pointer-events-auto absolute bottom-4 right-4 z-40">
+            <CreditsButton onOpen={() => setCreditsOpen(true)} />
+          </div>
         </div>
+      </CockpitFrame>
 
-        {/* Top-right: columna vertical (LanguageSelector → LevelDropdown → DatePicker → EjesToggle) — z-40 */}
-        <div className="pointer-events-none absolute right-4 top-4 z-40 flex flex-col items-end gap-2">
-          <LanguageSelector />
-          <LevelDropdown />
-          <DatePicker />
-          <button
-            type="button"
-            onClick={toggleRotationAxes}
-            aria-label={showRotationAxes ? tSolar('hud.hideAxes') : tSolar('hud.showAxes')}
-            title={showRotationAxes ? tSolar('hud.hideAxes') : tSolar('hud.showAxes')}
-            className={`pointer-events-auto rounded border px-2 py-1 text-xs backdrop-blur transition-colors ${
-              showRotationAxes
-                ? 'border-cyan-400 bg-cyan-900/60 text-cyan-300'
-                : 'border-white/20 bg-black/40 text-white hover:border-white/40'
-            }`}
-          >
-            {showRotationAxes ? tSolar('hud.hideAxes') : tSolar('hud.showAxes')}
-          </button>
-        </div>
-
-        {/* Indicador de modo de visualización (solo visible en modo local) */}
-        <div className="pointer-events-auto absolute bottom-20 right-4">
-          <ViewModeIndicator />
-        </div>
-
-        {/* Toggle Nube de Oort (solo visible en modo global, ADR-005) */}
-        <div className="pointer-events-auto absolute bottom-32 right-4">
-          <OortCloudToggle />
-        </div>
-
-        {/* Bottom-right: CreditsButton — z-40 */}
-        <div className="pointer-events-auto absolute bottom-4 right-4 z-40">
-          <CreditsButton onOpen={() => setCreditsOpen(true)} />
-        </div>
-      </div>
-
-      {/* Panel de información del planeta seleccionado — z-50 */}
-      <InfoPanel />
-
-      {/* Footer de atribución permanente — z-20 */}
+      {/* Footer de atribución permanente — z-20
+          Permanece fuera del grid en PR1 (viewport-bottom == celda-bottom sin status-bar).
+          Migra a StatusBar en PR2. */}
       <AttributionFooter />
 
-      {/* Modal de créditos — z-60, controlado por estado App */}
+      {/* Modal de créditos — z-60, controlado por estado App.
+          Overlay legítimo: queda fuera del grid. */}
       <CreditsModal isOpen={creditsOpen} onClose={() => setCreditsOpen(false)} />
-    </div>
+    </>
   );
 }

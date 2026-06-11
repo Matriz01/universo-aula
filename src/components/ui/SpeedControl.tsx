@@ -122,7 +122,7 @@ export function SpeedControl() {
   const btnDisabled = 'text-white/30 cursor-not-allowed';
 
   return (
-    <div className="fixed left-1/2 top-4 z-40 -translate-x-1/2">
+    <div>
       <div className="flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-white shadow-lg backdrop-blur">
         {/* Flecha izquierda — decrementar stop */}
         <button

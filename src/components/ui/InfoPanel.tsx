@@ -251,8 +251,8 @@ export const InfoPanel = React.memo(function InfoPanel() {
 
   const isExplorador = level === 'explorador';
   const wrapperClass = isExplorador
-    ? 'pointer-events-none fixed right-4 top-4 bottom-16 z-30 w-80'
-    : 'pointer-events-none fixed right-4 top-4 bottom-16 z-30 w-80';
+    ? 'pointer-events-none absolute right-4 top-4 bottom-16 z-30 w-80'
+    : 'pointer-events-none absolute right-4 top-4 bottom-16 z-30 w-80';
 
   if (selectedBody === null) return <div className={wrapperClass} aria-hidden="true" />;
 
