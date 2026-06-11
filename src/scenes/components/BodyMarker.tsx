@@ -40,11 +40,18 @@ export const BodyMarker = React.memo(function BodyMarker({
 }: BodyMarkerProps) {
   const groupRef = useRef<Group>(null);
 
+  // Priority 1: el marker lee su posición DESPUÉS de TODOS los consumers
+  // priority-0 que la escriben (el sprite del planeta calcula su posición vía
+  // usePlanetPosition en priority 0). El invariante de orden por frame es
+  // SimulationTicker (-2) → OriginTracker (-1) → consumers (0) → marker (1).
+  // Sin esta prioridad tardía, sprite y label se leían en el mismo nivel (0)
+  // sin orden garantizado → el marker podía leer el ref del frame anterior →
+  // drift de 1 frame → label desplazado respecto al sprite en modo local (#44).
   useFrame(() => {
     if (!groupRef.current) return;
     const p = positionRef.current;
     groupRef.current.position.set(p.x, p.y, p.z);
-  });
+  }, 1);
 
   if (!visible) return null;
 
