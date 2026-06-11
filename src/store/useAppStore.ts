@@ -328,3 +328,25 @@ export const useShowKnownEvents = () => useAppStore((s) => s.showKnownEvents);
 export const useShowOortCloud = () => useAppStore((s) => s.showOortCloud);
 export const useSimulationSpeed = () => useAppStore((s) => s.simulationSpeed);
 export const useLastNonZeroSpeed = () => useAppStore((s) => s.lastNonZeroSpeed);
+
+// ---------------------------------------------------------------------------
+// Exposición para e2e (Playwright)
+// ---------------------------------------------------------------------------
+
+/**
+ * Los specs e2e necesitan entrar en modo local de forma determinista
+ * (goToBody) sin depender de un raycast WebGL sobre el canvas, que es frágil
+ * en headless (posición en pantalla del planeta desconocida y variable).
+ *
+ * Exponer el store es inocuo: es estado de UI puramente cliente, ya accesible
+ * vía React DevTools; no hay datos sensibles ni superficie de seguridad nueva.
+ */
+declare global {
+  interface Window {
+    __APP_STORE__?: typeof useAppStore;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.__APP_STORE__ = useAppStore;
+}
